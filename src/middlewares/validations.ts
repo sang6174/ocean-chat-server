@@ -200,3 +200,32 @@ export function validateSendMessageInput(
 
   return { valid: true };
 }
+
+// Validate add participants request
+export function validateAddParticipants(
+  conversation: ConversationIdentifier,
+  participantIds: string[]
+) {
+  if (!isUUIDv4(conversation.conversationId)) {
+    return {
+      valid: false,
+      message: "Conversation id must be a uuidv4.",
+    };
+  }
+  if (!isTypeConversationEnum(conversation.type)) {
+    return {
+      valid: false,
+      message: "conversation.type must be a 'myself', 'direct' or 'group'.",
+    };
+  }
+  for (const userId of participantIds) {
+    if (!isUUIDv4(userId)) {
+      return {
+        valid: false,
+        message: "Participant id must be a uuidv4.",
+      };
+    }
+  }
+
+  return { valid: true };
+}

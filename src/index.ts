@@ -3,6 +3,7 @@ import {
   handleLogin,
   handleCreateConversation,
   handleSendMessage,
+  handleAddParticipants,
 } from "./routes";
 
 const PORT = Number(process.env.PORT || 3000);
@@ -40,6 +41,11 @@ const server = Bun.serve({
     // POST /message
     if (path === "/message" && method === "POST") {
       return await handleSendMessage(req, corsHeaders);
+    }
+
+    // POST /participant
+    if (path === "/participants" && method === "POST") {
+      return await handleAddParticipants(req, corsHeaders);
     }
 
     return new Response(JSON.stringify({ message: "not found" }), {

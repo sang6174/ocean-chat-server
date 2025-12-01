@@ -77,3 +77,36 @@ export async function pgCreateConversationWithParticipantsTransaction(
     client.release();
   }
 }
+
+export async function pgAddParticipantsTransaction(
+  conversationId: string,
+  participantIds: string[]
+) {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    for (const userId of participantIds) {
+      await client.query(
+        `INSERT INTO main.participants (conversation_id, user_id)
+         VALUES ($1, $2)
+         ON CONFLICT (conversation_id, user_id) DO NOTHING`,
+        [conversationId, userId]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    return {
+      status: 201,
+      message: "Participants added successfully",
+    };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.log("POSTGRES: Add new participant errors.\n", err);
+    return null;
+  } finally {
+    client.release();
+  }
+}

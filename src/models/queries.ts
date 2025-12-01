@@ -59,3 +59,20 @@ export async function pgGetParticipant(
     return null;
   }
 }
+
+export async function pgGetParticipantRole(
+  userId: string,
+  conversationId: string
+) {
+  try {
+    const result = await pool.query(
+      `SELECT role
+       FROM main.participants
+       WHERE user_id = $1 AND conversation_Id = $2`,
+      [userId, conversationId]
+    );
+    return result.rows[0];
+  } catch (err) {
+    return null;
+  }
+}

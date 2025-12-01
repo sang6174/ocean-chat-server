@@ -72,6 +72,10 @@ export interface HttpMessagePost {
   message: string;
 }
 
+export interface HttpParticipantPost {
+  conversation: ConversationIdentifier;
+  participantIds: string[];
+}
 // Services
 export interface SendMessageInput {
   senderId: string;
