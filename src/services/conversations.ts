@@ -1,8 +1,14 @@
-import type { ConversationMetadata, HttpResponse, Participant } from "../types";
+import type {
+  ConversationMetadata,
+  HttpResponse,
+  Participant,
+  ConversationIdentifier,
+} from "../types";
 import { ConversationType } from "../types";
 import {
   pgCreateConversationWithParticipantsTransaction,
   pgGetParticipant,
+  pgGetConversationIdentifiers,
 } from "../models";
 
 export async function createConversationService(
@@ -48,6 +54,24 @@ export async function createConversationService(
     }
   } catch (err) {
     console.log("createConversation error: ", err);
+    return null;
+  }
+}
+
+export async function getConversationIdentifiersServices(
+  userId: string
+): Promise<HttpResponse | ConversationIdentifier[] | null> {
+  try {
+    const conversationIdentifiers = await pgGetConversationIdentifiers(userId);
+    if (!conversationIdentifiers) {
+      return {
+        status: 500,
+        message: "Get conversation identifiers error.",
+      };
+    }
+    return conversationIdentifiers;
+  } catch (err) {
+    console.log("getConversationIdsByUserId error: ", err);
     return null;
   }
 }

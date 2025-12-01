@@ -1,6 +1,6 @@
 import { pool } from "../configs/db";
 
-import type { Participant } from "../types";
+import type { Participant, ConversationIdentifier } from "../types";
 
 // ============================================================
 // Create
@@ -73,6 +73,25 @@ export async function pgGetParticipantRole(
     );
     return result.rows[0];
   } catch (err) {
+    return null;
+  }
+}
+
+export async function pgGetConversationIdentifiers(
+  userId: string
+): Promise<ConversationIdentifier[] | null> {
+  try {
+    const conversationIds = await pool.query(
+      `SELECT c.conversation_id, c.type 
+       FROM main.participants p 
+       JOIN main.conversations c ON p.conversation_id = c.id 
+       WHERE p.user_id = $1`,
+      [userId]
+    );
+
+    return conversationIds.rows;
+  } catch (err) {
+    console.log("pgGetConversationIdentifiers error: ", err);
     return null;
   }
 }

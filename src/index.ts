@@ -1,14 +1,16 @@
+import type { DataWebSocket } from "./types";
 import {
   handleRegister,
   handleLogin,
   handleCreateConversation,
   handleSendMessage,
   handleAddParticipants,
+  handleUpgradeWebSocket,
 } from "./routes";
 
 const PORT = Number(process.env.PORT || 3000);
 
-const server = Bun.serve({
+const server = Bun.serve<DataWebSocket>({
   port: PORT,
   hostname: "localhost",
 
@@ -48,10 +50,28 @@ const server = Bun.serve({
       return await handleAddParticipants(req, corsHeaders);
     }
 
+    // Upgrade websocket
+    if (req.headers.get("Upgrade")?.toLowerCase() === "websocket") {
+      return await handleUpgradeWebSocket(server, req, corsHeaders);
+    }
+
     return new Response(JSON.stringify({ message: "not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  },
+
+  websocket: {
+    data: {} as DataWebSocket,
+
+    open(ws) {
+      console.log("Upgrade websocket successfully.");
+      ws.close(1000, "Normal closure");
+    },
+
+    async message(ws) {},
+
+    close(ws) {},
   },
 });
 

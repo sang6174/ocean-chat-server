@@ -1,9 +1,13 @@
 import type {
   ConversationType,
   ConversationMetadata,
+  ConversationIdentifier,
   HttpResponse,
 } from "../types";
-import { createConversationService } from "../services";
+import {
+  createConversationService,
+  getConversationIdentifiersServices,
+} from "../services";
 
 export async function createConversationController(
   type: ConversationType,
@@ -16,4 +20,13 @@ export async function createConversationController(
     participantIds
   );
   return result;
+}
+
+export async function getConversationIdentifiersController(
+  userId: string
+): Promise<HttpResponse | ConversationIdentifier[] | null> {
+  const conversationIdentifiers = await getConversationIdentifiersServices(
+    userId
+  );
+  return conversationIdentifiers;
 }

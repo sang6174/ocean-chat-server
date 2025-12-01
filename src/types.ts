@@ -20,6 +20,14 @@ export type Participant = {
   username: string;
 };
 
+// WebSocket
+export interface DataWebSocket {
+  userId: string;
+  username: string;
+  accessToken: string;
+  conversationIdentifiers: ConversationIdentifier[];
+}
+
 // TokenPayload
 export interface UserTokenPayload {
   data: {
