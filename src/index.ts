@@ -1,4 +1,8 @@
-import { handleRegister, handleLogin } from "./routes";
+import {
+  handleRegister,
+  handleLogin,
+  handleCreateConversation,
+} from "./routes";
 
 const PORT = Number(process.env.PORT || 3000);
 
@@ -25,6 +29,11 @@ const server = Bun.serve({
     // POST /login
     if (path === "/login" && method === "POST") {
       return await handleLogin(req, corsHeaders);
+    }
+
+    // POST /conversation
+    if (path === "/conversation" && method === "POST") {
+      return await handleCreateConversation(req, corsHeaders);
     }
 
     return new Response(JSON.stringify({ message: "not found" }), {

@@ -1,3 +1,20 @@
+// Conversation
+export enum ConversationType {
+  Group = "group",
+  Direct = "direct",
+  Myself = "myself",
+}
+
+export type ConversationMetadata = {
+  name: string;
+  creator: string;
+};
+
+export type Participant = {
+  id: string;
+  username: string;
+};
+
 // TokenPayload
 export interface UserTokenPayload {
   data: {
@@ -37,4 +54,10 @@ export interface HttpLoginPostResponse {
   username: string;
   accessToken: string;
   refreshToken: string;
+}
+
+export interface HttpConversationPost {
+  type: ConversationType;
+  metadata: ConversationMetadata;
+  participants: string[];
 }

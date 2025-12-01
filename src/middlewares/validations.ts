@@ -91,3 +91,82 @@ export function isRegisterInput(data: any): data is HttpRegisterPost {
 export function isLoginInput(data: any): data is HttpLoginPost {
   return data && isUsername(data.username) && isPassword(data.password);
 }
+
+// Validate create a new myself conversation
+export function validateCreateMyselfConversation(
+  value: any
+): { valid: true } | { valid: false; message: string } {
+  if (!isPlainObject(value?.metadata)) {
+    return {
+      valid: false,
+      message: "Myself conversation must include metadata object",
+    };
+  }
+  if (typeof value.metadata.name !== "string") {
+    return {
+      valid: false,
+      message: "Group conversation metadata must include a string 'name'",
+    };
+  }
+
+  return { valid: true };
+}
+
+// Validate create a new direct conversation
+export function validateCreateDirectConversation(
+  value: any
+): { valid: true } | { valid: false; message: string } {
+  if (!Array.isArray(value?.participants)) {
+    return { valid: false, message: "Participants must be an array" };
+  }
+  if (!value.participants.every((p: any) => isUUIDv4(p))) {
+    return { valid: false, message: "All participants must be strings" };
+  }
+  if (value.participants.length !== 2) {
+    return {
+      valid: false,
+      message: "Direct conversation had exactly two participants.",
+    };
+  }
+  if (value.participants[0] === value.participants[1]) {
+    return {
+      valid: false,
+      message: "A user appears twice.",
+    };
+  }
+
+  return { valid: true };
+}
+
+// Validate create a new group conversation
+export function validateCreateGroupConversation(
+  value: any,
+  creator: string
+): { valid: true } | { valid: false; message: string } {
+  if (!Array.isArray(value?.participants)) {
+    return { valid: false, message: "Participants must be an array" };
+  }
+  if (!value.participants.every((p: any) => isUUIDv4(p))) {
+    return { valid: false, message: "All participants must be strings" };
+  }
+  if (!isPlainObject(value?.metadata)) {
+    return {
+      valid: false,
+      message: "Group conversation must include metadata object",
+    };
+  }
+  if (typeof value.metadata.name !== "string") {
+    return {
+      valid: false,
+      message: "Group conversation metadata must include a string 'name'",
+    };
+  }
+  if (value.participants.length < 3) {
+    return {
+      valid: false,
+      message: "Group conversation must have at least 3 participants",
+    };
+  }
+
+  return { valid: true };
+}
