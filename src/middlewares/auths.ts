@@ -1,5 +1,5 @@
 import type { UserTokenPayload } from "../types";
-import { verifyAccessToken, verifyRefreshToken } from "../services/auths";
+import { verifyAccessToken, verifyRefreshToken } from "../services";
 import { isDecodedJWT } from "./validations";
 
 export function authMiddleware(token: string): UserTokenPayload | null {

@@ -1,3 +1,5 @@
+import { handleRegister } from "./routes";
+
 const PORT = Number(process.env.PORT || 3000);
 
 const server = Bun.serve({
@@ -15,6 +17,11 @@ const server = Bun.serve({
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     };
 
+    // POST /register
+    if (path === "/register" && method === "POST") {
+      return await handleRegister(req, corsHeaders);
+    }
+
     return new Response(JSON.stringify({ message: "not found" }), {
       status: 404,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -22,4 +29,4 @@ const server = Bun.serve({
   },
 });
 
-console.log(`Listening on ${server.url}`);
+console.log(`Server listening on ${server.url}`);

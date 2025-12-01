@@ -13,3 +13,16 @@ export interface StringTokenPayload {
   iat: number;
   exp: number;
 }
+
+// HTTP request/response interface
+export interface HttpRegisterPost {
+  name: string;
+  email: string;
+  username: string;
+  password: string;
+}
+
+export type HttpResponse = {
+  status: number;
+  message: string;
+};
