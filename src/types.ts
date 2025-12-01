@@ -10,6 +10,11 @@ export type ConversationMetadata = {
   creator: string;
 };
 
+export type ConversationIdentifier = {
+  conversationId: string;
+  type: ConversationType;
+};
+
 export type Participant = {
   id: string;
   username: string;
@@ -60,4 +65,17 @@ export interface HttpConversationPost {
   type: ConversationType;
   metadata: ConversationMetadata;
   participants: string[];
+}
+
+export interface HttpMessagePost {
+  conversation: ConversationIdentifier;
+  message: string;
+}
+
+// Services
+export interface SendMessageInput {
+  senderId: string;
+  accessToken: string;
+  conversation: ConversationIdentifier;
+  message: string;
 }

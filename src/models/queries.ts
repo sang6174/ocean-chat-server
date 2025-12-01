@@ -3,6 +3,31 @@ import { pool } from "../configs/db";
 import type { Participant } from "../types";
 
 // ============================================================
+// Create
+// ============================================================
+export async function pgCreateMessage(
+  conversationId: string,
+  senderId: string,
+  content: string
+) {
+  try {
+    await pool.query(
+      `INSERT INTO main.messages (conversation_id, sender_id, content)
+       VALUES ($1, $2, $3)`,
+      [conversationId, senderId, content]
+    );
+
+    return {
+      status: 201,
+      message: "Create message successfully",
+    };
+  } catch (err) {
+    console.log("PgCreateMessage error: ", err);
+    return null;
+  }
+}
+
+// ============================================================
 // Read
 // ============================================================
 export async function pgFindUserByEmail(email: string) {

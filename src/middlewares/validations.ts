@@ -2,7 +2,9 @@ import type {
   StringTokenPayload,
   HttpRegisterPost,
   HttpLoginPost,
+  ConversationIdentifier,
 } from "../types";
+import { ConversationType } from "../types";
 
 // Pure function
 export function isPlainObject(value: any): value is Record<string, any> {
@@ -43,6 +45,10 @@ export function isPassword(
     value.trim().length >= minLength &&
     value.trim().length <= maxLength
   );
+}
+
+function isTypeConversationEnum(value: any): value is ConversationType {
+  return Object.values(ConversationType).includes(value);
 }
 
 // Validate payload from output of verify token
@@ -166,6 +172,30 @@ export function validateCreateGroupConversation(
       valid: false,
       message: "Group conversation must have at least 3 participants",
     };
+  }
+
+  return { valid: true };
+}
+
+// Validate send message response
+export function validateSendMessageInput(
+  conversation: ConversationIdentifier,
+  message: string
+) {
+  if (!isUUIDv4(conversation.conversationId)) {
+    return {
+      valid: false,
+      message: "Conversation id must be a uuidv4.",
+    };
+  }
+  if (!isTypeConversationEnum(conversation.type)) {
+    return {
+      valid: false,
+      message: "conversation.type must be a 'myself', 'direct' or 'group'.",
+    };
+  }
+  if (typeof message !== "string") {
+    return { valid: false, message: "message must be a string" };
   }
 
   return { valid: true };
