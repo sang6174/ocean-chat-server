@@ -26,3 +26,15 @@ export type HttpResponse = {
   status: number;
   message: string;
 };
+
+export interface HttpLoginPost {
+  username: string;
+  password: string;
+}
+
+export interface HttpLoginPostResponse {
+  userId: string;
+  username: string;
+  accessToken: string;
+  refreshToken: string;
+}

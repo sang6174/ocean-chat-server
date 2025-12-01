@@ -1,4 +1,8 @@
-import type { StringTokenPayload, HttpRegisterPost } from "../types";
+import type {
+  StringTokenPayload,
+  HttpRegisterPost,
+  HttpLoginPost,
+} from "../types";
 
 // Pure function
 export function isPlainObject(value: any): value is Record<string, any> {
@@ -72,7 +76,7 @@ export function isDecodedJWT(value: any): value is StringTokenPayload {
   return true;
 }
 
-// Validate register input
+// Validate register request
 export function isRegisterInput(data: any): data is HttpRegisterPost {
   return (
     data &&
@@ -81,4 +85,9 @@ export function isRegisterInput(data: any): data is HttpRegisterPost {
     isUsername(data.username) &&
     isPassword(data.password)
   );
+}
+
+// Validate login request
+export function isLoginInput(data: any): data is HttpLoginPost {
+  return data && isUsername(data.username) && isPassword(data.password);
 }
