@@ -112,7 +112,7 @@ export interface HttpConversationPost {
   participants: string[];
 }
 
-export interface CreateConversationControllerInput {
+export interface CreateConversationInput {
   type: ConversationType;
   metadata: ConversationMetadata;
   participants: string[];

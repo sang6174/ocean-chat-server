@@ -2,7 +2,7 @@ import { ConversationType } from "../types";
 import type {
   HttpResponse,
   HttpConversationPost,
-  CreateConversationControllerInput,
+  CreateConversationInput,
   UserTokenPayload,
 } from "../types";
 import {
@@ -80,7 +80,7 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     }
 
     // Sanitize request body according to conversation type
-    let cleanBody: CreateConversationControllerInput;
+    let cleanBody: CreateConversationInput;
     if (rawBody.type === ConversationType.Myself) {
       cleanBody = {
         type: ConversationType.Myself,
