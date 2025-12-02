@@ -139,7 +139,7 @@ export interface SendMessageInput {
 export interface PublishConversationCreated {
   senderId: string;
   accessToken: string;
-  participantIds: string[];
+  recipientIds: string[];
   conversation: Conversation;
 }
 

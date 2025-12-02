@@ -45,7 +45,7 @@ export async function createConversationService(
         {
           senderId,
           accessToken,
-          participantIds,
+          recipientIds: participantIds,
           conversation: result.conversationResult.rows[0],
         }
       );
