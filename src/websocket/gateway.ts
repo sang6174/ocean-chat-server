@@ -4,6 +4,7 @@ import type {
   ConversationIdentifier,
   DataWebSocket,
   WsNormalOutput,
+  PublishMessageCreated,
 } from "../types";
 import { eventBusServer } from "./events";
 
@@ -152,13 +153,7 @@ eventBusServer.on(
     conversationIdentifier,
     recipientIds,
     message,
-  }: {
-    senderId: string;
-    accessToken: string;
-    conversationIdentifier: ConversationIdentifier;
-    recipientIds: string[];
-    message: string;
-  }) => {
+  }: PublishMessageCreated) => {
     const data: WsNormalOutput = {
       type: WsServerEvent.MESSAGE_CREATED,
       payload: {

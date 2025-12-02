@@ -142,3 +142,11 @@ export interface PublishConversationCreated {
   participantIds: string[];
   conversation: Conversation;
 }
+
+export interface PublishMessageCreated {
+  senderId: string;
+  accessToken: string;
+  conversationIdentifier: ConversationIdentifier;
+  recipientIds: string[];
+  message: string;
+}
