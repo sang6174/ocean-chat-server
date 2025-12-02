@@ -1,20 +1,23 @@
+import { WsServerEvent } from "../types";
 import type {
   ConversationMetadata,
   HttpResponse,
-  Participant,
   ConversationIdentifier,
+  PublishConversationCreated,
 } from "../types";
 import { ConversationType } from "../types";
 import {
   pgCreateConversationWithParticipantsTransaction,
-  pgGetParticipant,
   pgGetConversationIdentifiers,
 } from "../models";
+import { eventBusServer } from "../websocket/events";
 
 export async function createConversationService(
   type: ConversationType,
   metadata: ConversationMetadata,
-  participantIds: string[]
+  participantIds: string[],
+  senderId: string,
+  accessToken: string
 ): Promise<HttpResponse | null> {
   try {
     const result = await pgCreateConversationWithParticipantsTransaction(
@@ -32,19 +35,20 @@ export async function createConversationService(
         message: "Create a new myself conversation is successful.",
       };
     } else if (type === ConversationType.Direct) {
-      const users: Participant[] = [];
-      for (const participantId of participantIds) {
-        const user = await pgGetParticipant(participantId);
-        if (!user) {
-          throw new Error("Get user to invite a new group conversation error.");
-        }
-        users.push(user);
-      }
       return {
         status: 201,
         message: "Create a new direct conversation is successful.",
       };
     } else if (type === ConversationType.Group) {
+      eventBusServer.emit<PublishConversationCreated>(
+        WsServerEvent.CONVERSATION_CREATED,
+        {
+          senderId,
+          accessToken,
+          participantIds,
+          conversation: result.conversationResult.rows[0],
+        }
+      );
       return {
         status: 201,
         message: "Create a new group conversation is successful.",

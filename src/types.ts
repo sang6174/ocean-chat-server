@@ -10,6 +10,13 @@ export type ConversationMetadata = {
   creator: string;
 };
 
+export type Conversation = {
+  id: string;
+  type: string;
+  metadata: ConversationMetadata;
+  created_at: Date;
+};
+
 export type ConversationIdentifier = {
   conversationId: string;
   type: ConversationType;
@@ -26,6 +33,35 @@ export interface DataWebSocket {
   username: string;
   accessToken: string;
   conversationIdentifiers: ConversationIdentifier[];
+}
+
+export interface WsSendMessageInput {
+  conversation: ConversationIdentifier;
+  senderId: string;
+  message: string;
+}
+
+export enum WsServerEvent {
+  CONVERSATION_CREATED = "conversation.created",
+}
+
+export type EventCallback<T> = (payload: T) => void;
+
+export type WsToUser = {
+  senderId: string;
+  toUserId: string;
+};
+
+export type WsToConversation = {
+  senderId: string;
+  toConversationId: string;
+};
+export interface WsNormalOutput {
+  type: string;
+  payload: {
+    metadata: WsToUser | WsToConversation;
+    data: string | Conversation;
+  };
 }
 
 // TokenPayload
@@ -75,6 +111,13 @@ export interface HttpConversationPost {
   participants: string[];
 }
 
+export interface CreateConversationControllerInput {
+  type: ConversationType;
+  metadata: ConversationMetadata;
+  participants: string[];
+  senderId: string;
+  accessToken: string;
+}
 export interface HttpMessagePost {
   conversation: ConversationIdentifier;
   message: string;
@@ -90,4 +133,11 @@ export interface SendMessageInput {
   accessToken: string;
   conversation: ConversationIdentifier;
   message: string;
+}
+
+export interface PublishConversationCreated {
+  senderId: string;
+  accessToken: string;
+  participantIds: string[];
+  conversation: Conversation;
 }

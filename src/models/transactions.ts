@@ -69,6 +69,7 @@ export async function pgCreateConversationWithParticipantsTransaction(
     return {
       status: 201,
       message: "Create conversation and participants successfully",
+      conversationResult,
     };
   } catch (err) {
     await client.query(`ROLLBACK`);

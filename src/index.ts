@@ -7,6 +7,7 @@ import {
   handleAddParticipants,
   handleUpgradeWebSocket,
 } from "./routes";
+import { addWsConnection, removeWsConnection } from "./websocket/gateway";
 
 const PORT = Number(process.env.PORT || 3000);
 
@@ -45,7 +46,7 @@ const server = Bun.serve<DataWebSocket>({
       return await handleSendMessage(req, corsHeaders);
     }
 
-    // POST /participant
+    // POST /participants
     if (path === "/participants" && method === "POST") {
       return await handleAddParticipants(req, corsHeaders);
     }
@@ -66,12 +67,14 @@ const server = Bun.serve<DataWebSocket>({
 
     open(ws) {
       console.log("Upgrade websocket successfully.");
-      ws.close(1000, "Normal closure");
+      addWsConnection(ws);
     },
 
     async message(ws) {},
 
-    close(ws) {},
+    close(ws) {
+      removeWsConnection(ws);
+    },
   },
 });
 

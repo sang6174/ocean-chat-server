@@ -95,3 +95,21 @@ export async function pgGetConversationIdentifiers(
     return null;
   }
 }
+
+export async function pgGetParticipantIds(
+  conversationId: string
+): Promise<string[] | null> {
+  try {
+    const participantIds = await pool.query(
+      `SELECT user_id
+       FROM main.participants
+       WHERE conversation_id = $1`,
+      [conversationId]
+    );
+
+    return participantIds.rows;
+  } catch (err) {
+    console.log("PgGetParticipantIds error: ", err);
+    return null;
+  }
+}

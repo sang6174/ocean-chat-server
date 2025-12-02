@@ -12,12 +12,16 @@ import {
 export async function createConversationController(
   type: ConversationType,
   metadata: ConversationMetadata,
-  participantIds: string[]
+  participants: string[],
+  senderId: string,
+  accessToken: string
 ): Promise<HttpResponse | null> {
   const result = await createConversationService(
     type,
     metadata,
-    participantIds
+    participants,
+    senderId,
+    accessToken
   );
   return result;
 }

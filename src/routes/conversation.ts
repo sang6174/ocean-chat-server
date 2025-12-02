@@ -2,6 +2,7 @@ import { ConversationType } from "../types";
 import type {
   HttpResponse,
   HttpConversationPost,
+  CreateConversationControllerInput,
   UserTokenPayload,
 } from "../types";
 import {
@@ -79,7 +80,7 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     }
 
     // Sanitize request body according to conversation type
-    let cleanBody: HttpConversationPost;
+    let cleanBody: CreateConversationControllerInput;
     if (rawBody.type === ConversationType.Myself) {
       cleanBody = {
         type: ConversationType.Myself,
@@ -88,6 +89,8 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
           creator: authResult.data.userId,
         },
         participants: [authResult.data.userId],
+        senderId: authResult.data.userId,
+        accessToken: auth,
       };
     } else if (rawBody.type === ConversationType.Direct) {
       cleanBody = {
@@ -97,6 +100,8 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
           creator: "",
         },
         participants: rawBody.participants,
+        senderId: authResult.data.userId,
+        accessToken: auth,
       };
     } else if (rawBody.type === ConversationType.Group) {
       cleanBody = {
@@ -106,6 +111,8 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
           creator: authResult.data.userId,
         },
         participants: rawBody.participants,
+        senderId: authResult.data.userId,
+        accessToken: auth,
       };
     } else {
       const validTypes = Object.values(ConversationType);
@@ -122,7 +129,9 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     const result = await createConversationController(
       cleanBody.type,
       cleanBody.metadata,
-      cleanBody.participants
+      cleanBody.participants,
+      cleanBody.senderId,
+      cleanBody.accessToken
     );
     if (!result) {
       return new Response(
