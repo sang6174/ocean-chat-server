@@ -116,7 +116,7 @@ eventBusServer.on(
     recipientIds: string[];
     conversation: Conversation;
   }) => {
-    const data: WsNormalOutput = {
+    const dataToOtherSend: WsNormalOutput = {
       type: WsServerEvent.CONVERSATION_CREATED,
       payload: {
         metadata: {
@@ -126,9 +126,20 @@ eventBusServer.on(
         data: conversation,
       },
     };
-    sendToOtherConnectionsOfSender(accessToken, senderId, data);
+
+    sendToOtherConnectionsOfSender(accessToken, senderId, dataToOtherSend);
     for (const recipientId of recipientIds) {
-      sendToUser(recipientId, data);
+      const dataToRecipient: WsNormalOutput = {
+        type: WsServerEvent.CONVERSATION_CREATED,
+        payload: {
+          metadata: {
+            senderId,
+            toUserId: recipientId,
+          },
+          data: conversation,
+        },
+      };
+      sendToUser(recipientId, dataToRecipient);
     }
   }
 );
