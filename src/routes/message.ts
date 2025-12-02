@@ -22,6 +22,7 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     // Verify auth token
     const authResult: UserTokenPayload | null = authMiddleware(auth);
     if (!authResult) {
@@ -33,6 +34,7 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
         }
       );
     }
+
     // Parse request body
     const rawBody = await parseBodyJSON<HttpMessagePost>(req);
     if ("status" in rawBody && "message" in rawBody) {
@@ -41,6 +43,7 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     // Validate request body
     const validatedResult = validateSendMessageInput(
       rawBody.conversation,
@@ -55,6 +58,7 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
         }
       );
     }
+
     // Sanitize validated body
     const cleanBody: SendMessageInput = {
       senderId: authResult.data.userId,

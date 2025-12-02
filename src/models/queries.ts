@@ -11,15 +11,16 @@ export async function pgCreateMessage(
   content: string
 ) {
   try {
-    await pool.query(
+    const result = await pool.query(
       `INSERT INTO main.messages (conversation_id, sender_id, content)
-       VALUES ($1, $2, $3)`,
+       VALUES ($1, $2, $3) RETURNING id`,
       [conversationId, senderId, content]
     );
 
     return {
       status: 201,
       message: "Create message successfully",
+      result: result.rows[0],
     };
   } catch (err) {
     console.log("PgCreateMessage error: ", err);

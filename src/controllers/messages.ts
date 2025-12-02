@@ -7,6 +7,11 @@ export async function sendMessageController(
   conversation: ConversationIdentifier,
   message: string
 ): Promise<HttpResponse | null> {
-  const result = await createMessageService(senderId, conversation, message);
+  const result = await createMessageService(
+    senderId,
+    accessToken,
+    conversation,
+    message
+  );
   return result;
 }

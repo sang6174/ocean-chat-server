@@ -1,5 +1,10 @@
 import { WsServerEvent } from "../types";
-import type { Conversation, DataWebSocket, WsNormalOutput } from "../types";
+import type {
+  Conversation,
+  ConversationIdentifier,
+  DataWebSocket,
+  WsNormalOutput,
+} from "../types";
 import { eventBusServer } from "./events";
 
 const wsConnections: Map<
@@ -125,5 +130,34 @@ eventBusServer.on(
     for (const recipientId of recipientIds) {
       sendToUser(recipientId, data);
     }
+  }
+);
+
+eventBusServer.on(
+  WsServerEvent.MESSAGE_CREATED,
+  ({
+    senderId,
+    accessToken,
+    conversationIdentifier,
+    recipientIds,
+    message,
+  }: {
+    senderId: string;
+    accessToken: string;
+    conversationIdentifier: ConversationIdentifier;
+    recipientIds: string[];
+    message: string;
+  }) => {
+    const data: WsNormalOutput = {
+      type: WsServerEvent.MESSAGE_CREATED,
+      payload: {
+        metadata: {
+          senderId,
+          toConversation: conversationIdentifier,
+        },
+        data: message,
+      },
+    };
+    broadcastToConversation<WsNormalOutput>(accessToken, recipientIds, data);
   }
 );

@@ -43,6 +43,7 @@ export interface WsSendMessageInput {
 
 export enum WsServerEvent {
   CONVERSATION_CREATED = "conversation.created",
+  MESSAGE_CREATED = "message.created",
 }
 
 export type EventCallback<T> = (payload: T) => void;
@@ -54,7 +55,7 @@ export type WsToUser = {
 
 export type WsToConversation = {
   senderId: string;
-  toConversationId: string;
+  toConversation: ConversationIdentifier;
 };
 export interface WsNormalOutput {
   type: string;
