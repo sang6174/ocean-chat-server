@@ -64,7 +64,10 @@ export async function handleRegister(req: Request, corsHeaders: any) {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.log("handleRegister error: ", err);
+    console.log(
+      `[ROUTE_ERROR] - ${new Date().toISOString()} - Register error.\n`,
+      err
+    );
     return new Response(
       JSON.stringify({
         message: "Register error. Please try again later.",

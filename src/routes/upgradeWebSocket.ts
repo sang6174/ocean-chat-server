@@ -87,7 +87,10 @@ export async function handleUpgradeWebSocket(
       }
     );
   } catch (err) {
-    console.log("Handle upgrade websocket error: ", err);
+    console.log(
+      `[ROUTE_ERROR] - ${new Date().toISOString()} - Upgrade websocket error.\n`,
+      err
+    );
     return new Response(
       JSON.stringify({
         message: "Upgrade websocket error. Please try again later.",

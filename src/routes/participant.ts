@@ -90,7 +90,10 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.log("Handle add participants error: ", err);
+    console.log(
+      `[ROUTE_ERROR] - ${new Date().toISOString()} - Add participants error.\n`,
+      err
+    );
     return new Response(
       JSON.stringify({
         message: "Create a conversation error. Please try again later.",

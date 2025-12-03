@@ -91,7 +91,10 @@ export async function handleGetMessages(
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.log("handleRegister error: ", err);
+    console.log(
+      `[ROUTE_ERROR] - ${new Date().toISOString()} - Get messages error.\n`,
+      err
+    );
     return new Response(
       JSON.stringify({
         message: "Get messages error. Please try again later.",

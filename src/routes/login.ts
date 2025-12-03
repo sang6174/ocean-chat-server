@@ -64,7 +64,10 @@ export async function handleLogin(req: Request, corsHeaders: any) {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.log("handleRegister error: ", err);
+    console.log(
+      `[ROUTE_ERROR] - ${new Date().toISOString()} - Login error.\n`,
+      err
+    );
     return new Response(
       JSON.stringify({
         message: "Login error. Please try again later.",

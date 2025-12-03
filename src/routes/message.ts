@@ -90,7 +90,10 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.log("handleRegister error: ", err);
+    console.log(
+      `[ROUTE_ERROR] - ${new Date().toISOString()} - Send message error.\n`,
+      err
+    );
     return new Response(
       JSON.stringify({
         message: "Send a message error. Please try again later.",
