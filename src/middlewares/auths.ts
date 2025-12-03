@@ -7,7 +7,10 @@ export function authMiddleware(token: string): UserTokenPayload | null {
     const decoded = verifyAccessToken(token);
 
     if (!isDecodedJWT(decoded)) {
-      console.log("Access token is invalid: ", decoded);
+      console.log(
+        `[MIDDLEWARE_ERROR] - ${new Date().toISOString()} - Payload in auth token is invalid.\n`,
+        decoded
+      );
       return null;
     }
 
@@ -16,7 +19,10 @@ export function authMiddleware(token: string): UserTokenPayload | null {
       data: JSON.parse(decoded.data),
     };
   } catch (err) {
-    console.log("Verify auth token error: ", err);
+    console.log(
+      `[MIDDLEWARE_ERROR] - ${new Date().toISOString()} - Verify auth token error.\n`,
+      err
+    );
     return null;
   }
 }
@@ -26,7 +32,10 @@ export function refreshTokenMiddleware(token: string): UserTokenPayload | null {
     const decoded = verifyRefreshToken(token);
 
     if (!isDecodedJWT(decoded)) {
-      console.log("Access token is invalid: ", decoded);
+      console.log(
+        `[MIDDLEWARE_ERROR] - ${new Date().toISOString()} - Payload in refresh token is invalid.\n`,
+        decoded
+      );
       return null;
     }
 
@@ -35,7 +44,10 @@ export function refreshTokenMiddleware(token: string): UserTokenPayload | null {
       data: JSON.parse(decoded.data),
     } as UserTokenPayload;
   } catch (err) {
-    console.log("Verify refresh token error: ", err);
+    console.log(
+      `[MIDDLEWARE_ERROR] - ${new Date().toISOString()} - Verify refresh token error.\n`,
+      err
+    );
     return null;
   }
 }
