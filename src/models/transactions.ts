@@ -111,7 +111,11 @@ export async function pgAddParticipantsTransaction(
   }
 }
 
-export async function pgGetConversationsTransaction(conversationId: string) {
+export async function pgGetConversationsTransaction(
+  conversationId: string,
+  limit: number = 10,
+  offset: number = 0
+) {
   const client = await pool.connect();
   try {
     await client.query(`BEGIN`);
@@ -127,8 +131,12 @@ export async function pgGetConversationsTransaction(conversationId: string) {
     );
 
     const resultMessages = await client.query(
-      `SELECT sender_id, content, created_at FROM main.messages WHERE conversation_id = $1`,
-      [conversationId]
+      `SELECT sender_id, content, created_at 
+       FROM main.messages 
+       WHERE conversation_id = $1 AND is_deleted = false
+       ORDER BY created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [conversationId, limit, offset]
     );
 
     await client.query(`COMMIT`);
