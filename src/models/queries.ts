@@ -154,3 +154,24 @@ export async function pgGetParticipantIds(
     return null;
   }
 }
+
+export async function pgGetMessages(
+  conversationId: string,
+  limit: number = 10,
+  offset: number = 0
+) {
+  try {
+    const result = await pool.query(
+      `SELECT id, content, created_at FROM main.messages
+       WHERE conversation_id = $1 AND is_deleted = false
+       ORDER BY created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [conversationId, limit, offset]
+    );
+
+    return result.rows;
+  } catch (err) {
+    console.log("PgGetMessagesByConversationId error: ", err);
+    return null;
+  }
+}

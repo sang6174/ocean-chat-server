@@ -5,3 +5,4 @@ export * from "./message";
 export * from "./participant";
 export * from "./upgradeWebSocket";
 export * from "./conversations";
+export * from "./messages";

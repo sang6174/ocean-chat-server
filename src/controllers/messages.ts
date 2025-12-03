@@ -1,5 +1,5 @@
 import type { ConversationIdentifier, HttpResponse } from "../types";
-import { createMessageService } from "../services";
+import { createMessageService, getMessagesService } from "../services";
 
 export async function sendMessageController(
   senderId: string,
@@ -13,5 +13,14 @@ export async function sendMessageController(
     conversation,
     message
   );
+  return result;
+}
+
+export async function getMessagesController(
+  conversationId: string,
+  limit: number = 10,
+  offset: number = 0
+) {
+  const result = getMessagesService(conversationId, limit, offset);
   return result;
 }

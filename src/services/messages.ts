@@ -1,6 +1,6 @@
 import { WsServerEvent } from "../types";
 import type { ConversationIdentifier, HttpResponse } from "../types";
-import { pgCreateMessage, pgGetParticipantIds } from "../models";
+import { pgCreateMessage, pgGetParticipantIds, pgGetMessages } from "../models";
 import { eventBusServer } from "../websocket/events";
 
 export async function createMessageService(
@@ -49,6 +49,22 @@ export async function createMessageService(
     console.log(
       `[SERVICE_ERROR] - ${new Date().toISOString()} - Create message service error.\n`,
       err
+    );
+    return null;
+  }
+}
+
+export async function getMessagesService(
+  conversationId: string,
+  limit: number = 10,
+  offset: number = 0
+) {
+  try {
+    const conversations = await pgGetMessages(conversationId, limit, offset);
+    return conversations;
+  } catch (err) {
+    console.log(
+      `[SERVICE_ERROR] - ${new Date().toISOString()} - Get messages error.\n`
     );
     return null;
   }
