@@ -7,6 +7,7 @@ import type {
 import {
   createConversationService,
   getConversationIdentifiersServices,
+  getConversationsService,
 } from "../services";
 
 export async function createConversationController(
@@ -33,4 +34,9 @@ export async function getConversationIdentifiersController(
     userId
   );
   return conversationIdentifiers;
+}
+
+export async function getConversationsController(userId: string) {
+  const conversations = await getConversationsService(userId);
+  return conversations;
 }

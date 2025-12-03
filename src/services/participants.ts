@@ -4,7 +4,7 @@ import {
   pgGetParticipantRole,
   pgAddParticipantsTransaction,
   pgGetConversationIdentifier,
-  pgGetFullConversationTransaction,
+  pgGetConversationsTransaction,
   pgGetParticipantIds,
 } from "../models";
 import { eventBusServer } from "../websocket/events";
@@ -54,7 +54,7 @@ export async function addParticipantsService(
       };
     }
 
-    const resultFullConversation = await pgGetFullConversationTransaction(
+    const resultFullConversation = await pgGetConversationsTransaction(
       conversationId
     );
 

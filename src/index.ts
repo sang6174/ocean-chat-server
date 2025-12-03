@@ -5,6 +5,7 @@ import {
   handleCreateConversation,
   handleSendMessage,
   handleAddParticipants,
+  handleGetConversations,
   handleUpgradeWebSocket,
 } from "./routes";
 import { addWsConnection, removeWsConnection } from "./websocket/gateway";
@@ -49,6 +50,11 @@ const server = Bun.serve<DataWebSocket>({
     // POST /participants
     if (path === "/participants" && method === "POST") {
       return await handleAddParticipants(req, corsHeaders);
+    }
+
+    // GET /conversations
+    if (path === "/conversations" && method === "GET") {
+      return await handleGetConversations(req, corsHeaders);
     }
 
     // Upgrade websocket

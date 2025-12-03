@@ -111,7 +111,7 @@ export async function pgAddParticipantsTransaction(
   }
 }
 
-export async function pgGetFullConversationTransaction(conversationId: string) {
+export async function pgGetConversationsTransaction(conversationId: string) {
   const client = await pool.connect();
   try {
     await client.query(`BEGIN`);
@@ -133,8 +133,8 @@ export async function pgGetFullConversationTransaction(conversationId: string) {
 
     await client.query(`COMMIT`);
     return {
-      status: 201,
-      message: "Create conversation and participants successfully",
+      status: 200,
+      message: "Get a conversation successfully.",
       data: {
         conversation: resultConversation.rows[0],
         participants: resultParticipants.rows,

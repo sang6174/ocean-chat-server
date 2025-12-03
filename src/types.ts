@@ -68,7 +68,7 @@ export interface WsNormalOutput {
   type: string;
   payload: {
     metadata: WsToUser | WsToConversation;
-    data: string | string[] | Conversation | GetFullConversationOutput;
+    data: string | string[] | Conversation | GetConversationInput;
   };
 }
 
@@ -150,7 +150,7 @@ export interface AddParticipantsInput {
   participantIds: string[];
 }
 
-export interface GetFullConversationOutput {
+export interface GetConversationInput {
   conversation: {
     id: string;
     type: ConversationType;
@@ -189,5 +189,5 @@ export interface PublishParticipantAdded {
   oldParticipants: string[];
   newParticipants: string[];
   conversationIdentifier: ConversationIdentifier;
-  fullConversation: GetFullConversationOutput;
+  fullConversation: GetConversationInput;
 }

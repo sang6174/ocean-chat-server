@@ -4,11 +4,13 @@ import type {
   HttpResponse,
   ConversationIdentifier,
   PublishConversationCreated,
+  GetConversationInput,
 } from "../types";
 import { ConversationType } from "../types";
 import {
   pgCreateConversationWithParticipantsTransaction,
   pgGetConversationIdentifiers,
+  pgGetConversationsTransaction,
 } from "../models";
 import { eventBusServer } from "../websocket/events";
 
@@ -80,6 +82,44 @@ export async function getConversationIdentifiersServices(
   } catch (err) {
     console.log(
       `[SERVICE_ERROR] - ${new Date().toISOString()} - Get conversation identifiers service error.\n`,
+      err
+    );
+    return null;
+  }
+}
+
+export async function getConversationsService(userId: string) {
+  try {
+    const conversationIdentifiers = await pgGetConversationIdentifiers(userId);
+    if (!conversationIdentifiers) {
+      return {
+        status: 500,
+        message: "Get conversation identifiers error.",
+      };
+    }
+
+    let result: GetConversationInput[] = [];
+    for (const con of conversationIdentifiers) {
+      const resultConversation = await pgGetConversationsTransaction(
+        con.conversationId
+      );
+      if (!resultConversation) {
+        return {
+          status: 500,
+          message: "Get a conversation error.",
+        };
+      }
+      result.push(resultConversation.data);
+    }
+
+    return {
+      status: 200,
+      message: "Get conversation successfully",
+      data: result,
+    };
+  } catch (err) {
+    console.log(
+      `[SERVICE_ERROR] - ${new Date().toISOString()} - Get all conversation for a user error.\n`,
       err
     );
     return null;
