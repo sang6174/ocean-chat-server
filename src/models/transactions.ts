@@ -105,8 +105,7 @@ export async function pgAddParticipantsTransaction(
     };
   } catch (err) {
     await client.query("ROLLBACK");
-    console.log("POSTGRES: Add new participant errors.\n", err);
-    return null;
+    throw err;
   } finally {
     client.release();
   }

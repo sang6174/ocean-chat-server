@@ -23,7 +23,10 @@ export async function pgCreateMessage(
       result: result.rows[0],
     };
   } catch (err) {
-    console.log("PgCreateMessage error: ", err);
+    console.error(
+      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Create a new message error.\n`,
+      err
+    );
     return null;
   }
 }
@@ -57,6 +60,10 @@ export async function pgGetParticipant(
     );
     return result.rows[0];
   } catch (err) {
+    console.error(
+      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get id, username of a participant error.\n`,
+      err
+    );
     return null;
   }
 }
@@ -74,6 +81,10 @@ export async function pgGetParticipantRole(
     );
     return result.rows[0];
   } catch (err) {
+    console.error(
+      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get role of a conversation error.\n`,
+      err
+    );
     return null;
   }
 }
@@ -92,7 +103,10 @@ export async function pgGetConversationIdentifiers(
 
     return conversationIds.rows;
   } catch (err) {
-    console.log("pgGetConversationIdentifiers error: ", err);
+    console.error(
+      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get identifiers of conversations.\n`,
+      err
+    );
     return null;
   }
 }
@@ -110,7 +124,10 @@ export async function pgGetParticipantIds(
 
     return participantIds.rows;
   } catch (err) {
-    console.log("PgGetParticipantIds error: ", err);
+    console.error(
+      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get ids of participants error.\n`,
+      err
+    );
     return null;
   }
 }
