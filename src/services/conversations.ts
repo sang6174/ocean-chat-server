@@ -57,7 +57,10 @@ export async function createConversationService(
       return result;
     }
   } catch (err) {
-    console.log("createConversation error: ", err);
+    console.log(
+      `[SERVICE_ERROR] - ${new Date().toISOString()} - Create conversation service error.\n`,
+      err
+    );
     return null;
   }
 }
@@ -75,7 +78,10 @@ export async function getConversationIdentifiersServices(
     }
     return conversationIdentifiers;
   } catch (err) {
-    console.log("getConversationIdsByUserId error: ", err);
+    console.log(
+      `[SERVICE_ERROR] - ${new Date().toISOString()} - Get conversation identifiers service error.\n`,
+      err
+    );
     return null;
   }
 }

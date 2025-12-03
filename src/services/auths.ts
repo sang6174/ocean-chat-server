@@ -77,7 +77,10 @@ export async function registerService(
     );
     return result;
   } catch (err) {
-    console.log("Register service error: ", err);
+    console.log(
+      `[SERVICE_ERROR] - ${new Date().toISOString()} - Register service error.\n`,
+      err
+    );
     return null;
   }
 }
@@ -120,7 +123,10 @@ export async function loginService(
       refreshToken,
     };
   } catch (err) {
-    console.log("handleLogin error: ", err);
+    console.log(
+      `[SERVICE_ERROR] - ${new Date().toISOString()} - Login service error.\n`,
+      err
+    );
     return null;
   }
 }

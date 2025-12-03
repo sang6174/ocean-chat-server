@@ -46,7 +46,10 @@ export async function createMessageService(
       message: "send message via http successfully",
     };
   } catch (err) {
-    console.log(`Create message service error: `, err);
+    console.log(
+      `[SERVICE_ERROR] - ${new Date().toISOString()} - Create message service error.\n`,
+      err
+    );
     return null;
   }
 }

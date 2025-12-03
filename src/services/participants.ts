@@ -1,7 +1,5 @@
-import { WsServerEvent } from "../types";
 import type { HttpResponse } from "../types";
 import { pgGetParticipantRole, pgAddParticipantsTransaction } from "../models";
-import { eventBusServer } from "../websocket/events";
 
 export async function addParticipantsService(
   conversationId: string,
@@ -27,19 +25,16 @@ export async function addParticipantsService(
         message: "Save all new participants into database error.",
       };
     }
-    eventBusServer.emit(WsServerEvent.CONVERSATION_CREATED, {
-      userId,
-      accessToken,
-      participant,
-      data: { type: "" },
-    });
 
     return {
       status: 201,
       message: "Add participants successfully.",
     };
   } catch (err) {
-    console.log("Add participants services error: ", err);
+    console.log(
+      `[SERVICE_ERROR] - ${new Date().toISOString()} - Add participants service error.\n`,
+      err
+    );
     return null;
   }
 }
