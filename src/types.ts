@@ -5,6 +5,11 @@ export enum ConversationType {
   Myself = "myself",
 }
 
+export enum ConversationRoleType {
+  ADMIN = "admin",
+  MEMBER = "member",
+}
+
 export type ConversationMetadata = {
   name: string;
   creator: string;
@@ -44,6 +49,7 @@ export interface WsSendMessageInput {
 export enum WsServerEvent {
   CONVERSATION_CREATED = "conversation.created",
   MESSAGE_CREATED = "message.created",
+  CONVERSATION_ADDED_PARTICIPANTS = "conversation.added.participants",
 }
 
 export type EventCallback<T> = (payload: T) => void;
@@ -57,11 +63,12 @@ export type WsToConversation = {
   senderId: string;
   toConversation: ConversationIdentifier;
 };
+
 export interface WsNormalOutput {
   type: string;
   payload: {
     metadata: WsToUser | WsToConversation;
-    data: string | Conversation;
+    data: string | string[] | Conversation | GetFullConversationOutput;
   };
 }
 
@@ -136,6 +143,31 @@ export interface SendMessageInput {
   message: string;
 }
 
+export interface AddParticipantsInput {
+  userId: string;
+  accessToken: string;
+  conversation: ConversationIdentifier;
+  participantIds: string[];
+}
+
+export interface GetFullConversationOutput {
+  conversation: {
+    id: string;
+    type: ConversationType;
+    metadata: ConversationMetadata;
+  };
+  participants: {
+    id: string;
+    role: ConversationRoleType;
+    joined_at: Date;
+  }[];
+  messages: {
+    senderId: string;
+    content: string;
+    createdAt: Date;
+  }[];
+}
+
 export interface PublishConversationCreated {
   senderId: string;
   accessToken: string;
@@ -149,4 +181,13 @@ export interface PublishMessageCreated {
   conversationIdentifier: ConversationIdentifier;
   recipientIds: string[];
   message: string;
+}
+
+export interface PublishParticipantAdded {
+  senderId: string;
+  accessToken: string;
+  oldParticipants: string[];
+  newParticipants: string[];
+  conversationIdentifier: ConversationIdentifier;
+  fullConversation: GetFullConversationOutput;
 }

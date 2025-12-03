@@ -1,11 +1,10 @@
 import { WsServerEvent } from "../types";
 import type {
-  Conversation,
-  ConversationIdentifier,
   DataWebSocket,
   WsNormalOutput,
   PublishConversationCreated,
   PublishMessageCreated,
+  PublishParticipantAdded,
 } from "../types";
 import { eventBusServer } from "./events";
 
@@ -113,7 +112,7 @@ eventBusServer.on(
     recipientIds,
     conversation,
   }: PublishConversationCreated) => {
-    const dataToOtherSend: WsNormalOutput = {
+    const dataToConnectionsOtherSender: WsNormalOutput = {
       type: WsServerEvent.CONVERSATION_CREATED,
       payload: {
         metadata: {
@@ -124,7 +123,11 @@ eventBusServer.on(
       },
     };
 
-    sendToOtherConnectionsOfSender(accessToken, senderId, dataToOtherSend);
+    sendToOtherConnectionsOfSender(
+      accessToken,
+      senderId,
+      dataToConnectionsOtherSender
+    );
     for (const recipientId of recipientIds) {
       const dataToRecipient: WsNormalOutput = {
         type: WsServerEvent.CONVERSATION_CREATED,
@@ -161,5 +164,48 @@ eventBusServer.on(
       },
     };
     broadcastToConversation<WsNormalOutput>(accessToken, recipientIds, data);
+  }
+);
+
+eventBusServer.on(
+  WsServerEvent.CONVERSATION_ADDED_PARTICIPANTS,
+  ({
+    senderId,
+    accessToken,
+    oldParticipants,
+    newParticipants,
+    conversationIdentifier,
+    fullConversation,
+  }: PublishParticipantAdded) => {
+    const dataToOldParticipants: WsNormalOutput = {
+      type: WsServerEvent.MESSAGE_CREATED,
+      payload: {
+        metadata: {
+          senderId,
+          toConversation: conversationIdentifier,
+        },
+        data: newParticipants,
+      },
+    };
+    broadcastToConversation<WsNormalOutput>(
+      accessToken,
+      oldParticipants,
+      dataToOldParticipants
+    );
+
+    const dataToNewParticipants: WsNormalOutput = {
+      type: WsServerEvent.MESSAGE_CREATED,
+      payload: {
+        metadata: {
+          senderId,
+          toConversation: conversationIdentifier,
+        },
+        data: fullConversation,
+      },
+    };
+
+    for (const recipient of newParticipants) {
+      sendToUser(recipient, dataToNewParticipants);
+    }
   }
 );

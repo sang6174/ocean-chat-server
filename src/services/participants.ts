@@ -1,9 +1,18 @@
+import { WsServerEvent } from "../types";
 import type { HttpResponse } from "../types";
-import { pgGetParticipantRole, pgAddParticipantsTransaction } from "../models";
+import {
+  pgGetParticipantRole,
+  pgAddParticipantsTransaction,
+  pgGetConversationIdentifier,
+  pgGetFullConversationTransaction,
+  pgGetParticipantIds,
+} from "../models";
+import { eventBusServer } from "../websocket/events";
 
 export async function addParticipantsService(
-  conversationId: string,
   userId: string,
+  accessToken: string,
+  conversationId: string,
   participantIds: string[]
 ): Promise<HttpResponse | null> {
   try {
@@ -11,20 +20,52 @@ export async function addParticipantsService(
     if (!userRole) {
       return {
         status: 403,
-        message: "Only group admins can add new members.",
+        message: "Only group admins can add new participants.",
       };
     }
 
-    const result = await pgAddParticipantsTransaction(
+    const resultOldParticipants = await pgGetParticipantIds(conversationId);
+    if (!resultOldParticipants) {
+      return {
+        status: 500,
+        message: "Get old participants from database error.",
+      };
+    }
+
+    const resultAddParticipant = await pgAddParticipantsTransaction(
       conversationId,
       participantIds
     );
-    if (!result) {
+    if (!resultAddParticipant) {
       return {
         status: 500,
-        message: "Save all new participants into database error.",
+        message: "Save all new participants to database error.",
       };
     }
+
+    const resultConversationIdentifier = await pgGetConversationIdentifier(
+      userId,
+      conversationId
+    );
+    if (!resultConversationIdentifier) {
+      return {
+        status: 500,
+        message: "Get conversation identifier from database error.",
+      };
+    }
+
+    const resultFullConversation = await pgGetFullConversationTransaction(
+      conversationId
+    );
+
+    eventBusServer.emit(WsServerEvent.CONVERSATION_ADDED_PARTICIPANTS, {
+      senderId: userId,
+      accessToken,
+      oldParticipants: resultOldParticipants,
+      newParticipants: participantIds,
+      conversationIdentifier: resultConversationIdentifier,
+      fullConversation: resultFullConversation.data,
+    });
 
     return {
       status: 201,

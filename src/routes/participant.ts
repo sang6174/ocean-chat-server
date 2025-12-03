@@ -2,6 +2,7 @@ import type {
   HttpResponse,
   HttpParticipantPost,
   UserTokenPayload,
+  AddParticipantsInput,
 } from "../types";
 import {
   parseAuthToken,
@@ -59,14 +60,17 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
       );
     }
 
-    const cleanBody: HttpParticipantPost = {
+    const cleanBody: AddParticipantsInput = {
+      userId: authResult.data.userId,
+      accessToken: auth,
       conversation: rawBody.conversation,
       participantIds: rawBody.participantIds,
     };
 
     // Call create add participants controller
     const result = await addParticipantsController(
-      authResult.data.userId,
+      cleanBody.userId,
+      cleanBody.accessToken,
       cleanBody.conversation,
       cleanBody.participantIds
     );

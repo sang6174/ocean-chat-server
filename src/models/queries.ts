@@ -89,19 +89,42 @@ export async function pgGetParticipantRole(
   }
 }
 
+export async function pgGetConversationIdentifier(
+  userId: string,
+  conversationId: string
+): Promise<ConversationIdentifier | null> {
+  try {
+    const conversationIdentifiers = await pool.query(
+      `SELECT c.id, c.type 
+       FROM main.participants p 
+       JOIN main.conversations c ON p.conversation_id = c.id 
+       WHERE p.user_id = $1 AND c.id = $2`,
+      [userId, conversationId]
+    );
+
+    return conversationIdentifiers.rows[0];
+  } catch (err) {
+    console.error(
+      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get identifiers of conversations.\n`,
+      err
+    );
+    return null;
+  }
+}
+
 export async function pgGetConversationIdentifiers(
   userId: string
 ): Promise<ConversationIdentifier[] | null> {
   try {
-    const conversationIds = await pool.query(
-      `SELECT c.conversation_id, c.type 
+    const conversationIdentifiers = await pool.query(
+      `SELECT c.id, c.type 
        FROM main.participants p 
        JOIN main.conversations c ON p.conversation_id = c.id 
        WHERE p.user_id = $1`,
       [userId]
     );
 
-    return conversationIds.rows;
+    return conversationIdentifiers.rows;
   } catch (err) {
     console.error(
       `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get identifiers of conversations.\n`,
