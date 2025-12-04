@@ -1,6 +1,10 @@
 import * as jwt from "jsonwebtoken";
 
-import type { HttpResponse, HttpLoginPostResponse } from "../types";
+import type {
+  HttpResponse,
+  HttpLoginPostResponse,
+  HttpResponseWithData,
+} from "../types";
 import {
   pgFindUserByEmail,
   pgFindAccountByUsername,
@@ -69,12 +73,10 @@ export async function registerService(
     }
 
     const hashedPassword: string = await Bun.password.hash(password);
-    const result: HttpResponse = await pgRegisterTransaction(
-      name,
-      email,
-      username,
-      hashedPassword
-    );
+    const result: HttpResponseWithData<{
+      user: { id: string; name: string; email: string };
+      account: { id: string; username: string };
+    }> = await pgRegisterTransaction(name, email, username, hashedPassword);
     return result;
   } catch (err) {
     console.log(
