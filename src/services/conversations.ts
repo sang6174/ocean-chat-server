@@ -19,7 +19,7 @@ export async function createConversationService(
   metadata: ConversationMetadata,
   participantIds: string[],
   senderId: string,
-  accessToken: string
+  accessToken?: string
 ): Promise<HttpResponse | null> {
   try {
     const result = await pgCreateConversationWithParticipantsTransaction(
@@ -42,13 +42,19 @@ export async function createConversationService(
         message: "Create a new direct conversation is successful.",
       };
     } else if (type === ConversationType.Group) {
+      if (!accessToken) {
+        return {
+          status: 500,
+          message: "No access token to broadcast to conversation.",
+        };
+      }
       eventBusServer.emit<PublishConversationCreated>(
         WsServerEvent.CONVERSATION_CREATED,
         {
           senderId,
           accessToken,
           recipientIds: participantIds,
-          conversation: result.conversationResult.rows[0],
+          conversation: result.data,
         }
       );
       return {
@@ -56,7 +62,10 @@ export async function createConversationService(
         message: "Create a new group conversation is successful.",
       };
     } else {
-      return result;
+      return {
+        status: result.status,
+        message: result.message,
+      };
     }
   } catch (err) {
     console.log(

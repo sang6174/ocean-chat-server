@@ -1,24 +1,33 @@
 import { pool } from "../configs/db";
-import type { HttpResponse, ConversationMetadata } from "../types";
+import type {
+  ConversationMetadata,
+  HttpResponseWithData,
+  Conversation,
+} from "../types";
 
 export async function pgRegisterTransaction(
   name: string,
   email: string,
   username: string,
   password: string
-): Promise<HttpResponse> {
+): Promise<
+  HttpResponseWithData<{
+    user: { id: string; name: string; email: string };
+    account: { id: string; username: string };
+  }>
+> {
   const client = await pool.connect();
   try {
     await client.query(`BEGIN`);
 
     const user = await client.query(
       `INSERT INTO main.users (name, email) 
-       VALUES ($1, $2) RETURNING id`,
+       VALUES ($1, $2) RETURNING id, name, email`,
       [name, email]
     );
-    await client.query(
+    const account = await client.query(
       `INSERT INTO main.accounts (id, username, password) 
-       VALUES ($1, $2, $3)`,
+       VALUES ($1, $2, $3) RETURNING id, username`,
       [user.rows[0].id, username, password]
     );
 
@@ -26,6 +35,10 @@ export async function pgRegisterTransaction(
     return {
       status: 201,
       message: "Registration successful",
+      data: {
+        user: user.rows[0],
+        account: account.rows[0],
+      },
     };
   } catch (err) {
     await client.query(`ROLLBACK`);
@@ -39,7 +52,7 @@ export async function pgCreateConversationWithParticipantsTransaction(
   type: string,
   metadata: ConversationMetadata,
   participantIds: string[]
-) {
+): Promise<HttpResponseWithData<Conversation>> {
   const client = await pool.connect();
   try {
     await client.query(`BEGIN`);
@@ -69,7 +82,7 @@ export async function pgCreateConversationWithParticipantsTransaction(
     return {
       status: 201,
       message: "Create conversation and participants successfully",
-      conversationResult,
+      data: conversationResult.rows[0],
     };
   } catch (err) {
     await client.query(`ROLLBACK`);

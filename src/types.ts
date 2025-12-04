@@ -17,9 +17,9 @@ export type ConversationMetadata = {
 
 export type Conversation = {
   id: string;
-  type: string;
+  type: ConversationMetadata;
   metadata: ConversationMetadata;
-  created_at: Date;
+  createdAt: Date;
 };
 
 export type ConversationIdentifier = {
@@ -99,6 +99,12 @@ export interface HttpRegisterPost {
 export type HttpResponse = {
   status: number;
   message: string;
+};
+
+export type HttpResponseWithData<T> = {
+  status: number;
+  message: string;
+  data: T;
 };
 
 export interface HttpLoginPost {
