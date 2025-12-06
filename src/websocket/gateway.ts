@@ -5,6 +5,9 @@ import type {
   PublishConversationCreated,
   PublishMessageCreated,
   PublishParticipantAdded,
+  PublishNotificationAddFriend,
+  PublishNotificationAddedFriend,
+  PublishNotificationDeniedFriend,
 } from "../types/domain";
 import type { DataWebSocket, WsDataToSendToClient } from "../types/ws";
 import { eventBusServer } from "./events";
@@ -193,7 +196,7 @@ eventBusServer.on(
       data: newParticipants,
     };
     console.log(dataToOldParticipants);
-    broadcastToConversation<WsDataToSendToClient<string[]>>(
+    broadcastToConversation(
       accessToken,
       oldParticipants,
       dataToOldParticipants
@@ -213,5 +216,62 @@ eventBusServer.on(
     for (const recipient of newParticipants) {
       sendToUser(recipient, dataToNewParticipants);
     }
+  }
+);
+
+eventBusServer.on(
+  WsServerEvent.NOTIFICATION_ADD_FRIEND,
+  ({ senderId, senderUsername, recipientId }: PublishNotificationAddFriend) => {
+    const notification: WsDataToSendToClient<string> = {
+      type: WsServerEvent.NOTIFICATION_ADD_FRIEND,
+      metadata: {
+        senderId,
+        toUserId: recipientId,
+      },
+      data: `${senderUsername} send you a add friend invitation.`,
+    };
+    console.log(notification);
+    sendToUser(recipientId, notification);
+  }
+);
+
+eventBusServer.on(
+  WsServerEvent.NOTIFICATION_ACCEPTED_FRIEND,
+  ({
+    senderId,
+    recipientId,
+    data,
+  }: PublishNotificationAddedFriend<CreateConversationRepositoryOutput>) => {
+    const notification: WsDataToSendToClient<CreateConversationRepositoryOutput> =
+      {
+        type: WsServerEvent.NOTIFICATION_ADD_FRIEND,
+        metadata: {
+          senderId,
+          toUserId: recipientId,
+        },
+        data,
+      };
+
+    sendToUser(recipientId, notification);
+  }
+);
+
+eventBusServer.on(
+  WsServerEvent.NOTIFICATION_DENIED_FRIEND,
+  ({
+    senderId,
+    senderUsername,
+    recipientId,
+  }: PublishNotificationDeniedFriend) => {
+    const notification: WsDataToSendToClient<string> = {
+      type: WsServerEvent.NOTIFICATION_ADD_FRIEND,
+      metadata: {
+        senderId,
+        toUserId: recipientId,
+      },
+      data: `${senderUsername} denied your add friend invitation.`,
+    };
+
+    sendToUser(recipientId, notification);
   }
 );

@@ -17,6 +17,9 @@ export enum WsServerEvent {
   CONVERSATION_CREATED = "conversation.created",
   MESSAGE_CREATED = "message.created",
   CONVERSATION_ADDED_PARTICIPANTS = "conversation.added.participants",
+  NOTIFICATION_ADD_FRIEND = "notification.add.friend",
+  NOTIFICATION_ACCEPTED_FRIEND = "notification.accepted.friend",
+  NOTIFICATION_DENIED_FRIEND = "notification.denied.friend",
 }
 
 export type EventCallback<T> = (payload: T) => void;
@@ -263,4 +266,22 @@ export interface PublishParticipantAdded {
   newParticipants: string[];
   conversationIdentifier: ConversationIdentifier;
   conversation: GetConversationRepositoryOutput;
+}
+
+export interface PublishNotificationAddFriend {
+  senderId: string;
+  senderUsername: string;
+  recipientId: string;
+}
+
+export interface PublishNotificationAddedFriend<T> {
+  senderId: string;
+  recipientId: string;
+  data: T;
+}
+
+export interface PublishNotificationDeniedFriend {
+  senderId: string;
+  senderUsername: string;
+  recipientId: string;
 }

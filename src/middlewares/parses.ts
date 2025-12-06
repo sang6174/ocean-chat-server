@@ -51,7 +51,6 @@ export async function parseBodyJSON<T = any>(
 
 export function parseAuthToken(req: Request): HttpResponse | string {
   const auth = req.headers.get("Authorization")?.slice(7);
-  console.log(auth);
   if (
     auth === undefined ||
     !req.headers.get("Authorization")?.startsWith("Bearer ")

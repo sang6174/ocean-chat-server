@@ -7,3 +7,4 @@ export * from "./upgradeWebSocket";
 export * from "./conversations";
 export * from "./messages";
 export * from "./users";
+export * from "./notifications";

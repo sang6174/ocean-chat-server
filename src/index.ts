@@ -5,6 +5,9 @@ import {
   handleCreateConversation,
   handleSendMessage,
   handleAddParticipants,
+  handleNotificationFriend,
+  handleNotificationAcceptFriend,
+  handleNotificationDenyFriend,
   handleGetAllInfoUsers,
   handleGetConversations,
   handleGetMessages,
@@ -52,6 +55,21 @@ const server = Bun.serve<DataWebSocket>({
     // POST /participants
     if (path === "/participants" && method === "POST") {
       return await handleAddParticipants(req, corsHeaders);
+    }
+
+    // POST /notification/friend
+    if (path === "/notification/friend") {
+      return await handleNotificationFriend(url, req, corsHeaders);
+    }
+
+    // POST /notification/friend/accept
+    if (path === "/notification/friend/accept" && method === "POST") {
+      return await handleNotificationAcceptFriend(url, req, corsHeaders);
+    }
+
+    // POST /notification/friend/deny
+    if (path === "/notification/friend/deny" && method === "POST") {
+      return await handleNotificationDenyFriend(url, req, corsHeaders);
     }
 
     // GET /users
