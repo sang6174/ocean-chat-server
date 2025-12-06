@@ -144,6 +144,10 @@ export interface AddParticipantsDomainInput {
   participantIds: string[];
 }
 
+export interface GetInfoUsersDomainOutput extends User {
+  username: string;
+}
+
 export interface GetConversationDomainOutput {
   conversation: Conversation;
   participants: ParticipantNoConversationId[];

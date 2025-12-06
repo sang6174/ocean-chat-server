@@ -5,6 +5,7 @@ import {
   handleCreateConversation,
   handleSendMessage,
   handleAddParticipants,
+  handleGetAllInfoUsers,
   handleGetConversations,
   handleGetMessages,
   handleUpgradeWebSocket,
@@ -51,6 +52,11 @@ const server = Bun.serve<DataWebSocket>({
     // POST /participants
     if (path === "/participants" && method === "POST") {
       return await handleAddParticipants(req, corsHeaders);
+    }
+
+    // GET /users
+    if (path === "/users" && method === "GET") {
+      return await handleGetAllInfoUsers(req, corsHeaders);
     }
 
     // GET /conversations

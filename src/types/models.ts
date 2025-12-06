@@ -133,3 +133,7 @@ export interface PgGetMessagesInput {
 export interface PgGetParticipantIdsOutput {
   user_id: string;
 }
+
+export interface PgGetInfoUsersOutput extends PgUser {
+  username: string;
+}
