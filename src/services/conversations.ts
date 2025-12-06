@@ -1,17 +1,17 @@
-import { WsServerEvent } from "../types";
+import { ConversationType, WsServerEvent } from "../types/domain";
 import type {
   ConversationMetadata,
-  HttpResponse,
-  ConversationIdentifier,
+  ResponseDomain,
+  GetConversationRepositoryInput,
+  GetConversationRepositoryOutput,
+  GetConversationDomainOutput,
   PublishConversationCreated,
-  GetConversationInput,
-} from "../types";
-import { ConversationType } from "../types";
+} from "../types/domain";
 import {
-  pgCreateConversationWithParticipantsTransaction,
-  pgGetConversationIdentifiers,
-  pgGetConversationsTransaction,
-} from "../models";
+  createConversationRepository,
+  getConversationsRepository,
+  getConversationIdentifiersRepository,
+} from "../repository";
 import { eventBusServer } from "../websocket/events";
 
 export async function createConversationService(
@@ -20,14 +20,14 @@ export async function createConversationService(
   participantIds: string[],
   senderId: string,
   accessToken?: string
-): Promise<HttpResponse | null> {
+): Promise<ResponseDomain | null> {
   try {
-    const result = await pgCreateConversationWithParticipantsTransaction(
+    const resultCreateConversation = await createConversationRepository({
       type,
       metadata,
-      participantIds
-    );
-    if (!result || result.status !== 201) {
+      participantIds,
+    });
+    if (!resultCreateConversation) {
       return null;
     }
 
@@ -48,23 +48,26 @@ export async function createConversationService(
           message: "No access token to broadcast to conversation.",
         };
       }
+
       eventBusServer.emit<PublishConversationCreated>(
         WsServerEvent.CONVERSATION_CREATED,
         {
           senderId,
           accessToken,
           recipientIds: participantIds,
-          conversation: result.data,
+          conversation: resultCreateConversation,
         }
       );
+
       return {
         status: 201,
         message: "Create a new group conversation is successful.",
       };
     } else {
       return {
-        status: result.status,
-        message: result.message,
+        status: 500,
+        message:
+          "Failed to create a conversation is invalid. Please try again.",
       };
     }
   } catch (err) {
@@ -76,30 +79,13 @@ export async function createConversationService(
   }
 }
 
-export async function getConversationIdentifiersServices(
+export async function getConversationsService(
   userId: string
-): Promise<HttpResponse | ConversationIdentifier[] | null> {
+): Promise<GetConversationDomainOutput[] | ResponseDomain | null> {
   try {
-    const conversationIdentifiers = await pgGetConversationIdentifiers(userId);
-    if (!conversationIdentifiers) {
-      return {
-        status: 500,
-        message: "Get conversation identifiers error.",
-      };
-    }
-    return conversationIdentifiers;
-  } catch (err) {
-    console.log(
-      `[SERVICE_ERROR] - ${new Date().toISOString()} - Get conversation identifiers service error.\n`,
-      err
+    const conversationIdentifiers = await getConversationIdentifiersRepository(
+      userId
     );
-    return null;
-  }
-}
-
-export async function getConversationsService(userId: string) {
-  try {
-    const conversationIdentifiers = await pgGetConversationIdentifiers(userId);
     if (!conversationIdentifiers) {
       return {
         status: 500,
@@ -107,25 +93,26 @@ export async function getConversationsService(userId: string) {
       };
     }
 
-    let result: GetConversationInput[] = [];
+    let result: GetConversationRepositoryOutput[] = [];
     for (const con of conversationIdentifiers) {
-      const resultConversation = await pgGetConversationsTransaction(
-        con.conversationId
-      );
+      const resultConversation = await getConversationsRepository({
+        conversationId: con.id,
+      } as GetConversationRepositoryInput);
       if (!resultConversation) {
         return {
           status: 500,
           message: "Get a conversation error.",
         };
       }
-      result.push(resultConversation.data);
+      const conversation: GetConversationRepositoryOutput = {
+        conversation: resultConversation.conversation,
+        participants: resultConversation.participants,
+        messages: resultConversation.messages,
+      };
+      result.push(conversation);
     }
 
-    return {
-      status: 200,
-      message: "Get conversation successfully",
-      data: result,
-    };
+    return result;
   } catch (err) {
     console.log(
       `[SERVICE_ERROR] - ${new Date().toISOString()} - Get all conversation for a user error.\n`,

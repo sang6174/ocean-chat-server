@@ -1,4 +1,4 @@
-import type { UserTokenPayload } from "../types";
+import type { UserTokenPayload } from "../types/domain";
 import { parseAuthToken, authMiddleware } from "../middlewares";
 import { getConversationsController } from "../controllers";
 
@@ -38,10 +38,16 @@ export async function handleGetConversations(req: Request, corsHeaders: any) {
         }
       );
     }
+    if ("status" in result && "message" in result) {
+      return new Response(JSON.stringify({ message: result.message }), {
+        status: result.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // HTTP response successfully
-    return new Response(JSON.stringify({ message: result.message }), {
-      status: result.status,
+    return new Response(JSON.stringify(result), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {

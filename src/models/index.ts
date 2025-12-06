@@ -1,2 +1,2 @@
-export * from "./queries";
+export * from "./crud";
 export * from "./transactions";

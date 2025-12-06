@@ -1,15 +1,14 @@
 import * as jwt from "jsonwebtoken";
 
 import type {
-  HttpResponse,
-  HttpLoginPostResponse,
-  HttpResponseWithData,
-} from "../types";
-import {
-  pgFindUserByEmail,
-  pgFindAccountByUsername,
-  pgRegisterTransaction,
-} from "../models";
+  ResponseDomain,
+  RegisterDomainInput,
+  RegisterDomainOutput,
+  LoginDomainInput,
+  LoginDomainOutput,
+} from "../types/domain";
+import { registerRepository } from "../repository";
+import { pgFindUserByEmail, pgFindAccountByUsername } from "../models";
 
 const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET!;
 const accessTokenExpiresIn = (process.env.ACCESS_TOKEN_EXPIRES_IN ??
@@ -49,23 +48,23 @@ export function verifyRefreshToken(
   return jwt.verify(token, secret);
 }
 
-export async function registerService(
-  name: string,
-  email: string,
-  username: string,
-  password: string
-) {
+export async function registerService({
+  name,
+  email,
+  username,
+  password,
+}: RegisterDomainInput): Promise<RegisterDomainOutput | ResponseDomain | null> {
   try {
-    const existingUser = await pgFindUserByEmail(email);
-    if (existingUser.rowCount !== 0) {
+    const existingUser = await pgFindUserByEmail({ email });
+    if (existingUser) {
       return {
         status: 409,
         message: "Email is already in use. Please use a different email.",
       };
     }
 
-    const existingAccount = await pgFindAccountByUsername(username);
-    if (existingAccount.rowCount !== 0) {
+    const existingAccount = await pgFindAccountByUsername({ username });
+    if (existingAccount) {
       return {
         status: 409,
         message: "Username is already in use. Please use a different username.",
@@ -73,33 +72,35 @@ export async function registerService(
     }
 
     const hashedPassword: string = await Bun.password.hash(password);
-    const result: HttpResponseWithData<{
-      user: { id: string; name: string; email: string };
-      account: { id: string; username: string };
-    }> = await pgRegisterTransaction(name, email, username, hashedPassword);
+    const result = await registerRepository({
+      name,
+      email,
+      username,
+      password: hashedPassword,
+    });
     return result;
   } catch (err) {
     console.log(
-      `[SERVICE_ERROR] - ${new Date().toISOString()} - Register service error.\n`,
+      `[API_SERVICE_ERROR] - ${new Date().toISOString()} - Register service error.\n`,
       err
     );
     return null;
   }
 }
 
-export async function loginService(
-  username: string,
-  password: string
-): Promise<HttpResponse | HttpLoginPostResponse | null> {
+export async function loginService({
+  username,
+  password,
+}: LoginDomainInput): Promise<LoginDomainOutput | ResponseDomain | null> {
   try {
-    const existingAccount = await pgFindAccountByUsername(username);
-    if (existingAccount.rowCount === 0) {
+    const existingAccount = await pgFindAccountByUsername({ username });
+    if (!existingAccount) {
       return { status: 404, message: "Account not found." };
     }
 
     const isMatchPassword = await Bun.password.verify(
       password,
-      existingAccount.rows[0].password
+      existingAccount.password
     );
     if (!isMatchPassword) {
       return { status: 401, message: "Account is invalid" };
@@ -107,20 +108,20 @@ export async function loginService(
 
     const accessToken: string = createAccessToken(
       JSON.stringify({
-        userId: existingAccount.rows[0].id,
-        username: existingAccount.rows[0].username,
+        userId: existingAccount.id,
+        username: existingAccount.username,
       })
     );
     const refreshToken: string = createRefreshToken(
       JSON.stringify({
-        userId: existingAccount.rows[0].id,
-        username: existingAccount.rows[0].username,
+        userId: existingAccount.id,
+        username: existingAccount.username,
       })
     );
 
     return {
-      userId: existingAccount.rows[0].id,
-      username: existingAccount.rows[0].username,
+      userId: existingAccount.id,
+      username: existingAccount.username,
       accessToken,
       refreshToken,
     };

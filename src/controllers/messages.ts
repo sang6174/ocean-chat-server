@@ -1,18 +1,18 @@
-import type { ConversationIdentifier, HttpResponse } from "../types";
-import { createMessageService, getMessagesService } from "../services";
+import type { ConversationIdentifier, ResponseDomain } from "../types/domain";
+import { sendMessageService, getMessagesService } from "../services";
 
 export async function sendMessageController(
   senderId: string,
   accessToken: string,
   conversation: ConversationIdentifier,
   message: string
-): Promise<HttpResponse | null> {
-  const result = await createMessageService(
+): Promise<ResponseDomain | null> {
+  const result = await sendMessageService({
     senderId,
     accessToken,
     conversation,
-    message
-  );
+    message,
+  });
   return result;
 }
 
@@ -21,6 +21,6 @@ export async function getMessagesController(
   limit: number = 10,
   offset: number = 0
 ) {
-  const result = getMessagesService(conversationId, limit, offset);
+  const result = getMessagesService({ conversationId, limit, offset });
   return result;
 }

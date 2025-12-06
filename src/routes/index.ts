@@ -2,7 +2,7 @@ export * from "./register";
 export * from "./login";
 export * from "./conversation";
 export * from "./message";
-export * from "./participant";
+export * from "./participants";
 export * from "./upgradeWebSocket";
 export * from "./conversations";
 export * from "./messages";

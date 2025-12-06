@@ -1,4 +1,4 @@
-import type { HttpResponse, ConversationIdentifier } from "../types";
+import type { ResponseDomain, ConversationIdentifier } from "../types/domain";
 import { addParticipantsService } from "../services";
 
 export async function addParticipantsController(
@@ -6,12 +6,12 @@ export async function addParticipantsController(
   accessToken: string,
   conversation: ConversationIdentifier,
   participantIds: string[]
-): Promise<HttpResponse | null> {
-  const result = await addParticipantsService(
-    conversation.conversationId,
-    accessToken,
+): Promise<ResponseDomain | null> {
+  const result = await addParticipantsService({
     userId,
-    participantIds
-  );
+    accessToken,
+    conversation,
+    participantIds,
+  });
   return result;
 }

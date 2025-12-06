@@ -1,4 +1,4 @@
-import type { DataWebSocket } from "./types";
+import type { DataWebSocket } from "./types/ws";
 import {
   handleRegister,
   handleLogin,

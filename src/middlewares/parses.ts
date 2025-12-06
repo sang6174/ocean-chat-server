@@ -1,4 +1,4 @@
-import type { HttpResponse } from "../types";
+import type { HttpResponse } from "../types/http";
 
 export async function safeFormData(req: Request) {
   try {
@@ -9,10 +9,9 @@ export async function safeFormData(req: Request) {
   }
 }
 
-export async function parseBodyFormData(
-  req: Request
-): Promise<HttpResponse | FormData> {
-  const form: any = await safeFormData(req);
+export async function parseBodyFormData(req: Request) {
+  const form = await safeFormData(req);
+
   if (!form) {
     return {
       status: 400,
@@ -20,10 +19,11 @@ export async function parseBodyFormData(
         "Invalid request body. Please submit the data using multipart/form-data.",
     };
   }
+
   return form;
 }
 
-export async function safeJSON(req: Request) {
+export async function safeJSON(req: Request): Promise<object | null> {
   try {
     const data = await req.json();
     if (data && typeof data === "object" && !Array.isArray(data)) {
@@ -51,7 +51,12 @@ export async function parseBodyJSON<T = any>(
 
 export function parseAuthToken(req: Request): HttpResponse | string {
   const auth = req.headers.get("Authorization")?.slice(7);
-  if (!auth || !req.headers.get("Authorization")?.startsWith("Bearer ")) {
+  console.log(auth);
+  if (
+    auth === undefined ||
+    !req.headers.get("Authorization")?.startsWith("Bearer ")
+  ) {
+    console.log("Error");
     return {
       status: 401,
       message: "Missing or invalid authentication token",

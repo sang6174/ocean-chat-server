@@ -1,70 +1,84 @@
-import { WsServerEvent } from "../types";
-import type { HttpResponse } from "../types";
-import {
-  pgGetParticipantRole,
-  pgAddParticipantsTransaction,
-  pgGetConversationIdentifier,
-  pgGetConversationsTransaction,
-  pgGetParticipantIds,
-} from "../models";
+import { ConversationRoleType, WsServerEvent } from "../types/domain";
+import type {
+  ResponseDomain,
+  AddParticipantsDomainInput,
+  GetConversationRepositoryInput,
+  GetConversationRepositoryOutput,
+} from "../types/domain";
 import { eventBusServer } from "../websocket/events";
+import {
+  getParticipantRole,
+  getParticipantIds,
+  addParticipants,
+  getConversationsRepository,
+} from "../repository";
 
-export async function addParticipantsService(
-  userId: string,
-  accessToken: string,
-  conversationId: string,
-  participantIds: string[]
-): Promise<HttpResponse | null> {
+export async function addParticipantsService({
+  userId,
+  accessToken,
+  conversation,
+  participantIds,
+}: AddParticipantsDomainInput): Promise<ResponseDomain | null> {
   try {
-    const userRole = await pgGetParticipantRole(userId, conversationId);
+    // Check role user in conversation
+    const userRole = await getParticipantRole({
+      userId,
+      conversationId: conversation.id,
+    });
     if (!userRole) {
+      return {
+        status: 500,
+        message: "Query database error. please try again.",
+      };
+    }
+    if (userRole.role !== ConversationRoleType.ADMIN) {
       return {
         status: 403,
         message: "Only group admins can add new participants.",
       };
     }
 
-    const resultOldParticipants = await pgGetParticipantIds(conversationId);
+    // Get the old participants
+    const resultOldParticipants = await getParticipantIds(conversation.id);
     if (!resultOldParticipants) {
       return {
         status: 500,
         message: "Get old participants from database error.",
       };
     }
+    console.log(resultOldParticipants);
 
-    const resultAddParticipant = await pgAddParticipantsTransaction(
-      conversationId,
-      participantIds
-    );
+    // Add the new participants
+    const resultAddParticipant = await addParticipants({
+      conversationId: conversation.id,
+      participantIds,
+    });
     if (!resultAddParticipant) {
       return {
         status: 500,
         message: "Save all new participants to database error.",
       };
     }
+    console.log(resultAddParticipant);
+    // Add the event messages for each the new participants
 
-    const resultConversationIdentifier = await pgGetConversationIdentifier(
-      userId,
-      conversationId
-    );
-    if (!resultConversationIdentifier) {
-      return {
-        status: 500,
-        message: "Get conversation identifier from database error.",
-      };
+    // Get the new conversation
+    const resultConversation = await getConversationsRepository({
+      conversationId: conversation.id,
+    } as GetConversationRepositoryInput);
+    if (!resultConversation) {
+      return null;
     }
 
-    const resultFullConversation = await pgGetConversationsTransaction(
-      conversationId
-    );
-
+    // Broadcast/Send to participants
     eventBusServer.emit(WsServerEvent.CONVERSATION_ADDED_PARTICIPANTS, {
       senderId: userId,
       accessToken,
-      oldParticipants: resultOldParticipants,
+      oldParticipants: resultOldParticipants.map((participant) => {
+        return participant.userId;
+      }),
       newParticipants: participantIds,
-      conversationIdentifier: resultConversationIdentifier,
-      fullConversation: resultFullConversation.data,
+      conversation: resultConversation,
     });
 
     return {

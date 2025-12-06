@@ -1,5 +1,5 @@
-import { WsServerEvent } from "../types";
-import type { EventCallback } from "../types";
+import { WsServerEvent } from "../types/domain";
+import type { EventCallback } from "../types/domain";
 
 const listeners = new Map<WsServerEvent, Set<EventCallback<any>>>();
 

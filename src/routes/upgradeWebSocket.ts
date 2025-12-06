@@ -1,9 +1,9 @@
 import type {
-  DataWebSocket,
   ConversationIdentifier,
   UserTokenPayload,
-  HttpResponse,
-} from "../types";
+  ResponseDomain,
+} from "../types/domain";
+import type { DataWebSocket } from "../types/ws";
 import { parseAuthToken, authMiddleware } from "../middlewares";
 import { getConversationIdentifiersController } from "../controllers";
 
@@ -36,7 +36,7 @@ export async function handleUpgradeWebSocket(
 
     // Call conversation identifiers controller
     const conversationIdentifiers:
-      | HttpResponse
+      | ResponseDomain
       | ConversationIdentifier[]
       | null = await getConversationIdentifiersController(
       authResult.data.userId
@@ -68,7 +68,7 @@ export async function handleUpgradeWebSocket(
       data: {
         ...authResult.data,
         accessToken: auth,
-        conversationIdentifiers,
+        conversation: conversationIdentifiers,
       },
     });
 

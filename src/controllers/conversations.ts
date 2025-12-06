@@ -1,26 +1,27 @@
+import { ConversationType } from "../types/domain";
 import type {
-  ConversationType,
+  ResponseDomain,
   ConversationMetadata,
+  CreateConversationRepositoryOutput,
   ConversationIdentifier,
-  HttpResponse,
-} from "../types";
+} from "../types/domain";
+import { getConversationIdentifiersRepository } from "../repository";
 import {
   createConversationService,
-  getConversationIdentifiersServices,
   getConversationsService,
 } from "../services";
 
 export async function createConversationController(
   type: ConversationType,
   metadata: ConversationMetadata,
-  participants: string[],
+  participantIds: string[],
   senderId: string,
   accessToken: string
-): Promise<HttpResponse | null> {
+): Promise<CreateConversationRepositoryOutput | ResponseDomain | null> {
   const result = await createConversationService(
     type,
     metadata,
-    participants,
+    participantIds,
     senderId,
     accessToken
   );
@@ -29,8 +30,8 @@ export async function createConversationController(
 
 export async function getConversationIdentifiersController(
   userId: string
-): Promise<HttpResponse | ConversationIdentifier[] | null> {
-  const conversationIdentifiers = await getConversationIdentifiersServices(
+): Promise<ConversationIdentifier[] | ResponseDomain | null> {
+  const conversationIdentifiers = await getConversationIdentifiersRepository(
     userId
   );
   return conversationIdentifiers;

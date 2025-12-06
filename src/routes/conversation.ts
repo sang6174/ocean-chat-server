@@ -1,10 +1,9 @@
-import { ConversationType } from "../types";
+import type { HttpResponse, HttpConversationPost } from "../types/http";
+import { ConversationType } from "../types/domain";
 import type {
-  HttpResponse,
-  HttpConversationPost,
-  CreateConversationInput,
   UserTokenPayload,
-} from "../types";
+  CreateConversationDomainInput,
+} from "../types/domain";
 import {
   parseAuthToken,
   parseBodyJSON,
@@ -80,7 +79,7 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     }
 
     // Sanitize request body according to conversation type
-    let cleanBody: CreateConversationInput;
+    let cleanBody: CreateConversationDomainInput;
     if (rawBody.type === ConversationType.Myself) {
       cleanBody = {
         type: ConversationType.Myself,
@@ -88,7 +87,7 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
           name: rawBody.metadata.name,
           creator: authResult.data.userId,
         },
-        participants: [authResult.data.userId],
+        participantIds: [authResult.data.userId],
         senderId: authResult.data.userId,
         accessToken: auth,
       };
@@ -99,7 +98,7 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
           name: "",
           creator: "",
         },
-        participants: rawBody.participants,
+        participantIds: rawBody.participantIds,
         senderId: authResult.data.userId,
         accessToken: auth,
       };
@@ -110,7 +109,7 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
           name: rawBody.metadata.name,
           creator: authResult.data.userId,
         },
-        participants: rawBody.participants,
+        participantIds: rawBody.participantIds,
         senderId: authResult.data.userId,
         accessToken: auth,
       };
@@ -129,7 +128,7 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     const result = await createConversationController(
       cleanBody.type,
       cleanBody.metadata,
-      cleanBody.participants,
+      cleanBody.participantIds,
       cleanBody.senderId,
       cleanBody.accessToken
     );
@@ -144,10 +143,13 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     }
 
     // HTTP response successfully
-    return new Response(JSON.stringify({ message: result.message }), {
-      status: result.status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ message: "Create a new conversation is successful." }),
+      {
+        status: 201,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   } catch (err) {
     console.log(
       `[ROUTE_ERROR] - ${new Date().toISOString()} - Create a new conversation error.\n`,

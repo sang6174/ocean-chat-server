@@ -1,5 +1,5 @@
-import { ConversationType } from "../types";
-import type { HttpResponse, HttpLoginPostResponse } from "../types";
+import { ConversationType } from "../types/domain";
+import type { HttpResponse, HttpLoginPostResponse } from "../types/http";
 import {
   registerService,
   loginService,
@@ -12,21 +12,23 @@ export async function registerController(
   username: string,
   password: string
 ): Promise<HttpResponse | null> {
-  const result = await registerService(name, email, username, password);
+  // Register a new user and account
+  const result = await registerService({ name, email, username, password });
   if (!result) {
     return null;
   }
-  if ("status" in result && "message" in result && !("data" in result)) {
+  if ("status" in result && "message" in result) {
     return result;
   }
 
+  // Create a private conversation
   const type = ConversationType.Myself;
   const metadata = {
     name: "you",
     creator: "",
   };
-  const participantIds = [result.data.user.id];
-  const senderId = result.data.user.id;
+  const participantIds = [result.user.id];
+  const senderId = result.user.id;
   const resultConversation = await createConversationService(
     type,
     metadata,
@@ -47,6 +49,6 @@ export async function loginController(
   username: string,
   password: string
 ): Promise<HttpResponse | HttpLoginPostResponse | null> {
-  const result = await loginService(username, password);
+  const result = await loginService({ username, password });
   return result;
 }

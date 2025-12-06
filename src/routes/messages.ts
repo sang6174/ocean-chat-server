@@ -1,4 +1,4 @@
-import type { UserTokenPayload } from "../types";
+import type { UserTokenPayload } from "../types/domain";
 import { parseAuthToken } from "../middlewares/parses";
 import { authMiddleware } from "../middlewares/auths";
 import { getMessagesController } from "../controllers";

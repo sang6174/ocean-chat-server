@@ -1,9 +1,5 @@
-import type {
-  HttpResponse,
-  HttpMessagePost,
-  SendMessageInput,
-  UserTokenPayload,
-} from "../types";
+import type { UserTokenPayload, SendMessageDomainInput } from "../types/domain";
+import type { HttpResponse, HttpMessagePost } from "../types/http";
 import {
   parseAuthToken,
   parseBodyJSON,
@@ -60,7 +56,7 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
     }
 
     // Sanitize validated body
-    const cleanBody: SendMessageInput = {
+    const cleanBody: SendMessageDomainInput = {
       senderId: authResult.data.userId,
       accessToken: auth,
       conversation: rawBody.conversation,

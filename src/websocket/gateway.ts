@@ -1,11 +1,12 @@
-import { WsServerEvent } from "../types";
+import { WsServerEvent } from "../types/domain";
 import type {
-  DataWebSocket,
-  WsNormalOutput,
+  CreateConversationRepositoryOutput,
+  GetConversationRepositoryOutput,
   PublishConversationCreated,
   PublishMessageCreated,
   PublishParticipantAdded,
-} from "../types";
+} from "../types/domain";
+import type { DataWebSocket, WsDataToSendToClient } from "../types/ws";
 import { eventBusServer } from "./events";
 
 const wsConnections: Map<
@@ -21,6 +22,7 @@ export function addWsConnection(ws: Bun.ServerWebSocket<DataWebSocket>) {
 
   wsConnections.get(ws.data.userId)!.add(ws);
   console.log(`Client ${ws.data.userId} is connected.`);
+  ws.send(`Client ${ws.data.userId} is connected.`);
   return;
 }
 
@@ -47,7 +49,7 @@ export function broadcastToConversation<T>(
 ) {
   recipientIds.forEach((recipient) => {
     wsConnections.get(recipient)?.forEach((conn) => {
-      if (accessToken === conn.data.accessToken) return;
+      // if (accessToken === conn.data.accessToken) return;
       if (conn.readyState === WebSocket.OPEN) {
         try {
           conn.send(JSON.stringify(data));
@@ -112,33 +114,34 @@ eventBusServer.on(
     recipientIds,
     conversation,
   }: PublishConversationCreated) => {
-    const dataToConnectionsOtherSender: WsNormalOutput = {
-      type: WsServerEvent.CONVERSATION_CREATED,
-      payload: {
+    // Send payload to other connections of sender
+    const dataToOtherConnectionsOfSender: WsDataToSendToClient<CreateConversationRepositoryOutput> =
+      {
+        type: WsServerEvent.CONVERSATION_CREATED,
         metadata: {
           senderId,
           toUserId: senderId,
         },
         data: conversation,
-      },
-    };
+      };
 
     sendToOtherConnectionsOfSender(
       accessToken,
       senderId,
-      dataToConnectionsOtherSender
+      dataToOtherConnectionsOfSender
     );
+
+    // Send payload to participants
     for (const recipientId of recipientIds) {
-      const dataToRecipient: WsNormalOutput = {
-        type: WsServerEvent.CONVERSATION_CREATED,
-        payload: {
+      const dataToRecipient: WsDataToSendToClient<CreateConversationRepositoryOutput> =
+        {
+          type: WsServerEvent.CONVERSATION_CREATED,
           metadata: {
             senderId,
             toUserId: recipientId,
           },
           data: conversation,
-        },
-      };
+        };
       sendToUser(recipientId, dataToRecipient);
     }
   }
@@ -153,17 +156,20 @@ eventBusServer.on(
     recipientIds,
     message,
   }: PublishMessageCreated) => {
-    const data: WsNormalOutput = {
+    // Broadcast a new message to conversation
+    const data: WsDataToSendToClient<string> = {
       type: WsServerEvent.MESSAGE_CREATED,
-      payload: {
-        metadata: {
-          senderId,
-          toConversation: conversationIdentifier,
-        },
-        data: message,
+      metadata: {
+        senderId,
+        toConversation: conversationIdentifier,
       },
+      data: message,
     };
-    broadcastToConversation<WsNormalOutput>(accessToken, recipientIds, data);
+    broadcastToConversation<WsDataToSendToClient<string>>(
+      accessToken,
+      recipientIds,
+      data
+    );
   }
 );
 
@@ -175,34 +181,34 @@ eventBusServer.on(
     oldParticipants,
     newParticipants,
     conversationIdentifier,
-    fullConversation,
+    conversation,
   }: PublishParticipantAdded) => {
-    const dataToOldParticipants: WsNormalOutput = {
+    // Broadcast participant ids to old participants
+    const dataToOldParticipants: WsDataToSendToClient<string[]> = {
       type: WsServerEvent.MESSAGE_CREATED,
-      payload: {
-        metadata: {
-          senderId,
-          toConversation: conversationIdentifier,
-        },
-        data: newParticipants,
+      metadata: {
+        senderId,
+        toConversation: conversationIdentifier,
       },
+      data: newParticipants,
     };
-    broadcastToConversation<WsNormalOutput>(
+    console.log(dataToOldParticipants);
+    broadcastToConversation<WsDataToSendToClient<string[]>>(
       accessToken,
       oldParticipants,
       dataToOldParticipants
     );
 
-    const dataToNewParticipants: WsNormalOutput = {
-      type: WsServerEvent.MESSAGE_CREATED,
-      payload: {
+    // Send the new conversation to new participants
+    const dataToNewParticipants: WsDataToSendToClient<GetConversationRepositoryOutput> =
+      {
+        type: WsServerEvent.MESSAGE_CREATED,
         metadata: {
           senderId,
           toConversation: conversationIdentifier,
         },
-        data: fullConversation,
-      },
-    };
+        data: conversation,
+      };
 
     for (const recipient of newParticipants) {
       sendToUser(recipient, dataToNewParticipants);

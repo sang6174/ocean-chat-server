@@ -1,9 +1,8 @@
 import type {
-  HttpResponse,
-  HttpParticipantPost,
   UserTokenPayload,
-  AddParticipantsInput,
-} from "../types";
+  AddParticipantsDomainInput,
+} from "../types/domain";
+import type { HttpResponse, HttpParticipantsPost } from "../types/http";
 import {
   parseAuthToken,
   parseBodyJSON,
@@ -36,8 +35,8 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
     }
 
     // Parse request body
-    const rawBody: HttpParticipantPost | HttpResponse =
-      await parseBodyJSON<HttpParticipantPost>(req);
+    const rawBody: HttpParticipantsPost | HttpResponse =
+      await parseBodyJSON<HttpParticipantsPost>(req);
     if ("status" in rawBody && "message" in rawBody) {
       return new Response(JSON.stringify({ message: rawBody.message }), {
         status: rawBody.status,
@@ -60,7 +59,7 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
       );
     }
 
-    const cleanBody: AddParticipantsInput = {
+    const cleanBody: AddParticipantsDomainInput = {
       userId: authResult.data.userId,
       accessToken: auth,
       conversation: rawBody.conversation,

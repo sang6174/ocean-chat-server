@@ -1,10 +1,9 @@
+import type { HttpRegisterPost, HttpLoginPost } from "../types/http";
+import { ConversationType } from "../types/domain";
 import type {
-  StringTokenPayload,
-  HttpRegisterPost,
-  HttpLoginPost,
   ConversationIdentifier,
-} from "../types";
-import { ConversationType } from "../types";
+  StringTokenPayload,
+} from "../types/domain";
 
 // Pure function
 export function isPlainObject(value: any): value is Record<string, any> {
@@ -122,19 +121,19 @@ export function validateCreateMyselfConversation(
 export function validateCreateDirectConversation(
   value: any
 ): { valid: true } | { valid: false; message: string } {
-  if (!Array.isArray(value?.participants)) {
-    return { valid: false, message: "Participants must be an array" };
+  if (!Array.isArray(value?.participantIds)) {
+    return { valid: false, message: "ParticipantIds must be an array" };
   }
-  if (!value.participants.every((p: any) => isUUIDv4(p))) {
-    return { valid: false, message: "All participants must be strings" };
+  if (!value.participantIds.every((p: any) => isUUIDv4(p))) {
+    return { valid: false, message: "All participantIds must be strings" };
   }
-  if (value.participants.length !== 2) {
+  if (value.participantIds.length !== 2) {
     return {
       valid: false,
       message: "Direct conversation had exactly two participants.",
     };
   }
-  if (value.participants[0] === value.participants[1]) {
+  if (value.participantIds[0] === value.participantIds[1]) {
     return {
       valid: false,
       message: "A user appears twice.",
@@ -149,11 +148,11 @@ export function validateCreateGroupConversation(
   value: any,
   creator: string
 ): { valid: true } | { valid: false; message: string } {
-  if (!Array.isArray(value?.participants)) {
-    return { valid: false, message: "Participants must be an array" };
+  if (!Array.isArray(value?.participantIds)) {
+    return { valid: false, message: "ParticipantIds must be an array" };
   }
-  if (!value.participants.every((p: any) => isUUIDv4(p))) {
-    return { valid: false, message: "All participants must be strings" };
+  if (!value.participantIds.every((p: any) => isUUIDv4(p))) {
+    return { valid: false, message: "All participantIds must be strings" };
   }
   if (!isPlainObject(value?.metadata)) {
     return {
@@ -167,7 +166,7 @@ export function validateCreateGroupConversation(
       message: "Group conversation metadata must include a string 'name'",
     };
   }
-  if (value.participants.length < 3) {
+  if (value.participantIds.length < 3) {
     return {
       valid: false,
       message: "Group conversation must have at least 3 participants",
@@ -182,7 +181,7 @@ export function validateSendMessageInput(
   conversation: ConversationIdentifier,
   message: string
 ) {
-  if (!isUUIDv4(conversation.conversationId)) {
+  if (!isUUIDv4(conversation.id)) {
     return {
       valid: false,
       message: "Conversation id must be a uuidv4.",
@@ -206,7 +205,7 @@ export function validateAddParticipants(
   conversation: ConversationIdentifier,
   participantIds: string[]
 ) {
-  if (!isUUIDv4(conversation.conversationId)) {
+  if (!isUUIDv4(conversation.id)) {
     return {
       valid: false,
       message: "Conversation id must be a uuidv4.",

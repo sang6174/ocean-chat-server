@@ -1,32 +1,40 @@
-import { WsServerEvent } from "../types";
-import type { ConversationIdentifier, HttpResponse } from "../types";
-import { pgCreateMessage, pgGetParticipantIds, pgGetMessages } from "../models";
+import { WsServerEvent } from "../types/domain";
+import type {
+  SendMessageDomainInput,
+  ResponseDomain,
+  GetMessagesDomainOutput,
+  GetMessagesDomainInput,
+} from "../types/domain";
+import {
+  createMessageRepository,
+  getMessagesRepository,
+  getParticipantIds,
+} from "../repository";
 import { eventBusServer } from "../websocket/events";
 
-export async function createMessageService(
-  senderId: string,
-  accessToken: string,
-  conversation: ConversationIdentifier,
-  message: string
-): Promise<HttpResponse | null> {
+export async function sendMessageService({
+  senderId,
+  accessToken,
+  conversation,
+  message,
+}: SendMessageDomainInput): Promise<ResponseDomain | null> {
   try {
-    const createMessageResult = await pgCreateMessage(
-      conversation.conversationId,
+    // Create a new message in database
+    const resultCreateMessage = await createMessageRepository({
+      conversationId: conversation.id,
       senderId,
-      message
-    );
-
-    if (!createMessageResult) {
+      content: message,
+    });
+    if (!resultCreateMessage) {
       return {
         status: 500,
         message: "Failed to save a new message into database.",
       };
     }
 
-    const resultParticipants = await pgGetParticipantIds(
-      conversation.conversationId
-    );
-    if (!resultParticipants) {
+    // Get ids of participants in conversation
+    const resultParticipantIds = await getParticipantIds(conversation.id);
+    if (!resultParticipantIds) {
       return {
         status: 500,
         message: "Failed to get participant of the room from database.",
@@ -37,7 +45,9 @@ export async function createMessageService(
       senderId,
       accessToken,
       conversationIdentifier: conversation,
-      recipientIds: resultParticipants,
+      recipientIds: resultParticipantIds.map(
+        (participant) => participant.userId
+      ),
       message,
     });
 
@@ -54,17 +64,22 @@ export async function createMessageService(
   }
 }
 
-export async function getMessagesService(
-  conversationId: string,
-  limit: number = 10,
-  offset: number = 0
-) {
+export async function getMessagesService({
+  conversationId,
+  limit = 10,
+  offset = 0,
+}: GetMessagesDomainInput): Promise<GetMessagesDomainOutput[] | null> {
   try {
-    const conversations = await pgGetMessages(conversationId, limit, offset);
-    return conversations;
+    const result = await getMessagesRepository({
+      conversationId,
+      limit,
+      offset,
+    });
+    return result;
   } catch (err) {
     console.log(
-      `[SERVICE_ERROR] - ${new Date().toISOString()} - Get messages error.\n`
+      `[SERVICE_ERROR] - ${new Date().toISOString()} - Get messages error.\n`,
+      err
     );
     return null;
   }

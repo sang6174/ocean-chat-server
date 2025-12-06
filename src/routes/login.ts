@@ -2,7 +2,7 @@ import type {
   HttpLoginPost,
   HttpResponse,
   HttpLoginPostResponse,
-} from "../types";
+} from "../types/http";
 import { parseBodyFormData, isLoginInput } from "../middlewares";
 import { loginController } from "../controllers";
 

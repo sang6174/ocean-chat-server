@@ -1,4 +1,4 @@
-import type { HttpRegisterPost, HttpResponse } from "../types";
+import type { HttpRegisterPost, HttpResponse } from "../types/http";
 import { parseBodyFormData, isRegisterInput } from "../middlewares";
 import { registerController } from "../controllers";
 
@@ -12,6 +12,7 @@ export async function handleRegister(req: Request, corsHeaders: any) {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     const rawBody = {
       name: form.get("name"),
       email: form.get("email"),
