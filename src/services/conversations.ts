@@ -36,11 +36,6 @@ export async function createConversationService(
         status: 201,
         message: "Create a new myself conversation is successful.",
       };
-    } else if (type === ConversationType.Direct) {
-      return {
-        status: 201,
-        message: "Create a new direct conversation is successful.",
-      };
     } else if (type === ConversationType.Group) {
       if (!accessToken) {
         return {

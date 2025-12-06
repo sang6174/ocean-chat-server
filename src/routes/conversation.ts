@@ -9,7 +9,6 @@ import {
   parseBodyJSON,
   authMiddleware,
   validateCreateMyselfConversation,
-  validateCreateDirectConversation,
   validateCreateGroupConversation,
 } from "../middlewares";
 import { createConversationController } from "../controllers";
@@ -51,8 +50,6 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     let validatedResult;
     if (rawBody.type === ConversationType.Myself) {
       validatedResult = validateCreateMyselfConversation(rawBody);
-    } else if (rawBody.type === ConversationType.Direct) {
-      validatedResult = validateCreateDirectConversation(rawBody);
     } else if (rawBody.type === ConversationType.Group) {
       validatedResult = validateCreateGroupConversation(
         rawBody,
@@ -88,17 +85,6 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
           creator: authResult.data.userId,
         },
         participantIds: [authResult.data.userId],
-        senderId: authResult.data.userId,
-        accessToken: auth,
-      };
-    } else if (rawBody.type === ConversationType.Direct) {
-      cleanBody = {
-        type: ConversationType.Direct,
-        metadata: {
-          name: "",
-          creator: "",
-        },
-        participantIds: rawBody.participantIds,
         senderId: authResult.data.userId,
         accessToken: auth,
       };

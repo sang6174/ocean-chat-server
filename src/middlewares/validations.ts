@@ -117,32 +117,6 @@ export function validateCreateMyselfConversation(
   return { valid: true };
 }
 
-// Validate create a new direct conversation
-export function validateCreateDirectConversation(
-  value: any
-): { valid: true } | { valid: false; message: string } {
-  if (!Array.isArray(value?.participantIds)) {
-    return { valid: false, message: "ParticipantIds must be an array" };
-  }
-  if (!value.participantIds.every((p: any) => isUUIDv4(p))) {
-    return { valid: false, message: "All participantIds must be strings" };
-  }
-  if (value.participantIds.length !== 2) {
-    return {
-      valid: false,
-      message: "Direct conversation had exactly two participants.",
-    };
-  }
-  if (value.participantIds[0] === value.participantIds[1]) {
-    return {
-      valid: false,
-      message: "A user appears twice.",
-    };
-  }
-
-  return { valid: true };
-}
-
 // Validate create a new group conversation
 export function validateCreateGroupConversation(
   value: any,
