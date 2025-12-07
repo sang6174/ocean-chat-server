@@ -1,6 +1,5 @@
 import type { UserTokenPayload } from "../types/domain";
-import { parseAuthToken } from "../middlewares/parses";
-import { authMiddleware } from "../middlewares/auths";
+import { parseAuthToken, authMiddleware, isUUIDv4 } from "../middlewares";
 import { getMessagesController } from "../controllers";
 
 export async function handleGetMessages(
@@ -35,6 +34,17 @@ export async function handleGetMessages(
     const limit = url.searchParams.get("limit") || 10;
     const offset = url.searchParams.get("offset") || 0;
     if (!conversationId) {
+      return new Response(
+        JSON.stringify({ message: "Search params is invalid." }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const isValidConversationId = isUUIDv4(conversationId);
+    if (!isValidConversationId) {
       return new Response(
         JSON.stringify({ message: "Search params is invalid." }),
         {

@@ -1,8 +1,12 @@
 import type { UserTokenPayload } from "../types/domain";
-import { parseAuthToken, authMiddleware } from "../middlewares";
+import { parseAuthToken, authMiddleware, isUUIDv4 } from "../middlewares";
 import { getConversationsController } from "../controllers";
 
-export async function handleGetConversations(req: Request, corsHeaders: any) {
+export async function handleGetConversations(
+  url: URL,
+  req: Request,
+  corsHeaders: any
+) {
   try {
     // Parse auth token
     const auth = parseAuthToken(req);
@@ -25,8 +29,31 @@ export async function handleGetConversations(req: Request, corsHeaders: any) {
       );
     }
 
+    // Get userId from search params
+    const userId = url.searchParams.get("userId");
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ message: "Search params is invalid." }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const isValidUserId = isUUIDv4(userId);
+    if (!isValidUserId) {
+      return new Response(
+        JSON.stringify({ message: "Search params is invalid." }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     // Call get conversations controller
-    const result = await getConversationsController(authResult.data.userId);
+    const result = await getConversationsController(userId);
     if (!result) {
       return new Response(
         JSON.stringify({

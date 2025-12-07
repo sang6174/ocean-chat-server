@@ -32,13 +32,13 @@ const server = Bun.serve<DataWebSocket>({
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     };
 
-    // POST /register
-    if (path === "/register" && method === "POST") {
+    // POST /auth/register
+    if (path === "/auth/register" && method === "POST") {
       return await handleRegister(req, corsHeaders);
     }
 
-    // POST /login
-    if (path === "/login" && method === "POST") {
+    // POST /auth/login
+    if (path === "/auth/login" && method === "POST") {
       return await handleLogin(req, corsHeaders);
     }
 
@@ -47,13 +47,13 @@ const server = Bun.serve<DataWebSocket>({
       return await handleCreateConversation(req, corsHeaders);
     }
 
-    // POST /message
-    if (path === "/message" && method === "POST") {
+    // POST /conversation/message
+    if (path === "/conversation/message" && method === "POST") {
       return await handleSendMessage(req, corsHeaders);
     }
 
-    // POST /participants
-    if (path === "/participants" && method === "POST") {
+    // POST /conversation/participants
+    if (path === "/conversation/participants" && method === "POST") {
       return await handleAddParticipants(req, corsHeaders);
     }
 
@@ -72,18 +72,18 @@ const server = Bun.serve<DataWebSocket>({
       return await handleNotificationDenyFriend(url, req, corsHeaders);
     }
 
-    // GET /users
-    if (path === "/users" && method === "GET") {
+    // GET /info/users
+    if (path === "/info/users" && method === "GET") {
       return await handleGetAllInfoUsers(req, corsHeaders);
     }
 
-    // GET /conversations
+    // GET /conversations?userId=...
     if (path === "/conversations" && method === "GET") {
-      return await handleGetConversations(req, corsHeaders);
+      return await handleGetConversations(url, req, corsHeaders);
     }
 
-    // GET /messages
-    if (path === "/messages" && method === "GET") {
+    // GET /conversations/messages?conversationId=...&limit=...&offset=...
+    if (path === "/conversations/messages" && method === "GET") {
       return await handleGetMessages(url, req, corsHeaders);
     }
 
