@@ -1,5 +1,5 @@
-import { ConversationType } from "../types/domain";
-import type { HttpResponse, HttpLoginPostResponse } from "../types/http";
+import { ConversationType, type LoginDomainOutput } from "../types/domain";
+import type { HttpResponse } from "../types/http";
 import {
   registerService,
   loginService,
@@ -48,7 +48,16 @@ export async function registerController(
 export async function loginController(
   username: string,
   password: string
-): Promise<HttpResponse | HttpLoginPostResponse | null> {
+): Promise<HttpResponse | LoginDomainOutput> {
   const result = await loginService({ username, password });
+  if (!result) {
+    return {
+      status: 500,
+      message: "Login error.",
+    };
+  }
+  if ("status" in result && "message" in result) {
+    return result;
+  }
   return result;
 }

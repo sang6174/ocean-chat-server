@@ -43,6 +43,15 @@ export interface UserTokenPayload {
   exp: number;
 }
 
+export interface RefreshTokenPayload {
+  data: {
+    userId: string;
+    accessToken: string;
+  };
+  iat: number;
+  exp: number;
+}
+
 export interface StringTokenPayload {
   data: string;
   iat: number;

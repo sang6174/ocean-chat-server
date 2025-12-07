@@ -21,7 +21,6 @@ export interface HttpLoginPostResponse {
   userId: string;
   username: string;
   accessToken: string;
-  refreshToken: string;
 }
 
 export interface HttpConversationPost {

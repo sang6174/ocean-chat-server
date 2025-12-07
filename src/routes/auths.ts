@@ -10,6 +10,9 @@ import {
   isLoginInput,
 } from "../middlewares";
 import { registerController, loginController } from "../controllers";
+import type { LoginDomainOutput } from "../types/domain";
+
+const refreshTokenMaxAge = process.env.REFRESH_TOKEN_MAX_AGE!;
 
 export async function handleRegister(req: Request, corsHeaders: any) {
   try {
@@ -125,27 +128,32 @@ export async function handleLogin(req: Request, corsHeaders: any) {
     };
 
     // Call login controller:
-    const result: HttpResponse | HttpLoginPostResponse | null =
-      await loginController(cleanBody.username, cleanBody.password);
+    const result: HttpResponse | LoginDomainOutput = await loginController(
+      cleanBody.username,
+      cleanBody.password
+    );
 
-    if (!result) {
-      return new Response(JSON.stringify({ message: "Login error." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (result && "status" in result && "message" in result) {
+    if ("status" in result && "message" in result) {
       return new Response(JSON.stringify({ message: result.message }), {
         status: result.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const response: HttpLoginPostResponse = {
+      userId: result.userId,
+      username: result.username,
+      accessToken: result.accessToken,
+    };
+
     // HTTP response successfully
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify(response), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "Set-Cookie": `refresh_token=${result.refreshToken}; HttpOnly; SameSite=Lax; Path=/auth/refresh; Max-Age=${refreshTokenMaxAge}`,
+      },
     });
   } catch (err) {
     console.log(

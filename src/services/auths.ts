@@ -11,12 +11,12 @@ import { registerRepository } from "../repository";
 import { pgFindUserByEmail, pgFindAccountByUsername } from "../models";
 
 const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET!;
-const accessTokenExpiresIn = (process.env.ACCESS_TOKEN_EXPIRES_IN ??
-  "12h") as jwt.SignOptions["expiresIn"];
+const accessTokenExpiresIn = process.env
+  .ACCESS_TOKEN_EXPIRES_IN! as jwt.SignOptions["expiresIn"];
 
 const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET!;
-const refreshTokenExpiresIn = (process.env.REFRESH_TOKEN_EXPIRES_IN ??
-  "5d") as jwt.SignOptions["expiresIn"];
+const refreshTokenExpiresIn = process.env
+  .REFRESH_TOKEN_EXPIRES_IN! as jwt.SignOptions["expiresIn"];
 
 export function createAccessToken(
   payload: string,
@@ -112,10 +112,11 @@ export async function loginService({
         username: existingAccount.username,
       })
     );
+
     const refreshToken: string = createRefreshToken(
       JSON.stringify({
         userId: existingAccount.id,
-        username: existingAccount.username,
+        accessToken,
       })
     );
 

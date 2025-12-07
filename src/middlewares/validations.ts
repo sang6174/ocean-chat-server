@@ -50,8 +50,8 @@ function isTypeConversationEnum(value: any): value is ConversationType {
   return Object.values(ConversationType).includes(value);
 }
 
-// Validate payload from output of verify token
-export function isDecodedJWT(value: any): value is StringTokenPayload {
+// Validate payload from output of verified auth token
+export function isDecodedAuthToken(value: any): value is StringTokenPayload {
   if (!isPlainObject(value)) return false;
 
   const { data, iat, exp } = value;
@@ -68,6 +68,37 @@ export function isDecodedJWT(value: any): value is StringTokenPayload {
     !isPlainObject(dataObj) ||
     !isUUIDv4(dataObj.userId) ||
     typeof dataObj.username !== "string"
+  ) {
+    return false;
+  }
+
+  if (typeof iat !== "number" || typeof exp !== "number") return false;
+  if (exp <= iat) return false;
+
+  const now = Math.floor(Date.now() / 1000);
+  if (exp <= now) return false;
+
+  return true;
+}
+
+// Validate payload from output of verified refresh token
+export function isDecodedRefreshToken(value: any): value is StringTokenPayload {
+  if (!isPlainObject(value)) return false;
+
+  const { data, iat, exp } = value;
+  if (typeof data !== "string") return false;
+
+  let dataObj;
+  try {
+    dataObj = JSON.parse(data);
+  } catch {
+    return false;
+  }
+
+  if (
+    !isPlainObject(dataObj) ||
+    !isUUIDv4(dataObj.userId) ||
+    typeof dataObj.accessToken !== "string"
   ) {
     return false;
   }
