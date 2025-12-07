@@ -97,7 +97,7 @@ export async function createConversationRepository({
   }
 }
 
-export async function getConversationsRepository({
+export async function getConversationRepository({
   conversationId,
   limit = 10,
   offset = 0,

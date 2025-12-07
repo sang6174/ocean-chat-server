@@ -9,7 +9,7 @@ import type {
 } from "../types/domain";
 import {
   createConversationRepository,
-  getConversationsRepository,
+  getConversationRepository,
   getConversationIdentifiersRepository,
 } from "../repository";
 import { eventBusServer } from "../websocket/events";
@@ -90,7 +90,7 @@ export async function getConversationsService(
 
     let result: GetConversationRepositoryOutput[] = [];
     for (const con of conversationIdentifiers) {
-      const resultConversation = await getConversationsRepository({
+      const resultConversation = await getConversationRepository({
         conversationId: con.id,
       } as GetConversationRepositoryInput);
       if (!resultConversation) {

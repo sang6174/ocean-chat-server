@@ -10,7 +10,7 @@ import {
   getParticipantRole,
   getParticipantIds,
   addParticipants,
-  getConversationsRepository,
+  getConversationRepository,
 } from "../repository";
 
 export async function addParticipantsService({
@@ -63,7 +63,7 @@ export async function addParticipantsService({
     // Add the event messages for each the new participants
 
     // Get the new conversation
-    const resultConversation = await getConversationsRepository({
+    const resultConversation = await getConversationRepository({
       conversationId: conversation.id,
     } as GetConversationRepositoryInput);
     if (!resultConversation) {
