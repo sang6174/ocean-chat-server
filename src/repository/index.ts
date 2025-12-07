@@ -18,7 +18,7 @@ import type {
   GetParticipantIdsDomainOutput,
   GetParticipantRoleRepositoryOutput,
   AddParticipantsRepositoryInput,
-  GetInfoUsersDomainOutput,
+  GetInfoUserDomainOutput,
 } from "../types/domain";
 import {
   pgRegisterTransaction,
@@ -31,7 +31,9 @@ import {
   pgAddParticipantsTransaction,
   pgGetParticipantIds,
   pgGetInfoUsers,
+  pgGetInfoUser,
 } from "../models";
+import type { PgGetInfoUserInput } from "../types/models";
 
 export async function registerRepository({
   name,
@@ -177,9 +179,19 @@ export async function createMessageRepository({
 }
 
 export async function getInfoUsersRepository(): Promise<
-  GetInfoUsersDomainOutput[] | null
+  GetInfoUserDomainOutput[] | null
 > {
   const result = await pgGetInfoUsers();
+  if (!result) {
+    return null;
+  }
+  return result;
+}
+
+export async function getInfoUserRepository({
+  userId,
+}: PgGetInfoUserInput): Promise<GetInfoUserDomainOutput | null> {
+  const result = await pgGetInfoUser({ userId });
   if (!result) {
     return null;
   }

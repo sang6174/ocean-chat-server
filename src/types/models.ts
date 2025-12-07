@@ -134,6 +134,10 @@ export interface PgGetParticipantIdsOutput {
   user_id: string;
 }
 
-export interface PgGetInfoUsersOutput extends PgUser {
+export interface PgGetInfoUserInput {
+  userId: string;
+}
+
+export interface PgGetInfoUserOutput extends PgUser {
   username: string;
 }

@@ -9,6 +9,7 @@ import {
   handleNotificationAcceptFriend,
   handleNotificationDenyFriend,
   handleGetAllInfoUsers,
+  handleGetInfoUser,
   handleGetConversations,
   handleGetMessages,
   handleUpgradeWebSocket,
@@ -75,6 +76,11 @@ const server = Bun.serve<DataWebSocket>({
     // GET /info/users
     if (path === "/info/users" && method === "GET") {
       return await handleGetAllInfoUsers(req, corsHeaders);
+    }
+
+    // GET /info/user?userId=...
+    if (path === "/info/user" && method === "GET") {
+      return await handleGetInfoUser(url, req, corsHeaders);
     }
 
     // GET /conversations?userId=...

@@ -147,7 +147,11 @@ export interface AddParticipantsDomainInput {
   participantIds: string[];
 }
 
-export interface GetInfoUsersDomainOutput extends User {
+export interface GetInfoUserDomainInput {
+  userId: string;
+}
+
+export interface GetInfoUserDomainOutput extends User {
   username: string;
 }
 

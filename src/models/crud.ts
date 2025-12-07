@@ -14,7 +14,8 @@ import type {
   PgGetMessagesInput,
   PgGetParticipantIdsOutput,
   PgGetParticipantRoleOutput,
-  PgGetInfoUsersOutput,
+  PgGetInfoUserInput,
+  PgGetInfoUserOutput,
 } from "../types/models";
 
 // ============================================================
@@ -82,7 +83,7 @@ export async function pgFindAccountByUsername({
   }
 }
 
-export async function pgGetInfoUsers(): Promise<PgGetInfoUsersOutput[] | null> {
+export async function pgGetInfoUsers(): Promise<PgGetInfoUserOutput[] | null> {
   try {
     const result = await pool.query(
       `SELECT u.id, a.username, u.name, u.email 
@@ -91,6 +92,28 @@ export async function pgGetInfoUsers(): Promise<PgGetInfoUsersOutput[] | null> {
       `
     );
     return result.rows;
+  } catch (err) {
+    console.error(
+      `[POSTGRES_ERROR] - ${new Date().toISOString()} -Get all users in database error.\n`,
+      err
+    );
+    return null;
+  }
+}
+
+export async function pgGetInfoUser({
+  userId,
+}: PgGetInfoUserInput): Promise<PgGetInfoUserOutput | null> {
+  try {
+    const result = await pool.query(
+      `SELECT u.id, a.username, u.name, u.email 
+       FROM main.users u 
+       JOIN main.accounts a ON u.id = a.id
+       WHERE 
+      `,
+      [userId]
+    );
+    return result.rows[0];
   } catch (err) {
     console.error(
       `[POSTGRES_ERROR] - ${new Date().toISOString()} -Get all users in database error.\n`,
