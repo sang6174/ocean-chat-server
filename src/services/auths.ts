@@ -6,9 +6,15 @@ import type {
   RegisterDomainOutput,
   LoginDomainInput,
   LoginDomainOutput,
+  RefreshAccessTokenInput,
+  RefreshAccessTokenOutput,
 } from "../types/domain";
-import { registerRepository } from "../repository";
-import { pgFindUserByEmail, pgFindAccountByUsername } from "../models";
+import {
+  findUserByEmail,
+  findAccountByUsername,
+  findAccountById,
+  registerRepository,
+} from "../repository";
 
 const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET!;
 const accessTokenExpiresIn = process.env
@@ -55,7 +61,7 @@ export async function registerService({
   password,
 }: RegisterDomainInput): Promise<RegisterDomainOutput | ResponseDomain | null> {
   try {
-    const existingUser = await pgFindUserByEmail({ email });
+    const existingUser = await findUserByEmail({ email });
     if (existingUser) {
       return {
         status: 409,
@@ -63,7 +69,7 @@ export async function registerService({
       };
     }
 
-    const existingAccount = await pgFindAccountByUsername({ username });
+    const existingAccount = await findAccountByUsername({ username });
     if (existingAccount) {
       return {
         status: 409,
@@ -93,7 +99,7 @@ export async function loginService({
   password,
 }: LoginDomainInput): Promise<LoginDomainOutput | ResponseDomain | null> {
   try {
-    const existingAccount = await pgFindAccountByUsername({ username });
+    const existingAccount = await findAccountByUsername({ username });
     if (!existingAccount) {
       return { status: 404, message: "Account not found." };
     }
@@ -125,6 +131,38 @@ export async function loginService({
       username: existingAccount.username,
       accessToken,
       refreshToken,
+    };
+  } catch (err) {
+    console.log(
+      `[SERVICE_ERROR] - ${new Date().toISOString()} - Login service error.\n`,
+      err
+    );
+    return null;
+  }
+}
+
+export async function refreshAccessTokenService({
+  userId,
+}: RefreshAccessTokenInput): Promise<
+  RefreshAccessTokenOutput | ResponseDomain | null
+> {
+  try {
+    const existingAccount = await findAccountById({ id: userId });
+    if (!existingAccount) {
+      return { status: 404, message: "Account not found." };
+    }
+
+    const accessToken: string = createAccessToken(
+      JSON.stringify({
+        userId: existingAccount.id,
+        username: existingAccount.username,
+      })
+    );
+
+    return {
+      userId: existingAccount.id,
+      username: existingAccount.username,
+      accessToken,
     };
   } catch (err) {
     console.log(

@@ -1,5 +1,10 @@
 import type {
+  User,
+  Account,
   Participant,
+  FindUserByEmailInput,
+  FindAccountByUsername,
+  FindAccountById,
   ConversationType,
   ConversationMetadata,
   ConversationIdentifier,
@@ -21,6 +26,9 @@ import type {
   GetInfoUserDomainOutput,
 } from "../types/domain";
 import {
+  pgFindUserByEmail,
+  pgFindAccountByUsername,
+  pgFindAccountById,
   pgRegisterTransaction,
   pgCreateConversationTransaction,
   pgGetConversationTransaction,
@@ -34,6 +42,22 @@ import {
   pgGetInfoUser,
 } from "../models";
 import type { PgGetInfoUserInput } from "../types/models";
+
+export async function findUserByEmail({
+  email,
+}: FindUserByEmailInput): Promise<User | null> {
+  return await pgFindUserByEmail({ email });
+}
+export async function findAccountByUsername({
+  username,
+}: FindAccountByUsername): Promise<Account | null> {
+  return await pgFindAccountByUsername({ username });
+}
+export async function findAccountById({
+  id,
+}: FindAccountById): Promise<Account | null> {
+  return await pgFindAccountById({ id });
+}
 
 export async function registerRepository({
   name,

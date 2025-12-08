@@ -111,6 +111,10 @@ export interface PgFindAccountByUsernameInput {
   username: string;
 }
 
+export interface PgFindAccountById {
+  id: string;
+}
+
 export interface PgGetParticipantRoleInput {
   userId: string;
   conversationId: string;

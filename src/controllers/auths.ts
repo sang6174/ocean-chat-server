@@ -1,9 +1,16 @@
-import { ConversationType, type LoginDomainOutput } from "../types/domain";
+import {
+  ConversationType,
+  type ResponseDomain,
+  type LoginDomainOutput,
+  type RefreshAccessTokenInput,
+  type RefreshAccessTokenOutput,
+} from "../types/domain";
 import type { HttpResponse } from "../types/http";
 import {
   registerService,
   loginService,
   createConversationService,
+  refreshAccessTokenService,
 } from "../services";
 
 export async function registerController(
@@ -58,6 +65,21 @@ export async function loginController(
   }
   if ("status" in result && "message" in result) {
     return result;
+  }
+  return result;
+}
+
+export async function refreshAccessTokenController({
+  userId,
+}: RefreshAccessTokenInput): Promise<
+  RefreshAccessTokenOutput | ResponseDomain
+> {
+  const result = await refreshAccessTokenService({ userId });
+  if (!result) {
+    return {
+      status: 500,
+      message: "Refresh token service error.",
+    };
   }
   return result;
 }

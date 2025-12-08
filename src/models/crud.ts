@@ -9,6 +9,7 @@ import type {
   PgCreateMessageInput,
   PgFindUserByEmailInput,
   PgFindAccountByUsernameInput,
+  PgFindAccountById,
   PgGetParticipantRoleInput,
   PgGetConversationIdentifiersInput,
   PgGetMessagesInput,
@@ -77,6 +78,24 @@ export async function pgFindAccountByUsername({
   } catch (err) {
     console.error(
       `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get account by username error.\n`,
+      err
+    );
+    return null;
+  }
+}
+
+export async function pgFindAccountById({
+  id,
+}: PgFindAccountById): Promise<PgAccount | null> {
+  try {
+    const result = await pool.query(
+      `SELECT id, username, password FROM main.accounts WHERE id = $1 AND is_deleted = false`,
+      [id]
+    );
+    return result.rows[0];
+  } catch (err) {
+    console.error(
+      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get account by id error.\n`,
       err
     );
     return null;

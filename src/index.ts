@@ -2,6 +2,7 @@ import type { DataWebSocket } from "./types/ws";
 import {
   handleRegister,
   handleLogin,
+  handleRefresh,
   handleCreateConversation,
   handleSendMessage,
   handleAddParticipants,
@@ -41,6 +42,11 @@ const server = Bun.serve<DataWebSocket>({
     // POST /auth/login
     if (path === "/auth/login" && method === "POST") {
       return await handleLogin(req, corsHeaders);
+    }
+
+    // POST /auth/refresh/token
+    if (path === "/auth/refresh/token" && method === "GET") {
+      return await handleRefresh(req, corsHeaders);
     }
 
     // POST /conversation

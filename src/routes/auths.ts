@@ -4,12 +4,19 @@ import type {
   HttpLoginPost,
   HttpLoginPostResponse,
 } from "../types/http";
+import type { RefreshTokenPayload } from "../types/domain";
 import {
   parseBodyFormData,
+  parseRefreshToken,
+  refreshTokenMiddleware,
   isRegisterInput,
   isLoginInput,
 } from "../middlewares";
-import { registerController, loginController } from "../controllers";
+import {
+  registerController,
+  loginController,
+  refreshAccessTokenController,
+} from "../controllers";
 import type { LoginDomainOutput } from "../types/domain";
 
 const refreshTokenMaxAge = process.env.REFRESH_TOKEN_MAX_AGE!;
@@ -152,7 +159,7 @@ export async function handleLogin(req: Request, corsHeaders: any) {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        "Set-Cookie": `refresh_token=${result.refreshToken}; HttpOnly; SameSite=Lax; Path=/auth/refresh; Max-Age=${refreshTokenMaxAge}`,
+        "Set-Cookie": `refresh_token=${result.refreshToken}; HttpOnly; SameSite=Lax; Path=/auth/refresh/token; Max-Age=${refreshTokenMaxAge}`,
       },
     });
   } catch (err) {
@@ -163,6 +170,62 @@ export async function handleLogin(req: Request, corsHeaders: any) {
     return new Response(
       JSON.stringify({
         message: "Login error. Please try again later.",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+}
+
+export async function handleRefresh(req: Request, corsHeaders: any) {
+  try {
+    // Parse refresh token
+    const auth: HttpResponse | string = parseRefreshToken(req);
+    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
+      return new Response(JSON.stringify({ message: auth.message }), {
+        status: auth.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify refresh token
+    const authResult: RefreshTokenPayload | null = refreshTokenMiddleware(auth);
+    if (!authResult) {
+      return new Response(
+        JSON.stringify({ message: "Invalid or expired auth token." }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const result = await refreshAccessTokenController({
+      userId: authResult.data.userId,
+    });
+
+    if ("status" in result && "message" in result) {
+      return new Response(JSON.stringify({ message: result.message }), {
+        status: result.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // HTTP response successfully
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.log(
+      `[ROUTE_ERROR] - ${new Date().toISOString()} - Login error.\n`,
+      err
+    );
+    return new Response(
+      JSON.stringify({
+        message: "Refresh token error. Please try again later.",
       }),
       {
         status: 500,

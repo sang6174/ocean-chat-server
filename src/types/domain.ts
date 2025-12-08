@@ -64,6 +64,15 @@ export interface ResponseDomain {
 }
 
 // ============================================================
+//  SQLite TYPE
+// ============================================================
+
+export interface Session {
+  userId: string;
+  refreshToken: string;
+}
+
+// ============================================================
 //  DOMAIN ENTITIES
 // ============================================================
 
@@ -134,6 +143,16 @@ export interface LoginDomainOutput {
   refreshToken: string;
 }
 
+export interface RefreshAccessTokenInput {
+  userId: string;
+}
+
+export interface RefreshAccessTokenOutput {
+  userId: string;
+  username: string;
+  accessToken: string;
+}
+
 export interface CreateConversationDomainInput {
   type: ConversationType;
   metadata: ConversationMetadata;
@@ -186,6 +205,16 @@ export interface GetMessagesDomainOutput {
 // ============================================================
 // REPOSITORY INPUT / OUTPUT
 // ============================================================
+export interface FindUserByEmailInput {
+  email: string;
+}
+export interface FindAccountByUsername {
+  username: string;
+}
+export interface FindAccountById {
+  id: string;
+}
+
 export interface CreateConversationRepositoryInput {
   type: ConversationType;
   metadata: ConversationMetadata;
