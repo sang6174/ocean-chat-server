@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS main.conversations (
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ,
     is_deleted      BOOLEAN DEFAULT FALSE,
-    deleted_at      TIMESTAMPTZ
+    deleted_at      TIMESTAMPTZ,
+    last_message_created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS main.participants (
@@ -60,8 +61,9 @@ CREATE TABLE IF NOT EXISTS main.participants (
     PRIMARY KEY (conversation_id, user_id)
 );
 
+
 CREATE TABLE IF NOT EXISTS main.messages (
-    id              UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id              BIGSERIAL PRIMARY KEY,
     content         TEXT NOT NULL,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ,
@@ -74,6 +76,5 @@ CREATE TABLE IF NOT EXISTS main.messages (
 -- ============================================================
 -- Indexing
 -- ============================================================
-CREATE INDEX idx_messages_conversation_id ON main.messages(conversation_id);
-CREATE INDEX idx_messages_created_at ON main.messages(created_at);
-CREATE INDEX idx_participants_user_id ON main.participants(user_id);
+CREATE INDEX idx_messages_conversation_id ON main.messages(conversation_id, created_at);
+CREATE INDEX idx_conversations_last_message_created_at ON main.conversations(last_message_created_at);
