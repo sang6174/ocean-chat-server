@@ -1,13 +1,12 @@
 import type { UserTokenPayload } from "../types/domain";
+import { parseAuthToken, authMiddleware, isUUIDv4 } from "../middlewares";
 import {
   notificationAddFriendController,
   notificationAcceptFriendController,
   notificationDenyFriendController,
 } from "../controllers";
-import { parseAuthToken } from "../middlewares/parses";
-import { authMiddleware } from "../middlewares/auths";
-import { isUUIDv4 } from "../middlewares/validations";
 
+// POST /notification/friend
 export async function handleNotificationFriend(
   url: URL,
   req: Request,
@@ -88,6 +87,7 @@ export async function handleNotificationFriend(
   }
 }
 
+// POST /notification/friend/accept
 export async function handleNotificationAcceptFriend(
   url: URL,
   req: Request,
@@ -141,6 +141,7 @@ export async function handleNotificationAcceptFriend(
       );
     }
 
+    // Call notification accept friend controller
     const result = await notificationAcceptFriendController({
       senderId: authResult.data.userId,
       recipientId: recipientId,
@@ -174,6 +175,7 @@ export async function handleNotificationAcceptFriend(
   }
 }
 
+// POST /notification/friend/deny
 export async function handleNotificationDenyFriend(
   url: URL,
   req: Request,
@@ -227,11 +229,13 @@ export async function handleNotificationDenyFriend(
       );
     }
 
+    // Call notification deny friend controller
     const result = await notificationDenyFriendController({
       senderId: authResult.data.userId,
       senderUsername: authResult.data.username,
       recipientId: recipientId,
     });
+
     return new Response(
       JSON.stringify({
         message: result.message,

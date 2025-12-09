@@ -26,6 +26,7 @@ import {
   addParticipantsController,
 } from "../controllers";
 
+// POST /conversation
 export async function handleCreateConversation(req: Request, corsHeaders: any) {
   try {
     // Parse refresh token
@@ -166,6 +167,7 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
   }
 }
 
+// POST /conversation/message
 export async function handleSendMessage(req: Request, corsHeaders: any) {
   try {
     // Parse auth token
@@ -260,6 +262,7 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
   }
 }
 
+// POST /conversation/participants
 export async function handleAddParticipants(req: Request, corsHeaders: any) {
   try {
     // Parse refresh token

@@ -78,9 +78,9 @@ export async function getConversationsService(
   userId: string
 ): Promise<GetConversationDomainOutput[] | ResponseDomain | null> {
   try {
-    const conversationIdentifiers = await getConversationIdentifiersRepository(
-      userId
-    );
+    const conversationIdentifiers = await getConversationIdentifiersRepository({
+      userId,
+    });
     if (!conversationIdentifiers) {
       return {
         status: 500,

@@ -21,6 +21,7 @@ import type { LoginDomainOutput } from "../types/domain";
 
 const refreshTokenMaxAge = process.env.REFRESH_TOKEN_MAX_AGE!;
 
+// POST /auth/register
 export async function handleRegister(req: Request, corsHeaders: any) {
   try {
     // Parse request body and sanitize fields.
@@ -100,6 +101,7 @@ export async function handleRegister(req: Request, corsHeaders: any) {
   }
 }
 
+// POST /auth/login
 export async function handleLogin(req: Request, corsHeaders: any) {
   try {
     // Parse request body and sanitize fields.
@@ -179,6 +181,7 @@ export async function handleLogin(req: Request, corsHeaders: any) {
   }
 }
 
+// POST /auth/refresh/token
 export async function handleRefresh(req: Request, corsHeaders: any) {
   try {
     // Parse refresh token

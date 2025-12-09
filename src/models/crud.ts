@@ -1,22 +1,24 @@
 import { pool } from "../configs/db";
-
+import type {
+  CreateMessageRepositoryInput,
+  FindUserByEmailRepositoryInput,
+  FindAccountByUsernameRepositoryInput,
+  FindAccountByIdRepositoryInput,
+  GetInfoUserRepositoryInput,
+  GetParticipantRoleRepositoryInput,
+  GetParticipantIdsRepositoryInput,
+} from "../types/domain";
 import type {
   PgUser,
   PgAccount,
-  PgConversationIdentifier,
   PgMessage,
   PgMessageWithUsername,
-  PgCreateMessageInput,
-  PgFindUserByEmailInput,
-  PgFindAccountByUsernameInput,
-  PgFindAccountById,
-  PgGetParticipantRoleInput,
-  PgGetConversationIdentifiersInput,
+  PgConversationIdentifier,
+  PgGetInfoUserOutput,
   PgGetMessagesInput,
+  PgGetConversationIdentifiersInput,
   PgGetParticipantIdsOutput,
   PgGetParticipantRoleOutput,
-  PgGetInfoUserInput,
-  PgGetInfoUserOutput,
 } from "../types/models";
 
 // ============================================================
@@ -26,7 +28,7 @@ export async function pgCreateMessage({
   conversationId,
   senderId,
   content,
-}: PgCreateMessageInput): Promise<PgMessage | null> {
+}: CreateMessageRepositoryInput): Promise<PgMessage | null> {
   try {
     const message = await pool.query(
       `INSERT INTO main.messages (conversation_id, sender_id, content)
@@ -50,7 +52,7 @@ export async function pgCreateMessage({
 // ============================================================
 export async function pgFindUserByEmail({
   email,
-}: PgFindUserByEmailInput): Promise<PgUser | null> {
+}: FindUserByEmailRepositoryInput): Promise<PgUser | null> {
   try {
     const result = await pool.query(
       `SELECT id, name, email FROM main.users WHERE email = $1 AND is_deleted = false`,
@@ -68,7 +70,7 @@ export async function pgFindUserByEmail({
 
 export async function pgFindAccountByUsername({
   username,
-}: PgFindAccountByUsernameInput): Promise<PgAccount | null> {
+}: FindAccountByUsernameRepositoryInput): Promise<PgAccount | null> {
   try {
     const result = await pool.query(
       `SELECT id, username, password FROM main.accounts WHERE username = $1 AND is_deleted = false`,
@@ -86,7 +88,7 @@ export async function pgFindAccountByUsername({
 
 export async function pgFindAccountById({
   id,
-}: PgFindAccountById): Promise<PgAccount | null> {
+}: FindAccountByIdRepositoryInput): Promise<PgAccount | null> {
   try {
     const result = await pool.query(
       `SELECT id, username, password FROM main.accounts WHERE id = $1 AND is_deleted = false`,
@@ -122,7 +124,7 @@ export async function pgGetInfoUsers(): Promise<PgGetInfoUserOutput[] | null> {
 
 export async function pgGetInfoUser({
   userId,
-}: PgGetInfoUserInput): Promise<PgGetInfoUserOutput | null> {
+}: GetInfoUserRepositoryInput): Promise<PgGetInfoUserOutput | null> {
   try {
     const result = await pool.query(
       `SELECT u.id, a.username, u.name, u.email 
@@ -145,7 +147,7 @@ export async function pgGetInfoUser({
 export async function pgGetParticipantRole({
   userId,
   conversationId,
-}: PgGetParticipantRoleInput): Promise<PgGetParticipantRoleOutput | null> {
+}: GetParticipantRoleRepositoryInput): Promise<PgGetParticipantRoleOutput | null> {
   try {
     const result = await pool.query(
       `SELECT role
@@ -188,9 +190,11 @@ export async function pgGetConversationIdentifiers({
   }
 }
 
-export async function pgGetParticipantIds(
-  conversationId: string
-): Promise<PgGetParticipantIdsOutput[] | null> {
+export async function pgGetParticipantIds({
+  conversationId,
+}: GetParticipantIdsRepositoryInput): Promise<
+  PgGetParticipantIdsOutput[] | null
+> {
   try {
     const participantIds = await pool.query(
       `SELECT user_id
@@ -234,3 +238,11 @@ export async function pgGetMessages({
     return null;
   }
 }
+
+// ============================================================
+// UPDATE
+// ============================================================
+
+// ============================================================
+// DELETE
+// ============================================================

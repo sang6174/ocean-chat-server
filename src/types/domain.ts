@@ -64,15 +64,6 @@ export interface ResponseDomain {
 }
 
 // ============================================================
-//  SQLite TYPE
-// ============================================================
-
-export interface Session {
-  userId: string;
-  refreshToken: string;
-}
-
-// ============================================================
 //  DOMAIN ENTITIES
 // ============================================================
 
@@ -205,14 +196,26 @@ export interface GetMessagesDomainOutput {
 // ============================================================
 // REPOSITORY INPUT / OUTPUT
 // ============================================================
-export interface FindUserByEmailInput {
+export interface FindUserByEmailRepositoryInput {
   email: string;
 }
-export interface FindAccountByUsername {
+export interface FindAccountByUsernameRepositoryInput {
   username: string;
 }
-export interface FindAccountById {
+export interface FindAccountByIdRepositoryInput {
   id: string;
+}
+
+export interface RegisterRepositoryInput {
+  name: string;
+  email: string;
+  username: string;
+  password: string;
+}
+
+export interface RegisterRepositoryOutput {
+  user: User;
+  account: Account;
 }
 
 export interface CreateConversationRepositoryInput {
@@ -236,6 +239,10 @@ export interface GetConversationRepositoryOutput {
   conversation: Conversation;
   participants: ParticipantNoConversationId[];
   messages: Message[];
+}
+
+export interface GetConversationIdentifiersRepositoryInput {
+  userId: string;
 }
 
 export interface GetParticipantRoleRepositoryInput {
@@ -280,6 +287,22 @@ export interface GetMessageRepositoryOutput {
 export interface AddParticipantsRepositoryInput {
   conversationId: string;
   participantIds: string[];
+}
+
+export interface GetInfoUserRepositoryInput {
+  userId: string;
+}
+
+export interface GetInfoUserRepositoryOutput extends User {
+  username: string;
+}
+
+export interface GetParticipantIdsRepositoryInput {
+  conversationId: string;
+}
+
+export interface GetParticipantIdsRepositoryOutput {
+  userId: string;
 }
 
 // ============================================================

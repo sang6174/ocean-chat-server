@@ -1,14 +1,15 @@
 import { pool } from "../configs/db";
 import type {
+  RegisterRepositoryInput,
+  CreateConversationRepositoryInput,
+  AddParticipantsRepositoryInput,
+  GetConversationRepositoryInput,
+} from "../types/domain";
+import type {
   PgParticipant,
-  PgRegisterTransactionInput,
   PgRegisterTransactionOutput,
-  PgCreateConversationTransactionInput,
   PgCreateConversationTransactionOutput,
-  PgAddParticipantsTransactionInput,
-  PgGetConversationTransactionInput,
   PgGetConversationTransactionOutput,
-  PgConversation,
 } from "../types/models";
 
 import type {} from "../";
@@ -18,7 +19,7 @@ export async function pgRegisterTransaction({
   email,
   username,
   password,
-}: PgRegisterTransactionInput): Promise<PgRegisterTransactionOutput> {
+}: RegisterRepositoryInput): Promise<PgRegisterTransactionOutput> {
   const client = await pool.connect();
   try {
     await client.query(`BEGIN`);
@@ -51,7 +52,7 @@ export async function pgCreateConversationTransaction({
   type,
   metadata,
   participantIds,
-}: PgCreateConversationTransactionInput): Promise<PgCreateConversationTransactionOutput> {
+}: CreateConversationRepositoryInput): Promise<PgCreateConversationTransactionOutput> {
   const client = await pool.connect();
   try {
     await client.query(`BEGIN`);
@@ -97,7 +98,7 @@ export async function pgCreateConversationTransaction({
 export async function pgAddParticipantsTransaction({
   conversationId,
   participantIds,
-}: PgAddParticipantsTransactionInput): Promise<PgParticipant[]> {
+}: AddParticipantsRepositoryInput): Promise<PgParticipant[]> {
   const client = await pool.connect();
 
   try {
@@ -130,7 +131,7 @@ export async function pgGetConversationTransaction({
   conversationId,
   limit = 10,
   offset = 0,
-}: PgGetConversationTransactionInput): Promise<PgGetConversationTransactionOutput> {
+}: GetConversationRepositoryInput): Promise<PgGetConversationTransactionOutput> {
   const client = await pool.connect();
   try {
     await client.query(`BEGIN`);

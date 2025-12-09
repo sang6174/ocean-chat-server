@@ -8,7 +8,7 @@ import type {
 import {
   createMessageRepository,
   getMessagesRepository,
-  getParticipantIds,
+  getParticipantIdsRepository,
 } from "../repository";
 import { eventBusServer } from "../websocket/events";
 
@@ -33,7 +33,9 @@ export async function sendMessageService({
     }
 
     // Get ids of participants in conversation
-    const resultParticipantIds = await getParticipantIds(conversation.id);
+    const resultParticipantIds = await getParticipantIdsRepository({
+      conversationId: conversation.id,
+    });
     if (!resultParticipantIds) {
       return {
         status: 500,

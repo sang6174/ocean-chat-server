@@ -5,6 +5,7 @@ import {
   getMessagesController,
 } from "../controllers";
 
+// GET /conversations?userId=...
 export async function handleGetConversations(
   url: URL,
   req: Request,
@@ -97,6 +98,7 @@ export async function handleGetConversations(
   }
 }
 
+// GET /conversations/messages?conversationId=...&limit=...&offset=...
 export async function handleGetMessages(
   url: URL,
   req: Request,

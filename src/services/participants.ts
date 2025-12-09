@@ -7,9 +7,9 @@ import type {
 } from "../types/domain";
 import { eventBusServer } from "../websocket/events";
 import {
-  getParticipantRole,
-  getParticipantIds,
-  addParticipants,
+  getParticipantRoleRepository,
+  getParticipantIdsRepository,
+  addParticipantsRepository,
   getConversationRepository,
 } from "../repository";
 
@@ -21,7 +21,7 @@ export async function addParticipantsService({
 }: AddParticipantsDomainInput): Promise<ResponseDomain | null> {
   try {
     // Check role user in conversation
-    const userRole = await getParticipantRole({
+    const userRole = await getParticipantRoleRepository({
       userId,
       conversationId: conversation.id,
     });
@@ -39,7 +39,9 @@ export async function addParticipantsService({
     }
 
     // Get the old participants
-    const resultOldParticipants = await getParticipantIds(conversation.id);
+    const resultOldParticipants = await getParticipantIdsRepository({
+      conversationId: conversation.id,
+    });
     if (!resultOldParticipants) {
       return {
         status: 500,
@@ -49,7 +51,7 @@ export async function addParticipantsService({
     console.log(resultOldParticipants);
 
     // Add the new participants
-    const resultAddParticipant = await addParticipants({
+    const resultAddParticipant = await addParticipantsRepository({
       conversationId: conversation.id,
       participantIds,
     });
