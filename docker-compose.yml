@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: thanhsang6174
+      POSTGRES_PASSWORD: sang6174
+      POSTGRES_DB: ocean_chat_db
+    volumes:
+      - ocean_chat_volumes:/var/lib/postgresql/data
+      - ./db/migration/001_main_schema.sql:/docker-entrypoint-initdb.d/001_main_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thanhsang6174 -d ocean_chat_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  server:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3012:3010"
+    env_file:
+      - .env.production
+      
+volumes:
+  ocean_chat_volumes:

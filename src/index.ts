@@ -17,11 +17,11 @@ import {
 } from "./routes";
 import { addWsConnection, removeWsConnection } from "./websocket/gateway";
 
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.PORT || 8080);
 
 const server = Bun.serve<DataWebSocket>({
   port: PORT,
-  hostname: "localhost",
+  hostname: "0.0.0.0",
 
   async fetch(req, server) {
     const url = new URL(req.url);
