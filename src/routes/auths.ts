@@ -4,7 +4,7 @@ import type {
   HttpLoginPost,
   HttpLoginPostResponse,
 } from "../types/http";
-import type { RefreshTokenPayload } from "../types/domain";
+import type { RefreshTokenPayload, UserTokenPayload } from "../types/domain";
 import {
   parseBodyFormData,
   parseRefreshToken,
@@ -12,11 +12,13 @@ import {
   isRegisterInput,
   isLoginInput,
   parseAuthToken,
+  authMiddleware,
 } from "../middlewares";
 import {
   registerController,
   loginController,
   refreshAccessTokenController,
+  logoutController,
 } from "../controllers";
 import type { LoginDomainOutput } from "../types/domain";
 
@@ -192,6 +194,22 @@ export async function handleLogout(req: Request, corsHeaders: any) {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const authResult: UserTokenPayload | null = authMiddleware(auth);
+    if (!authResult) {
+      return new Response(
+        JSON.stringify({ message: "Invalid or expired auth token." }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const result = await logoutController({
+      userId: authResult.data.userId,
+      accessToken: auth,
+    });
   } catch (err) {
     console.log(
       `[ROUTE_ERROR] - ${new Date().toISOString()} - Logout error.\n`,

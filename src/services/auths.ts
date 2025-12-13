@@ -63,7 +63,11 @@ export async function registerService({
   password,
 }: RegisterDomainInput): Promise<RegisterDomainOutput | ResponseDomain | null> {
   try {
-    const existingUser = await findUserByEmail({ email });
+    const [existingUser, existingAccount] = await Promise.all([
+      findUserByEmail({ email }),
+      findAccountByUsername({ username }),
+    ]);
+
     if (existingUser) {
       return {
         status: 409,
@@ -71,7 +75,6 @@ export async function registerService({
       };
     }
 
-    const existingAccount = await findAccountByUsername({ username });
     if (existingAccount) {
       return {
         status: 409,

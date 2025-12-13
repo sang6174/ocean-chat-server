@@ -4,6 +4,7 @@ import {
   type LoginDomainOutput,
   type RefreshAccessTokenInput,
   type RefreshAccessTokenOutput,
+  type LogoutDomainInput,
 } from "../types/domain";
 import type { HttpResponse } from "../types/http";
 import {
@@ -11,6 +12,7 @@ import {
   loginService,
   createConversationService,
   refreshAccessTokenService,
+  logoutService,
 } from "../services";
 
 export async function registerController(
@@ -73,8 +75,8 @@ export async function logoutController({
   userId,
   accessToken,
 }: LogoutDomainInput): Promise<ResponseDomain> {
-  try {
-  } catch (err) {}
+  const result = logoutService({ userId, accessToken });
+  return result;
 }
 
 export async function refreshAccessTokenController({

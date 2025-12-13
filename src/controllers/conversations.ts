@@ -31,9 +31,9 @@ export async function createConversationController(
 export async function getConversationIdentifiersController(
   userId: string
 ): Promise<ConversationIdentifier[] | ResponseDomain | null> {
-  const conversationIdentifiers = await getConversationIdentifiersRepository(
-    userId
-  );
+  const conversationIdentifiers = await getConversationIdentifiersRepository({
+    userId,
+  });
   return conversationIdentifiers;
 }
 
