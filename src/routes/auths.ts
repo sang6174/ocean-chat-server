@@ -11,6 +11,7 @@ import {
   refreshTokenMiddleware,
   isRegisterInput,
   isLoginInput,
+  parseAuthToken,
 } from "../middlewares";
 import {
   registerController,
@@ -172,6 +173,33 @@ export async function handleLogin(req: Request, corsHeaders: any) {
     return new Response(
       JSON.stringify({
         message: "Login error. Please try again later.",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+}
+
+// GET /auth/logout
+export async function handleLogout(req: Request, corsHeaders: any) {
+  try {
+    const auth: HttpResponse | string = parseAuthToken(req);
+    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
+      return new Response(JSON.stringify({ message: auth.message }), {
+        status: auth.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  } catch (err) {
+    console.log(
+      `[ROUTE_ERROR] - ${new Date().toISOString()} - Logout error.\n`,
+      err
+    );
+    return new Response(
+      JSON.stringify({
+        message: "Logout error. Please try again later.",
       }),
       {
         status: 500,

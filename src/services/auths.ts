@@ -6,6 +6,7 @@ import type {
   RegisterDomainOutput,
   LoginDomainInput,
   LoginDomainOutput,
+  LogoutDomainInput,
   RefreshAccessTokenInput,
   RefreshAccessTokenOutput,
 } from "../types/domain";
@@ -15,13 +16,14 @@ import {
   findAccountById,
   registerRepository,
 } from "../repository";
+import { blacklistSessions } from "../models";
 
-const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET!;
-const accessTokenExpiresIn = process.env
+export const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET!;
+export const accessTokenExpiresIn = process.env
   .ACCESS_TOKEN_EXPIRES_IN! as jwt.SignOptions["expiresIn"];
 
-const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET!;
-const refreshTokenExpiresIn = process.env
+export const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET!;
+export const refreshTokenExpiresIn = process.env
   .REFRESH_TOKEN_EXPIRES_IN! as jwt.SignOptions["expiresIn"];
 
 export function createAccessToken(
@@ -141,6 +143,34 @@ export async function loginService({
   }
 }
 
+export async function logoutService({
+  userId,
+  accessToken,
+}: LogoutDomainInput): Promise<ResponseDomain> {
+  try {
+    // Add auth token into blacklist
+    if (blacklistSessions.has(userId)) {
+      blacklistSessions.get(userId)?.push(accessToken);
+    } else {
+      blacklistSessions.set(userId, [accessToken]);
+    }
+
+    return {
+      status: 200,
+      message: "Logout is successful.",
+    };
+  } catch (err) {
+    console.log(
+      `[SERVICE_ERROR] - ${new Date().toISOString()} - Logout service error.\n`,
+      err
+    );
+    return {
+      status: 500,
+      message: "Failed to logout. Please try again.",
+    };
+  }
+}
+
 export async function refreshAccessTokenService({
   userId,
 }: RefreshAccessTokenInput): Promise<
@@ -166,7 +196,7 @@ export async function refreshAccessTokenService({
     };
   } catch (err) {
     console.log(
-      `[SERVICE_ERROR] - ${new Date().toISOString()} - Login service error.\n`,
+      `[SERVICE_ERROR] - ${new Date().toISOString()} - Refresh token service error.\n`,
       err
     );
     return null;

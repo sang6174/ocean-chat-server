@@ -2,6 +2,7 @@ import type { DataWebSocket } from "./types/ws";
 import {
   handleRegister,
   handleLogin,
+  handleLogout,
   handleRefresh,
   handleCreateConversation,
   handleSendMessage,
@@ -15,7 +16,13 @@ import {
   handleGetMessages,
   handleUpgradeWebSocket,
 } from "./routes";
+import { blacklistSessions } from "./models";
 import { addWsConnection, removeWsConnection } from "./websocket/gateway";
+
+setInterval(() => {
+  blacklistSessions.clear();
+  console.log("Blacklist of access token cleared");
+}, 60 * 60 * 1000);
 
 const PORT = Number(process.env.PORT || 8080);
 
@@ -42,6 +49,11 @@ const server = Bun.serve<DataWebSocket>({
     // POST /auth/login
     if (path === "/auth/login" && method === "POST") {
       return await handleLogin(req, corsHeaders);
+    }
+
+    // POST /auth/logout
+    if (path === "/auth/logout" && method === "POST") {
+      return await handleLogout(req, corsHeaders);
     }
 
     // POST /auth/refresh/token

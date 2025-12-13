@@ -69,6 +69,14 @@ export async function loginController(
   return result;
 }
 
+export async function logoutController({
+  userId,
+  accessToken,
+}: LogoutDomainInput): Promise<ResponseDomain> {
+  try {
+  } catch (err) {}
+}
+
 export async function refreshAccessTokenController({
   userId,
 }: RefreshAccessTokenInput): Promise<
