@@ -1,12 +1,11 @@
-import {
-  ConversationType,
-  type RegisterDomainInput,
-  type ResponseDomain,
-  type LoginDomainInput,
-  type LoginDomainOutput,
-  type RefreshAuthTokenInput,
-  type RefreshAuthTokenOutput,
-  type LogoutDomainInput,
+import type {
+  RegisterDomainInput,
+  ResponseDomain,
+  LoginDomainInput,
+  LoginDomainOutput,
+  RefreshAuthTokenInput,
+  RefreshAuthTokenOutput,
+  LogoutDomainInput,
 } from "../types/domain";
 import type { HttpResponse } from "../types/http";
 import {
@@ -82,9 +81,10 @@ export async function loginController(
 }
 
 export async function logoutController(
+  baseLogger: BaseLogger,
   input: LogoutDomainInput
 ): Promise<ResponseDomain> {
-  const result = logoutService(input);
+  const result = logoutService(baseLogger, input);
   return result;
 }
 

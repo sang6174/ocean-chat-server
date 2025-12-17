@@ -1,14 +1,38 @@
 import type { RefreshTokenPayload, UserTokenPayload } from "../types/domain";
 import { verifyAccessToken, verifyRefreshToken } from "../services";
-import { isDecodedAuthToken, isDecodedRefreshToken } from "./validations";
+import {
+  isDecodedAuthToken,
+  validateAuthToken,
+  isDecodedRefreshToken,
+  validateRefreshToken,
+} from "./validations";
+import {
+  assertUserTokenPayload,
+  assertRefreshTokenPayload,
+} from "../middlewares/asserts";
+import { blacklistSessions } from "../models";
 
 export function authMiddleware(token: string): UserTokenPayload | null {
   try {
+    if (!blacklistSessions.has(token)) {
+      return null;
+    }
+
     const decoded = verifyAccessToken(token);
 
     if (!isDecodedAuthToken(decoded)) {
       return null;
     }
+
+    const validateResult = validateAuthToken(decoded);
+    if (!validateResult.valid) {
+      return null;
+    }
+
+    assertUserTokenPayload({
+      ...decoded,
+      data: JSON.parse(decoded.data),
+    });
 
     return {
       ...decoded,
@@ -29,10 +53,20 @@ export function refreshTokenMiddleware(
       return null;
     }
 
+    const validateResult = validateRefreshToken(decoded);
+    if (!validateResult.valid) {
+      return null;
+    }
+
+    assertRefreshTokenPayload({
+      ...decoded,
+      data: JSON.parse(decoded.data),
+    });
+
     return {
       ...decoded,
       data: JSON.parse(decoded.data),
-    } as RefreshTokenPayload;
+    };
   } catch (err) {
     return null;
   }

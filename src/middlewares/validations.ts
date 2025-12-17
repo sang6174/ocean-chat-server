@@ -66,41 +66,42 @@ function isTypeConversationEnum(value: any): value is ConversationType {
   return Object.values(ConversationType).includes(value);
 }
 // ============================================================
-// Validate request body or search params
+// Validate request body
 // ============================================================
-export function validateRegisterInput(data: HttpRegisterPost): {
-  valid: boolean;
-  message?: string;
-} {
-  if (!data) {
+export function validateRegisterInput(
+  value: unknown
+): { valid: true } | { valid: false; message: string } {
+  if (!isPlainObject(value)) {
     return {
       valid: false,
-      message: "The server did not receive the request body.",
+      message: "The server did not receive a valid request body.",
     };
   }
 
-  if (!data.name) {
+  const data = value as Record<string, unknown>;
+
+  if (typeof data.name !== "string") {
     return {
       valid: false,
       message: "The name field is required.",
     };
   }
 
-  if (!data.username) {
+  if (typeof data.username !== "string") {
     return {
       valid: false,
       message: "The username field is required.",
     };
   }
 
-  if (!data.email) {
+  if (typeof data.email !== "string") {
     return {
       valid: false,
       message: "The email field is required.",
     };
   }
 
-  if (!data.password) {
+  if (typeof data.password !== "string") {
     return {
       valid: false,
       message: "The password field is required.",
@@ -142,84 +143,128 @@ export function validateRegisterInput(data: HttpRegisterPost): {
 }
 
 export function validateLoginInput(
-  data: HttpLoginPost
+  value: unknown
 ): { valid: true } | { valid: false; message: string } {
-  if (!isUsername(data.username)) {
+  if (!isPlainObject(value)) {
+    return { valid: false, message: "Invalid request body." };
+  }
+
+  const data = value as Record<string, unknown>;
+
+  if (typeof data.username !== "string") {
     return {
       valid: false,
-      message: "Invalid username format.",
+      message: "The username field is required.",
     };
   }
 
+  if (!isUsername(data.username)) {
+    return { valid: false, message: "Invalid username format." };
+  }
+
   if (!isPassword(data.password)) {
+    return { valid: false, message: "Invalid password format." };
+  }
+
+  return { valid: true };
+}
+
+export function isDecodedAuthToken(
+  value: unknown
+): value is StringTokenPayload {
+  if (!isPlainObject(value)) return false;
+
+  if (
+    typeof value.data !== "string" ||
+    typeof value.iat !== "number" ||
+    typeof value.exp !== "number"
+  ) {
+    return false;
+  }
+
+  let dataObj: any;
+  try {
+    dataObj = JSON.parse(value.data);
+  } catch {
+    return false;
+  }
+
+  return (
+    isPlainObject(dataObj) &&
+    isUUIDv4(dataObj.userId) &&
+    typeof dataObj.username === "string"
+  );
+}
+
+export function validateAuthToken(
+  payload: StringTokenPayload
+): { valid: true } | { valid: false; message: string } {
+  if (payload.exp <= payload.iat) {
     return {
       valid: false,
-      message: "Invalid password format.",
+      message: "Auth token expiration time must be greater than issued time.",
+    };
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (payload.exp <= now) {
+    return {
+      valid: false,
+      message: "Auth token has expired.",
     };
   }
 
   return { valid: true };
 }
 
-export function isDecodedAuthToken(value: any): value is StringTokenPayload {
+// Validate payload from output of verified refresh token
+export function isDecodedRefreshToken(
+  value: unknown
+): value is StringTokenPayload {
   if (!isPlainObject(value)) return false;
 
-  const { data, iat, exp } = value;
-  if (typeof data !== "string") return false;
-
-  let dataObj;
-  try {
-    dataObj = JSON.parse(data);
-  } catch {
-    return false;
-  }
-
   if (
-    !isPlainObject(dataObj) ||
-    !isUUIDv4(dataObj.userId) ||
-    typeof dataObj.username !== "string"
+    typeof value.data !== "string" ||
+    typeof value.iat !== "number" ||
+    typeof value.exp !== "number"
   ) {
     return false;
   }
 
-  if (typeof iat !== "number" || typeof exp !== "number") return false;
-  if (exp <= iat) return false;
+  let dataObj: any;
+  try {
+    dataObj = JSON.parse(value.data);
+  } catch {
+    return false;
+  }
 
-  const now = Math.floor(Date.now() / 1000);
-  if (exp <= now) return false;
-
-  return true;
+  return (
+    isPlainObject(dataObj) &&
+    isUUIDv4(dataObj.userId) &&
+    typeof dataObj.accessToken === "string"
+  );
 }
 
-// Validate payload from output of verified refresh token
-export function isDecodedRefreshToken(value: any): value is StringTokenPayload {
-  if (!isPlainObject(value)) return false;
-
-  const { data, iat, exp } = value;
-  if (typeof data !== "string") return false;
-
-  let dataObj;
-  try {
-    dataObj = JSON.parse(data);
-  } catch {
-    return false;
+export function validateRefreshToken(
+  payload: StringTokenPayload
+): { valid: true } | { valid: false; message: string } {
+  if (payload.exp <= payload.iat) {
+    return {
+      valid: false,
+      message:
+        "Refresh token expiration time must be greater than issued time.",
+    };
   }
-
-  if (
-    !isPlainObject(dataObj) ||
-    !isUUIDv4(dataObj.userId) ||
-    typeof dataObj.accessToken !== "string"
-  ) {
-    return false;
-  }
-
-  if (typeof iat !== "number" || typeof exp !== "number") return false;
-  if (exp <= iat) return false;
 
   const now = Math.floor(Date.now() / 1000);
-  if (exp <= now) return false;
+  if (payload.exp <= now) {
+    return {
+      valid: false,
+      message: "Refresh token has expired.",
+    };
+  }
 
-  return true;
+  return { valid: true };
 }
 
 // Validate create a new myself conversation
@@ -304,26 +349,50 @@ export function validateSendMessageInput(
 
 // Validate add participants request
 export function validateAddParticipants(
-  conversation: ConversationIdentifier,
-  participantIds: string[]
-) {
-  if (!isUUIDv4(conversation.id)) {
+  value: unknown
+): { valid: true } | { valid: false; message: string } {
+  if (!isPlainObject(value)) {
     return {
       valid: false,
-      message: "Conversation id must be a uuidv4.",
+      message: "Request body must be an object.",
     };
   }
+
+  const { conversation, participantIds } = value as Record<string, unknown>;
+
+  if (!isPlainObject(conversation)) {
+    return {
+      valid: false,
+      message: "conversation must be an object.",
+    };
+  }
+
+  if (typeof conversation.id !== "string" || !isUUIDv4(conversation.id)) {
+    return {
+      valid: false,
+      message: "conversation.id must be a uuidv4.",
+    };
+  }
+
   if (!isTypeConversationEnum(conversation.type)) {
     return {
       valid: false,
-      message: "conversation.type must be a 'myself', 'direct' or 'group'.",
+      message: "conversation.type must be 'myself', 'direct' or 'group'.",
     };
   }
+
+  if (!Array.isArray(participantIds)) {
+    return {
+      valid: false,
+      message: "participantIds must be an array.",
+    };
+  }
+
   for (const userId of participantIds) {
-    if (!isUUIDv4(userId)) {
+    if (typeof userId !== "string" || !isUUIDv4(userId)) {
       return {
         valid: false,
-        message: "Participant id must be a uuidv4.",
+        message: "Each participantId must be a uuidv4.",
       };
     }
   }
@@ -332,7 +401,7 @@ export function validateAddParticipants(
 }
 
 // ============================================================
-// Validate result from database server returned
+// Type guard from database error
 // ============================================================
 export function isPgError(err: unknown): err is PgError {
   return (

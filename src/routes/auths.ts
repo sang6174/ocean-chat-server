@@ -47,14 +47,13 @@ export async function handleRegister(
       });
     }
 
-    // Sanitize and assert request body
+    // Sanitize request body
     const rawBody = {
       name: form.get("name"),
       email: form.get("email"),
       username: form.get("username"),
       password: form.get("password"),
     };
-    assertRegisterBody(rawBody);
 
     // Validation request body
     const validateResult = validateRegisterInput(rawBody);
@@ -64,6 +63,7 @@ export async function handleRegister(
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    assertRegisterBody(rawBody);
 
     // Sanitize validated body
     const cleanBody: RegisterDomainInput = {
@@ -118,11 +118,11 @@ export async function handleLogin(
       });
     }
 
+    // Sanitize request body
     const rawBody = {
       username: form.get("username"),
       password: form.get("password"),
     };
-    assertLoginBody(rawBody);
 
     // Validate request body
     const validateResult = validateLoginInput(rawBody);
@@ -137,6 +137,7 @@ export async function handleLogin(
         }
       );
     }
+    assertLoginBody(rawBody);
 
     // Sanitize validated body
     const cleanBody: LoginDomainInput = {
@@ -216,7 +217,7 @@ export async function handleLogout(
       userId: authResult.data.userId,
       authToken: auth,
     };
-    const result = await logoutController(input);
+    const result = await logoutController(baseLogger, input);
 
     return new Response(
       JSON.stringify({
