@@ -8,13 +8,14 @@ import type {
   GetParticipantRoleRepositoryInput,
   GetParticipantIdsRepositoryInput,
 } from "../types/domain";
+import type { BaseLogger } from "../types/logger";
 import type {
   PgUser,
   PgAccount,
   PgMessage,
   PgMessageWithUsername,
   PgConversationIdentifier,
-  PgGetInfoUserOutput,
+  PgGetProfileUserOutput,
   PgGetMessagesInput,
   PgGetConversationIdentifiersInput,
   PgGetParticipantIdsOutput,
@@ -24,25 +25,20 @@ import type {
 // ============================================================
 // Create
 // ============================================================
-export async function pgCreateMessage({
-  conversationId,
-  senderId,
-  content,
-}: CreateMessageRepositoryInput): Promise<PgMessage | null> {
+export async function pgCreateMessage(
+  baseLogger: BaseLogger,
+  input: CreateMessageRepositoryInput
+): Promise<PgMessage | null> {
   try {
     const message = await pool.query(
       `INSERT INTO main.messages (conversation_id, sender_id, content)
        VALUES ($1, $2, $3) 
        RETURNING id, sender_id, conversation_id, content`,
-      [conversationId, senderId, content]
+      [input.conversationId, input.senderId, input.content]
     );
 
     return message.rows[0];
   } catch (err) {
-    console.error(
-      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Create a new message error.\n`,
-      err
-    );
     return null;
   }
 }
@@ -50,61 +46,54 @@ export async function pgCreateMessage({
 // ============================================================
 // Read
 // ============================================================
-export async function pgFindUserByEmail({
-  email,
-}: FindUserByEmailRepositoryInput): Promise<PgUser | null> {
+export async function pgFindUserByEmail(
+  baseLogger: BaseLogger,
+  input: FindUserByEmailRepositoryInput
+): Promise<PgUser | null> {
   try {
     const result = await pool.query(
       `SELECT id, name, email FROM main.users WHERE email = $1 AND is_deleted = false`,
-      [email]
+      [input.email]
     );
     return result.rows[0];
   } catch (err) {
-    console.error(
-      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get user by email error.\n`,
-      err
-    );
     return null;
   }
 }
 
-export async function pgFindAccountByUsername({
-  username,
-}: FindAccountByUsernameRepositoryInput): Promise<PgAccount | null> {
+export async function pgFindAccountByUsername(
+  baseLogger: BaseLogger,
+  input: FindAccountByUsernameRepositoryInput
+): Promise<PgAccount | null> {
   try {
     const result = await pool.query(
       `SELECT id, username, password FROM main.accounts WHERE username = $1 AND is_deleted = false`,
-      [username]
+      [input.username]
     );
     return result.rows[0];
   } catch (err) {
-    console.error(
-      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get account by username error.\n`,
-      err
-    );
     return null;
   }
 }
 
-export async function pgFindAccountById({
-  id,
-}: FindAccountByIdRepositoryInput): Promise<PgAccount | null> {
+export async function pgFindAccountById(
+  baseLogger: BaseLogger,
+  input: FindAccountByIdRepositoryInput
+): Promise<PgAccount | null> {
   try {
     const result = await pool.query(
       `SELECT id, username, password FROM main.accounts WHERE id = $1 AND is_deleted = false`,
-      [id]
+      [input.id]
     );
     return result.rows[0];
   } catch (err) {
-    console.error(
-      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get account by id error.\n`,
-      err
-    );
     return null;
   }
 }
 
-export async function pgGetInfoUsers(): Promise<PgGetInfoUserOutput[] | null> {
+export async function pgGetAllProfileUsers(): Promise<
+  PgGetProfileUserOutput[] | null
+> {
   try {
     const result = await pool.query(
       `SELECT u.id, a.username, u.name, u.email 
@@ -114,110 +103,88 @@ export async function pgGetInfoUsers(): Promise<PgGetInfoUserOutput[] | null> {
     );
     return result.rows;
   } catch (err) {
-    console.error(
-      `[POSTGRES_ERROR] - ${new Date().toISOString()} -Get all users in database error.\n`,
-      err
-    );
     return null;
   }
 }
 
-export async function pgGetInfoUser({
-  userId,
-}: GetInfoUserRepositoryInput): Promise<PgGetInfoUserOutput | null> {
+export async function pgGetProfileUser(
+  baseLogger: BaseLogger,
+  input: GetInfoUserRepositoryInput
+): Promise<PgGetProfileUserOutput | null> {
   try {
     const result = await pool.query(
       `SELECT u.id, a.username, u.name, u.email 
        FROM main.users u 
        JOIN main.accounts a ON u.id = a.id
-       WHERE 
+       WHERE u.id = $1
       `,
-      [userId]
+      [input.userId]
     );
     return result.rows[0];
   } catch (err) {
-    console.error(
-      `[POSTGRES_ERROR] - ${new Date().toISOString()} -Get all users in database error.\n`,
-      err
-    );
     return null;
   }
 }
 
-export async function pgGetParticipantRole({
-  userId,
-  conversationId,
-}: GetParticipantRoleRepositoryInput): Promise<PgGetParticipantRoleOutput | null> {
+export async function pgGetParticipantRole(
+  baseLogger: BaseLogger,
+  input: GetParticipantRoleRepositoryInput
+): Promise<PgGetParticipantRoleOutput | null> {
   try {
     const result = await pool.query(
       `SELECT role
        FROM main.participants
        WHERE user_id = $1 AND conversation_Id = $2`,
-      [userId, conversationId]
+      [input.userId, input.conversationId]
     );
 
     return result.rows[0];
   } catch (err) {
-    console.error(
-      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get role of a user in a conversation error.\n`,
-      err
-    );
     return null;
   }
 }
 
-export async function pgGetConversationIdentifiers({
-  userId,
-}: PgGetConversationIdentifiersInput): Promise<
-  PgConversationIdentifier[] | null
-> {
+export async function pgGetConversationIdentifiers(
+  baseLogger: BaseLogger,
+  input: PgGetConversationIdentifiersInput
+): Promise<PgConversationIdentifier[] | null> {
   try {
     const conversationIdentifiers = await pool.query(
       `SELECT c.id, c.type 
        FROM main.participants p 
        JOIN main.conversations c ON p.conversation_id = c.id 
        WHERE p.user_id = $1`,
-      [userId]
+      [input.userId]
     );
 
     return conversationIdentifiers.rows;
   } catch (err) {
-    console.error(
-      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get all conversation identifiers of a user.\n`,
-      err
-    );
     return null;
   }
 }
 
-export async function pgGetParticipantIds({
-  conversationId,
-}: GetParticipantIdsRepositoryInput): Promise<
-  PgGetParticipantIdsOutput[] | null
-> {
+export async function pgGetParticipantIds(
+  baseLogger: BaseLogger,
+  input: GetParticipantIdsRepositoryInput
+): Promise<PgGetParticipantIdsOutput[] | null> {
   try {
     const participantIds = await pool.query(
       `SELECT user_id
        FROM main.participants
        WHERE conversation_id = $1`,
-      [conversationId]
+      [input.conversationId]
     );
 
     return participantIds.rows;
   } catch (err) {
-    console.error(
-      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get ids of participants error.\n`,
-      err
-    );
     return null;
   }
 }
 
-export async function pgGetMessages({
-  conversationId,
-  limit = 10,
-  offset = 0,
-}: PgGetMessagesInput): Promise<PgMessageWithUsername[] | null> {
+export async function pgGetMessages(
+  baseLogger: BaseLogger,
+  input: PgGetMessagesInput
+): Promise<PgMessageWithUsername[] | null> {
   try {
     const result = await pool.query(
       `SELECT m.id, m.content, m.sender_id, a.username as sender_username, m.conversation_id
@@ -226,15 +193,11 @@ export async function pgGetMessages({
        WHERE m.conversation_id = $1
        ORDER BY m.created_at DESC
        LIMIT $2 OFFSET $3`,
-      [conversationId, limit, offset]
+      [input.conversationId, input.limit, input.offset]
     );
 
     return result.rows;
   } catch (err) {
-    console.error(
-      `[POSTGRES_ERROR] - ${new Date().toISOString()} - Get messages with limit, offset error.\n`,
-      err
-    );
     return null;
   }
 }

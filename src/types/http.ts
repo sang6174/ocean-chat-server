@@ -1,5 +1,6 @@
-import type { User, Account, ConversationIdentifier } from "./domain";
+import type { ConversationIdentifier } from "./domain";
 
+// POST /auth/register
 export interface HttpResponse {
   status: number;
   message: string;
@@ -12,6 +13,7 @@ export interface HttpRegisterPost {
   password: string;
 }
 
+// POST /auth/login
 export interface HttpLoginPost {
   username: string;
   password: string;
@@ -20,7 +22,7 @@ export interface HttpLoginPost {
 export interface HttpLoginPostResponse {
   userId: string;
   username: string;
-  accessToken: string;
+  authToken: string;
 }
 
 export interface HttpConversationPost {

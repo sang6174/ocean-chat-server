@@ -2,6 +2,7 @@ import type {
   Participant,
   ConversationType,
   ConversationMetadata,
+  PgErrorRepositoryOutput,
   ParticipantNoConversationId,
   RegisterRepositoryInput,
   RegisterRepositoryOutput,
@@ -11,50 +12,69 @@ import type {
   GetConversationRepositoryOutput,
   AddParticipantsRepositoryInput,
 } from "../types/domain";
+import { isPgError } from "../middlewares";
 import {
   pgRegisterTransaction,
   pgCreateConversationTransaction,
   pgGetConversationTransaction,
   pgAddParticipantsTransaction,
 } from "../models";
+import type { BaseLogger } from "../helpers/logger";
 
-export async function registerRepository({
-  name,
-  email,
-  username,
-  password,
-}: RegisterRepositoryInput): Promise<RegisterRepositoryOutput> {
-  const resultRegister = await pgRegisterTransaction({
-    name,
-    email,
-    username,
-    password,
-  });
-  return {
-    user: {
-      id: resultRegister.user.id,
-      name: resultRegister.user.name,
-      email: resultRegister.user.email,
-    },
-    account: {
-      id: resultRegister.account.id,
-      username: resultRegister.account.username,
-      password: resultRegister.account.password,
-    },
-  };
+export async function registerRepository(
+  baseLogger: BaseLogger,
+  input: RegisterRepositoryInput
+): Promise<RegisterRepositoryOutput | PgErrorRepositoryOutput | null> {
+  try {
+    const resultRegister = await pgRegisterTransaction(baseLogger, input);
+
+    return {
+      user: {
+        id: resultRegister.user.id,
+        name: resultRegister.user.name,
+        email: resultRegister.user.email,
+      },
+      account: {
+        id: resultRegister.account.id,
+        username: resultRegister.account.username,
+        password: resultRegister.account.password,
+      },
+      conversation: {
+        id: resultRegister.conversation.id,
+        type: resultRegister.conversation.type as ConversationType,
+        metadata: {
+          name: resultRegister.conversation.metadata.name,
+          creator: {
+            userId: resultRegister.conversation.metadata.userId,
+            username: resultRegister.conversation.metadata.username,
+          },
+        },
+      },
+    };
+  } catch (err) {
+    if (isPgError(err)) {
+      return {
+        code: err.code,
+        table: err.table!,
+        constraint: err.constraint!,
+        detail: err.detail!,
+      };
+    } else if (err instanceof Error) {
+      console.error("Generic error:", err.message);
+      return null;
+    } else {
+      console.error("Unknown error:", err);
+      return null;
+    }
+  }
 }
 
-export async function createConversationRepository({
-  type,
-  metadata,
-  participantIds,
-}: CreateConversationRepositoryInput): Promise<CreateConversationRepositoryOutput | null> {
+export async function createConversationRepository(
+  baseLogger: BaseLogger,
+  input: CreateConversationRepositoryInput
+): Promise<CreateConversationRepositoryOutput | null> {
   try {
-    const result = await pgCreateConversationTransaction({
-      type,
-      metadata,
-      participantIds,
-    });
+    const result = await pgCreateConversationTransaction(baseLogger, input);
     return {
       conversation: {
         id: result.conversation.id,
@@ -72,23 +92,17 @@ export async function createConversationRepository({
       }),
     };
   } catch (err) {
-    console.log(
-      `[SERVICE_ERROR] - ${new Date().toISOString()} - Save conversation, participants in database error.\n`,
-      err
-    );
     return null;
   }
 }
 
-export async function addParticipantsRepository({
-  conversationId,
-  participantIds,
-}: AddParticipantsRepositoryInput): Promise<Participant[] | null> {
+export async function addParticipantsRepository(
+  baseLogger: BaseLogger,
+  input: AddParticipantsRepositoryInput
+): Promise<Participant[] | null> {
   try {
-    const result = await pgAddParticipantsTransaction({
-      conversationId,
-      participantIds,
-    });
+    const result = await pgAddParticipantsTransaction(baseLogger, input);
+
     return result.map((participant) => {
       return {
         userId: participant.user_id,
@@ -99,31 +113,23 @@ export async function addParticipantsRepository({
       };
     });
   } catch (err) {
-    console.log(
-      `[REPOSITORY_ERROR] - ${new Date().toISOString()} - Add participants with transaction error.\n`,
-      err
-    );
     return null;
   }
 }
 
-export async function getConversationRepository({
-  conversationId,
-  limit = 10,
-  offset = 0,
-}: GetConversationRepositoryInput): Promise<GetConversationRepositoryOutput | null> {
+export async function getConversationRepository(
+  baseLogger: BaseLogger,
+  input: GetConversationRepositoryInput
+): Promise<GetConversationRepositoryOutput | null> {
   try {
-    const result = await pgGetConversationTransaction({
-      conversationId,
-      limit,
-      offset,
-    });
+    const result = await pgGetConversationTransaction(baseLogger, input);
     return {
       conversation: {
         id: result.conversation.id,
         type: result.conversation.type as ConversationType,
         metadata: result.conversation.metadata as ConversationMetadata,
       },
+
       participants: result.participants.map((participant) => {
         return {
           userId: participant.user_id,
@@ -132,6 +138,7 @@ export async function getConversationRepository({
           joinedAt: participant.joined_at,
         } as ParticipantNoConversationId;
       }),
+
       messages: result.messages.map((message) => {
         return {
           id: message.id,

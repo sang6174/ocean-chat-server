@@ -1,8 +1,20 @@
-import type { UserTokenPayload } from "../types/domain";
+import type {
+  GetProfileUserDomainInput,
+  UserTokenPayload,
+} from "../types/domain";
 import { parseAuthToken, authMiddleware, isUUIDv4 } from "../middlewares";
-import { getInfoUsersController, getInfoUserController } from "../controllers";
+import {
+  getProfileUsersController,
+  getProfileUserController,
+} from "../controllers";
+import type { HttpResponse } from "../types/http";
+import type { BaseLogger } from "../helpers/logger";
 
-export async function handleGetAllInfoUsers(req: Request, corsHeaders: any) {
+export async function handleGetAllProfileUsers(
+  baseLogger: BaseLogger,
+  req: Request,
+  corsHeaders: any
+) {
   try {
     // Parse auth token
     const auth = parseAuthToken(req);
@@ -26,13 +38,8 @@ export async function handleGetAllInfoUsers(req: Request, corsHeaders: any) {
     }
 
     // Call get messages controller
-    const result = await getInfoUsersController();
-    if (!result) {
-      return new Response(JSON.stringify("Get all users error"), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const result = await getProfileUsersController(baseLogger);
+
     if ("status" in result && "message" in result) {
       return new Response(JSON.stringify({ message: result.message }), {
         status: result.status,
@@ -56,7 +63,8 @@ export async function handleGetAllInfoUsers(req: Request, corsHeaders: any) {
   }
 }
 
-export async function handleGetInfoUser(
+export async function handleGetProfileUser(
+  baseLogger: BaseLogger,
   url: URL,
   req: Request,
   corsHeaders: any
@@ -83,42 +91,15 @@ export async function handleGetInfoUser(
       );
     }
 
-    // Get userId from search params
-    const userId = url.searchParams.get("userId");
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ message: "Search params is invalid." }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
     // Call get info user controller
-    const result = await getInfoUserController({ userId });
-    if (!result) {
-      return new Response(JSON.stringify("Get the info user error"), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const input: GetProfileUserDomainInput = { userId: authResult.data.userId };
+    const result = await getProfileUserController(baseLogger, input);
+
     if ("status" in result && "message" in result) {
       return new Response(JSON.stringify({ message: result.message }), {
         status: result.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    }
-
-    const isValidUserId = isUUIDv4(userId);
-    if (!isValidUserId) {
-      return new Response(
-        JSON.stringify({ message: "Search params is invalid." }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
     }
 
     // HTTP response successfully

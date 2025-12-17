@@ -1,17 +1,18 @@
 import type { DataWebSocket } from "./types/ws";
+import type { BaseLogger } from "./helpers/logger";
 import {
   handleRegister,
   handleLogin,
   handleLogout,
-  handleRefresh,
+  handleRefreshAuthToken,
   handleCreateConversation,
   handleSendMessage,
   handleAddParticipants,
-  handleNotificationFriend,
+  handleNotificationAddFriend,
   handleNotificationAcceptFriend,
   handleNotificationDenyFriend,
-  handleGetAllInfoUsers,
-  handleGetInfoUser,
+  handleGetAllProfileUsers,
+  handleGetProfileUser,
   handleGetConversations,
   handleGetMessages,
   handleUpgradeWebSocket,
@@ -35,85 +36,119 @@ const server = Bun.serve<DataWebSocket>({
     const path = url.pathname;
     const method = req.method;
 
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    const requestId = crypto.randomUUID();
+
+    const baseLogger: BaseLogger = {
+      endpoint: `${method} ${path}`,
+      requestId,
+      event: "HTTP Request",
+      timestamp: new Date().toISOString(),
     };
+
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "http://localhost:3000",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Expose-Headers": "x-trace-id",
+    };
+
+    // OPTIONS
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders,
+      });
+    }
 
     // POST /auth/register
     if (path === "/auth/register" && method === "POST") {
-      return await handleRegister(req, corsHeaders);
+      return await handleRegister(baseLogger, req, corsHeaders);
     }
 
     // POST /auth/login
     if (path === "/auth/login" && method === "POST") {
-      return await handleLogin(req, corsHeaders);
+      return await handleLogin(baseLogger, req, corsHeaders);
     }
 
     // POST /auth/logout
     if (path === "/auth/logout" && method === "POST") {
-      return await handleLogout(req, corsHeaders);
+      return await handleLogout(baseLogger, req, corsHeaders);
     }
 
     // POST /auth/refresh/token
     if (path === "/auth/refresh/token" && method === "GET") {
-      return await handleRefresh(req, corsHeaders);
+      return await handleRefreshAuthToken(baseLogger, req, corsHeaders);
     }
 
     // POST /conversation
     if (path === "/conversation" && method === "POST") {
-      return await handleCreateConversation(req, corsHeaders);
+      return await handleCreateConversation(baseLogger, req, corsHeaders);
     }
 
     // POST /conversation/message
     if (path === "/conversation/message" && method === "POST") {
-      return await handleSendMessage(req, corsHeaders);
+      return await handleSendMessage(baseLogger, req, corsHeaders);
     }
 
     // POST /conversation/participants
     if (path === "/conversation/participants" && method === "POST") {
-      return await handleAddParticipants(req, corsHeaders);
+      return await handleAddParticipants(baseLogger, req, corsHeaders);
     }
 
     // POST /notification/friend
     if (path === "/notification/friend") {
-      return await handleNotificationFriend(url, req, corsHeaders);
+      return await handleNotificationAddFriend(
+        baseLogger,
+        url,
+        req,
+        corsHeaders
+      );
     }
 
     // POST /notification/friend/accept
     if (path === "/notification/friend/accept" && method === "POST") {
-      return await handleNotificationAcceptFriend(url, req, corsHeaders);
+      return await handleNotificationAcceptFriend(
+        baseLogger,
+        url,
+        req,
+        corsHeaders
+      );
     }
 
     // POST /notification/friend/deny
     if (path === "/notification/friend/deny" && method === "POST") {
-      return await handleNotificationDenyFriend(url, req, corsHeaders);
+      return await handleNotificationDenyFriend(
+        baseLogger,
+        url,
+        req,
+        corsHeaders
+      );
     }
 
-    // GET /info/users
-    if (path === "/info/users" && method === "GET") {
-      return await handleGetAllInfoUsers(req, corsHeaders);
+    // GET /profile/users
+    if (path === "/profile/users" && method === "GET") {
+      return await handleGetAllProfileUsers(baseLogger, req, corsHeaders);
     }
 
-    // GET /info/user?userId=...
-    if (path === "/info/user" && method === "GET") {
-      return await handleGetInfoUser(url, req, corsHeaders);
+    // GET /profile/user
+    if (path === "/profile/user" && method === "GET") {
+      return await handleGetProfileUser(baseLogger, url, req, corsHeaders);
     }
 
     // GET /conversations?userId=...
     if (path === "/conversations" && method === "GET") {
-      return await handleGetConversations(url, req, corsHeaders);
+      return await handleGetConversations(baseLogger, url, req, corsHeaders);
     }
 
     // GET /conversations/messages?conversationId=...&limit=...&offset=...
     if (path === "/conversations/messages" && method === "GET") {
-      return await handleGetMessages(url, req, corsHeaders);
+      return await handleGetMessages(baseLogger, url, req, corsHeaders);
     }
 
     // Upgrade websocket
     if (req.headers.get("Upgrade")?.toLowerCase() === "websocket") {
-      return await handleUpgradeWebSocket(server, req, corsHeaders);
+      return await handleUpgradeWebSocket(baseLogger, server, req, corsHeaders);
     }
 
     return new Response(JSON.stringify({ message: "not found" }), {

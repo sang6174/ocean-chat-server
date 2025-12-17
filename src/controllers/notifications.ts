@@ -1,3 +1,4 @@
+import type { BaseLogger } from "../helpers/logger";
 import { createConversationRepository } from "../repository";
 import {
   ConversationType,
@@ -7,30 +8,25 @@ import {
 } from "../types/domain";
 import { eventBusServer } from "../websocket/events";
 
-export async function notificationAddFriendController({
-  senderId,
-  senderUsername,
-  recipientId,
-}: {
-  senderId: string;
-  senderUsername: string;
-  recipientId: string;
-}) {
+export async function notificationAddFriendController(
+  baseLogger: BaseLogger,
+  input: {
+    senderId: string;
+    senderUsername: string;
+    recipientId: string;
+  }
+) {
   try {
     eventBusServer.emit(WsServerEvent.NOTIFICATION_ADD_FRIEND, {
-      senderId,
-      senderUsername,
-      recipientId,
+      senderId: input.senderId,
+      senderUsername: input.senderUsername,
+      recipientId: input.recipientId,
     });
     return {
       status: 200,
       message: "Send add friend invitation is successful.",
     };
   } catch (err) {
-    console.log(
-      `[CONTROLLER_ERROR] - ${new Date().toISOString()} - Publish notification add friend error.\n`,
-      err
-    );
     return {
       status: 500,
       message: "Server error. Please try again.",
@@ -38,21 +34,24 @@ export async function notificationAddFriendController({
   }
 }
 
-export async function notificationAcceptFriendController({
-  senderId,
-  recipientId,
-}: {
-  senderId: string;
-  recipientId: string;
-}): Promise<CreateConversationRepositoryOutput | ResponseDomain> {
+export async function notificationAcceptFriendController(
+  baseLogger: BaseLogger,
+  input: {
+    senderId: string;
+    recipientId: string;
+  }
+): Promise<CreateConversationRepositoryOutput | ResponseDomain> {
   try {
-    const resultConversation = await createConversationRepository({
+    const resultConversation = await createConversationRepository(baseLogger, {
       type: ConversationType.Direct,
       metadata: {
         name: "",
-        creator: recipientId,
+        creator: {
+          userId: "",
+          username: "",
+        },
       },
-      participantIds: [recipientId, senderId],
+      participantIds: [input.recipientId, input.senderId],
     });
 
     if (!resultConversation) {
@@ -64,16 +63,12 @@ export async function notificationAcceptFriendController({
     }
 
     eventBusServer.emit(WsServerEvent.NOTIFICATION_ACCEPTED_FRIEND, {
-      senderId,
-      recipientId,
+      senderId: input.senderId,
+      recipientId: input.senderId,
       data: resultConversation,
     });
     return resultConversation;
   } catch (err) {
-    console.log(
-      `[CONTROLLER_ERROR] - ${new Date().toISOString()} - Publish notification added friend error.\n`,
-      err
-    );
     return {
       status: 500,
       message: "Server error. Please try again.",
@@ -81,30 +76,25 @@ export async function notificationAcceptFriendController({
   }
 }
 
-export async function notificationDenyFriendController({
-  senderId,
-  senderUsername,
-  recipientId,
-}: {
-  senderId: string;
-  senderUsername: string;
-  recipientId: string;
-}) {
+export async function notificationDenyFriendController(
+  baseLogger: BaseLogger,
+  input: {
+    senderId: string;
+    senderUsername: string;
+    recipientId: string;
+  }
+) {
   try {
     eventBusServer.emit(WsServerEvent.NOTIFICATION_DENIED_FRIEND, {
-      senderId,
-      senderUsername,
-      recipientId,
+      senderId: input.senderId,
+      senderUsername: input.senderUsername,
+      recipientId: input.recipientId,
     });
     return {
       status: 200,
       message: "Send denied notification is successful.",
     };
   } catch (err) {
-    console.log(
-      `[CONTROLLER_ERROR] - ${new Date().toISOString()} - Publish notification denied friend error.\n`,
-      err
-    );
     return {
       status: 500,
       message: "Server error. Please try again.",

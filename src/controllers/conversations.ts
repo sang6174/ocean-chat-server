@@ -1,8 +1,8 @@
-import { ConversationType } from "../types/domain";
 import type {
   ResponseDomain,
-  ConversationMetadata,
+  CreateConversationDomainInput,
   CreateConversationRepositoryOutput,
+  GetConversationIdentifiersRepositoryInput,
   ConversationIdentifier,
 } from "../types/domain";
 import { getConversationIdentifiersRepository } from "../repository";
@@ -10,34 +10,31 @@ import {
   createConversationService,
   getConversationsService,
 } from "../services";
+import type { BaseLogger } from "../helpers/logger";
 
 export async function createConversationController(
-  type: ConversationType,
-  metadata: ConversationMetadata,
-  participantIds: string[],
-  senderId: string,
-  accessToken: string
+  baseLogger: BaseLogger,
+  input: CreateConversationDomainInput
 ): Promise<CreateConversationRepositoryOutput | ResponseDomain | null> {
-  const result = await createConversationService(
-    type,
-    metadata,
-    participantIds,
-    senderId,
-    accessToken
-  );
+  const result = await createConversationService(baseLogger, input);
   return result;
 }
 
 export async function getConversationIdentifiersController(
-  userId: string
+  baseLogger: BaseLogger,
+  input: GetConversationIdentifiersRepositoryInput
 ): Promise<ConversationIdentifier[] | ResponseDomain | null> {
-  const conversationIdentifiers = await getConversationIdentifiersRepository({
-    userId,
-  });
+  const conversationIdentifiers = await getConversationIdentifiersRepository(
+    baseLogger,
+    input
+  );
   return conversationIdentifiers;
 }
 
-export async function getConversationsController(userId: string) {
-  const conversations = await getConversationsService(userId);
+export async function getConversationsController(
+  baseLogger: BaseLogger,
+  userId: string
+) {
+  const conversations = await getConversationsService(baseLogger, { userId });
   return conversations;
 }

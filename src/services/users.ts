@@ -1,39 +1,40 @@
 import type {
-  GetInfoUserDomainInput,
+  GetProfileUserDomainInput,
   ResponseDomain,
-  GetInfoUserDomainOutput,
+  GetProfileUserDomainOutput,
 } from "../types/domain";
-import { getInfoUsersRepository, getInfoUserRepository } from "../repository";
+import {
+  getAllProfileUsersRepository,
+  getProfileUserRepository,
+} from "../repository";
+import type { BaseLogger } from "../helpers/logger";
 
-export async function getInfoUsersService(): Promise<
-  ResponseDomain | GetInfoUserDomainOutput[]
-> {
+export async function getProfileUsersService(
+  baseLogger: BaseLogger
+): Promise<ResponseDomain | GetProfileUserDomainOutput[]> {
   try {
-    const result = await getInfoUsersRepository();
+    const result = await getAllProfileUsersRepository(baseLogger);
     if (!result) {
       return {
         status: 500,
-        message: "Get all user from database error. Please try again.",
+        message: "Get all users from database error. Please try again.",
       };
     }
     return result;
   } catch (err) {
-    console.log(
-      `[SERVICE_ERROR] - ${new Date().toISOString()} - Get all info users error.`,
-      err
-    );
     return {
       status: 500,
-      message: "Get all user from database error. Please try again.",
+      message: "Get all users from database error. Please try again.",
     };
   }
 }
 
-export async function getInfoUserService({
-  userId,
-}: GetInfoUserDomainInput): Promise<ResponseDomain | GetInfoUserDomainOutput> {
+export async function getProfileUserService(
+  baseLogger: BaseLogger,
+  input: GetProfileUserDomainInput
+): Promise<ResponseDomain | GetProfileUserDomainOutput> {
   try {
-    const result = await getInfoUserRepository({ userId });
+    const result = await getProfileUserRepository(baseLogger, input);
     if (!result) {
       return {
         status: 500,
@@ -42,10 +43,6 @@ export async function getInfoUserService({
     }
     return result;
   } catch (err) {
-    console.log(
-      `[SERVICE_ERROR] - ${new Date().toISOString()} - Get the info user error.`,
-      err
-    );
     return {
       status: 500,
       message: "Get all user from database error. Please try again.",

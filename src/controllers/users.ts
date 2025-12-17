@@ -1,18 +1,23 @@
 import type {
-  GetInfoUserDomainInput,
+  GetProfileUserDomainInput,
   ResponseDomain,
-  GetInfoUserDomainOutput,
+  GetProfileUserDomainOutput,
 } from "../types/domain";
-import { getInfoUsersService, getInfoUserService } from "../services/users";
+import {
+  getProfileUsersService,
+  getProfileUserService,
+} from "../services/users";
+import type { BaseLogger } from "../helpers/logger";
 
-export async function getInfoUsersController(): Promise<
-  ResponseDomain | GetInfoUserDomainOutput[]
-> {
-  return await getInfoUsersService();
+export async function getProfileUsersController(
+  baseLogger: BaseLogger
+): Promise<ResponseDomain | GetProfileUserDomainOutput[]> {
+  return await getProfileUsersService(baseLogger);
 }
 
-export async function getInfoUserController({
-  userId,
-}: GetInfoUserDomainInput): Promise<ResponseDomain | GetInfoUserDomainOutput> {
-  return await getInfoUserService({ userId });
+export async function getProfileUserController(
+  baseLogger: BaseLogger,
+  input: GetProfileUserDomainInput
+): Promise<ResponseDomain | GetProfileUserDomainOutput> {
+  return await getProfileUserService(baseLogger, input);
 }

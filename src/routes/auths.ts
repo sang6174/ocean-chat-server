@@ -1,33 +1,44 @@
+import type { HttpResponse, HttpLoginPostResponse } from "../types/http";
 import type {
-  HttpRegisterPost,
-  HttpResponse,
-  HttpLoginPost,
-  HttpLoginPostResponse,
-} from "../types/http";
-import type { RefreshTokenPayload, UserTokenPayload } from "../types/domain";
+  LoginDomainInput,
+  LogoutDomainInput,
+  RefreshAuthTokenInput,
+  RefreshTokenPayload,
+  RegisterDomainInput,
+  UserTokenPayload,
+} from "../types/domain";
 import {
   parseBodyFormData,
   parseRefreshToken,
   refreshTokenMiddleware,
-  isRegisterInput,
-  isLoginInput,
+  assertRegisterBody,
+  validateRegisterInput,
+  assertLoginBody,
+  validateLoginInput,
   parseAuthToken,
   authMiddleware,
 } from "../middlewares";
 import {
   registerController,
   loginController,
-  refreshAccessTokenController,
+  refreshAuthTokenController,
   logoutController,
 } from "../controllers";
 import type { LoginDomainOutput } from "../types/domain";
+import type { BaseLogger } from "../helpers/logger";
 
 const refreshTokenMaxAge = process.env.REFRESH_TOKEN_MAX_AGE!;
 
+// ============================================================
 // POST /auth/register
-export async function handleRegister(req: Request, corsHeaders: any) {
+// ============================================================
+export async function handleRegister(
+  baseLogger: BaseLogger,
+  req: Request,
+  corsHeaders: any
+) {
   try {
-    // Parse request body and sanitize fields.
+    // Parse request body
     const form = await parseBodyFormData(req);
     if ("status" in form && "message" in form) {
       return new Response(JSON.stringify({ message: form.message }), {
@@ -36,62 +47,47 @@ export async function handleRegister(req: Request, corsHeaders: any) {
       });
     }
 
+    // Sanitize and assert request body
     const rawBody = {
       name: form.get("name"),
       email: form.get("email"),
       username: form.get("username"),
       password: form.get("password"),
     };
+    assertRegisterBody(rawBody);
 
     // Validation request body
-    if (!isRegisterInput(rawBody)) {
-      return new Response(
-        JSON.stringify({
-          message:
-            "Missing or invalid fields: name, email, username, password.",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    const validateResult = validateRegisterInput(rawBody);
+    if (!validateResult.valid) {
+      return new Response(JSON.stringify({ message: validateResult.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Sanitize validated body
-    const cleanBody: HttpRegisterPost = {
+    const cleanBody: RegisterDomainInput = {
       name: rawBody.name.toLowerCase(),
       email: rawBody.email.toLowerCase(),
       username: rawBody.username.toLowerCase(),
       password: rawBody.password,
     };
 
-    // Call register controller: handle business logic & interact with database
-    const result: HttpResponse | null = await registerController(
-      cleanBody.name,
-      cleanBody.email,
-      cleanBody.username,
-      cleanBody.password
+    // Call register controller
+    const result: HttpResponse = await registerController(
+      baseLogger,
+      cleanBody
     );
-    if (!result) {
-      return new Response(
-        JSON.stringify("Registration failed. Please resend request."),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
 
-    // HTTP response successfully
     return new Response(JSON.stringify({ message: result.message }), {
       status: result.status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "x-trace-id": baseLogger.requestId,
+      },
     });
   } catch (err) {
-    console.log(
-      `[ROUTE_ERROR] - ${new Date().toISOString()} - Register error.\n`,
-      err
-    );
     return new Response(
       JSON.stringify({
         message: "Register error. Please try again later.",
@@ -104,8 +100,14 @@ export async function handleRegister(req: Request, corsHeaders: any) {
   }
 }
 
+// ============================================================
 // POST /auth/login
-export async function handleLogin(req: Request, corsHeaders: any) {
+// ============================================================
+export async function handleLogin(
+  baseLogger: BaseLogger,
+  req: Request,
+  corsHeaders: any
+) {
   try {
     // Parse request body and sanitize fields.
     const form = await parseBodyFormData(req);
@@ -115,16 +117,19 @@ export async function handleLogin(req: Request, corsHeaders: any) {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
     const rawBody = {
       username: form.get("username"),
       password: form.get("password"),
     };
+    assertLoginBody(rawBody);
 
     // Validate request body
-    if (!isLoginInput(rawBody)) {
+    const validateResult = validateLoginInput(rawBody);
+    if (!validateResult.valid) {
       return new Response(
         JSON.stringify({
-          message: "Missing or invalid fields: username, password.",
+          message: validateResult.message,
         }),
         {
           status: 400,
@@ -134,15 +139,15 @@ export async function handleLogin(req: Request, corsHeaders: any) {
     }
 
     // Sanitize validated body
-    const cleanBody: HttpLoginPost = {
+    const cleanBody: LoginDomainInput = {
       username: rawBody.username.toLowerCase(),
       password: rawBody.password,
     };
 
     // Call login controller:
     const result: HttpResponse | LoginDomainOutput = await loginController(
-      cleanBody.username,
-      cleanBody.password
+      baseLogger,
+      cleanBody
     );
 
     if ("status" in result && "message" in result) {
@@ -155,23 +160,18 @@ export async function handleLogin(req: Request, corsHeaders: any) {
     const response: HttpLoginPostResponse = {
       userId: result.userId,
       username: result.username,
-      accessToken: result.accessToken,
+      authToken: result.accessToken,
     };
 
-    // HTTP response successfully
     return new Response(JSON.stringify(response), {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        "Set-Cookie": `refresh_token=${result.refreshToken}; HttpOnly; SameSite=Lax; Path=/auth/refresh/token; Max-Age=${refreshTokenMaxAge}`,
+        "Set-Cookie": `refresh_token=${result.refreshToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${refreshTokenMaxAge}`,
       },
     });
   } catch (err) {
-    console.log(
-      `[ROUTE_ERROR] - ${new Date().toISOString()} - Login error.\n`,
-      err
-    );
     return new Response(
       JSON.stringify({
         message: "Login error. Please try again later.",
@@ -184,8 +184,14 @@ export async function handleLogin(req: Request, corsHeaders: any) {
   }
 }
 
+// ============================================================
 // GET /auth/logout
-export async function handleLogout(req: Request, corsHeaders: any) {
+// ============================================================
+export async function handleLogout(
+  baseLogger: BaseLogger,
+  req: Request,
+  corsHeaders: any
+) {
   try {
     const auth: HttpResponse | string = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
@@ -206,15 +212,22 @@ export async function handleLogout(req: Request, corsHeaders: any) {
       );
     }
 
-    const result = await logoutController({
+    const input: LogoutDomainInput = {
       userId: authResult.data.userId,
-      accessToken: auth,
-    });
-  } catch (err) {
-    console.log(
-      `[ROUTE_ERROR] - ${new Date().toISOString()} - Logout error.\n`,
-      err
+      authToken: auth,
+    };
+    const result = await logoutController(input);
+
+    return new Response(
+      JSON.stringify({
+        message: result.message,
+      }),
+      {
+        status: result.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
+  } catch (err) {
     return new Response(
       JSON.stringify({
         message: "Logout error. Please try again later.",
@@ -227,8 +240,14 @@ export async function handleLogout(req: Request, corsHeaders: any) {
   }
 }
 
+// ============================================================
 // POST /auth/refresh/token
-export async function handleRefresh(req: Request, corsHeaders: any) {
+// ============================================================
+export async function handleRefreshAuthToken(
+  baseLogger: BaseLogger,
+  req: Request,
+  corsHeaders: any
+) {
   try {
     // Parse refresh token
     const auth: HttpResponse | string = parseRefreshToken(req);
@@ -251,9 +270,10 @@ export async function handleRefresh(req: Request, corsHeaders: any) {
       );
     }
 
-    const result = await refreshAccessTokenController({
+    const input: RefreshAuthTokenInput = {
       userId: authResult.data.userId,
-    });
+    };
+    const result = await refreshAuthTokenController(baseLogger, input);
 
     if ("status" in result && "message" in result) {
       return new Response(JSON.stringify({ message: result.message }), {
@@ -268,10 +288,6 @@ export async function handleRefresh(req: Request, corsHeaders: any) {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.log(
-      `[ROUTE_ERROR] - ${new Date().toISOString()} - Login error.\n`,
-      err
-    );
     return new Response(
       JSON.stringify({
         message: "Refresh token error. Please try again later.",

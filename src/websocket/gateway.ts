@@ -52,7 +52,7 @@ export function broadcastToConversation<T>(
 ) {
   recipientIds.forEach((recipient) => {
     wsConnections.get(recipient)?.forEach((conn) => {
-      // if (accessToken === conn.data.accessToken) return;
+      if (accessToken === conn.data.accessToken) return;
       if (conn.readyState === WebSocket.OPEN) {
         try {
           conn.send(JSON.stringify(data));
@@ -152,25 +152,19 @@ eventBusServer.on(
 
 eventBusServer.on(
   WsServerEvent.MESSAGE_CREATED,
-  ({
-    senderId,
-    accessToken,
-    conversationIdentifier,
-    recipientIds,
-    message,
-  }: PublishMessageCreated) => {
+  (input: PublishMessageCreated) => {
     // Broadcast a new message to conversation
     const data: WsDataToSendToClient<string> = {
       type: WsServerEvent.MESSAGE_CREATED,
       metadata: {
-        senderId,
-        toConversation: conversationIdentifier,
+        senderId: input.senderId,
+        toConversation: input.conversationIdentifier,
       },
-      data: message,
+      data: input.message,
     };
     broadcastToConversation<WsDataToSendToClient<string>>(
-      accessToken,
-      recipientIds,
+      input.accessToken,
+      input.recipientIds,
       data
     );
   }

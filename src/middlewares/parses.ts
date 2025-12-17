@@ -50,11 +50,18 @@ export async function parseBodyJSON<T = any>(
 }
 
 export function parseAuthToken(req: Request): HttpResponse | string {
-  const auth = req.headers.get("Authorization")?.slice(7);
-  if (
-    auth === undefined ||
-    !req.headers.get("Authorization")?.startsWith("Bearer ")
-  ) {
+  let auth = req.headers.get("Authorization")?.slice(7);
+  const isBearer = req.headers.get("Authorization")?.startsWith("Bearer ");
+
+  if (!auth || !isBearer) {
+    const url = new URL(req.url);
+    const tokenParam = url.searchParams.get("token");
+    if (tokenParam) {
+      auth = tokenParam;
+    }
+  }
+
+  if (!auth) {
     console.log("Error");
     return {
       status: 401,

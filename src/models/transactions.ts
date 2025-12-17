@@ -4,6 +4,7 @@ import type {
   CreateConversationRepositoryInput,
   AddParticipantsRepositoryInput,
   GetConversationRepositoryInput,
+  ConversationMetadata,
 } from "../types/domain";
 import type {
   PgParticipant,
@@ -13,13 +14,12 @@ import type {
 } from "../types/models";
 
 import type {} from "../";
+import type { BaseLogger } from "../helpers/logger";
 
-export async function pgRegisterTransaction({
-  name,
-  email,
-  username,
-  password,
-}: RegisterRepositoryInput): Promise<PgRegisterTransactionOutput> {
+export async function pgRegisterTransaction(
+  baseLogger: BaseLogger,
+  input: RegisterRepositoryInput
+): Promise<PgRegisterTransactionOutput> {
   const client = await pool.connect();
   try {
     await client.query(`BEGIN`);
@@ -27,18 +27,40 @@ export async function pgRegisterTransaction({
     const user = await client.query(
       `INSERT INTO main.users (name, email) 
        VALUES ($1, $2) RETURNING id, name, email`,
-      [name, email]
+      [input.name, input.email]
     );
+
     const account = await client.query(
       `INSERT INTO main.accounts (id, username, password) 
-       VALUES ($1, $2, $3) RETURNING id, username, password`,
-      [user.rows[0].id, username, password]
+       VALUES ($1, $2, $3) RETURNING id, username`,
+      [user.rows[0].id, input.username]
+    );
+
+    const metadata: ConversationMetadata = {
+      name: account.rows[0].username,
+      creator: {
+        userId: user.rows[0].id,
+        username: account.rows[0].username,
+      },
+    };
+
+    const privateConversation = await client.query(
+      `INSERT INTO main.conversations (type, metadata) 
+       VALUES ($1, $2) RETURNING id, type, metadata`,
+      ["myself", metadata]
     );
 
     await client.query(`COMMIT`);
+
+    console.info("Register Transaction Successfully", {
+      user: user.rows[0],
+      account: account.rows[0],
+      conversation: privateConversation.rows[0],
+    });
     return {
       user: user.rows[0],
       account: account.rows[0],
+      conversation: privateConversation.rows[0],
     };
   } catch (err) {
     await client.query(`ROLLBACK`);
@@ -48,11 +70,10 @@ export async function pgRegisterTransaction({
   }
 }
 
-export async function pgCreateConversationTransaction({
-  type,
-  metadata,
-  participantIds,
-}: CreateConversationRepositoryInput): Promise<PgCreateConversationTransactionOutput> {
+export async function pgCreateConversationTransaction(
+  baseLogger: BaseLogger,
+  input: CreateConversationRepositoryInput
+): Promise<PgCreateConversationTransactionOutput> {
   const client = await pool.connect();
   try {
     await client.query(`BEGIN`);
@@ -60,11 +81,11 @@ export async function pgCreateConversationTransaction({
     const conversationResult = await client.query(
       `INSERT INTO main.conversations (type, metadata)
        VALUES ($1, $2) RETURNING id, type, metadata`,
-      [type, metadata]
+      [input.type, input.metadata]
     );
 
     let participants: PgParticipant[] = [];
-    for (const participantId of participantIds) {
+    for (const participantId of input.participantIds) {
       if (participantId === conversationResult.rows[0].metadata.creator) {
         const participant = await client.query(
           `INSERT INTO main.participants (conversation_id, user_id, role)
@@ -95,24 +116,24 @@ export async function pgCreateConversationTransaction({
   }
 }
 
-export async function pgAddParticipantsTransaction({
-  conversationId,
-  participantIds,
-}: AddParticipantsRepositoryInput): Promise<PgParticipant[]> {
+export async function pgAddParticipantsTransaction(
+  baseLogger: BaseLogger,
+  input: AddParticipantsRepositoryInput
+): Promise<PgParticipant[]> {
   const client = await pool.connect();
 
   try {
     await client.query("BEGIN");
 
     let participants: PgParticipant[] = [];
-    for (const userId of participantIds) {
+    for (const userId of input.participantIds) {
       const participant = await client.query(
         `INSERT INTO main.participants (conversation_id, user_id)
          VALUES ($1, $2)
          ON CONFLICT (conversation_id, user_id)
          DO UPDATE SET conversation_id = EXCLUDED.conversation_id
          RETURNING user_id, conversation_id, role, last_seen, joined_at`,
-        [conversationId, userId]
+        [input.conversationId, userId]
       );
       participants.push(participant.rows[0]);
     }
@@ -127,23 +148,22 @@ export async function pgAddParticipantsTransaction({
   }
 }
 
-export async function pgGetConversationTransaction({
-  conversationId,
-  limit = 10,
-  offset = 0,
-}: GetConversationRepositoryInput): Promise<PgGetConversationTransactionOutput> {
+export async function pgGetConversationTransaction(
+  baseLogger: BaseLogger,
+  input: GetConversationRepositoryInput
+): Promise<PgGetConversationTransactionOutput> {
   const client = await pool.connect();
   try {
     await client.query(`BEGIN`);
 
     const resultConversation = await client.query(
       `SELECT id, type, metadata FROM main.conversations WHERE id = $1`,
-      [conversationId]
+      [input.conversationId]
     );
 
     const resultParticipants = await client.query(
       `SELECT user_id, role, last_seen, joined_at FROM main.participants WHERE conversation_id = $1`,
-      [conversationId]
+      [input.conversationId]
     );
 
     const resultMessages = await client.query(
@@ -153,7 +173,7 @@ export async function pgGetConversationTransaction({
        WHERE m.conversation_id = $1
        ORDER BY m.created_at DESC
        LIMIT $2 OFFSET $3`,
-      [conversationId, limit, offset]
+      [input.conversationId, input.limit, input.offset]
     );
 
     await client.query(`COMMIT`);

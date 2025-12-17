@@ -5,9 +5,12 @@ import {
   notificationAcceptFriendController,
   notificationDenyFriendController,
 } from "../controllers";
+import type { HttpResponse } from "../types/http";
+import type { BaseLogger } from "../helpers/logger";
 
 // POST /notification/friend
-export async function handleNotificationFriend(
+export async function handleNotificationAddFriend(
+  baseLogger: BaseLogger,
   url: URL,
   req: Request,
   corsHeaders: any
@@ -60,11 +63,12 @@ export async function handleNotificationFriend(
       );
     }
 
-    const result = await notificationAddFriendController({
+    const result = await notificationAddFriendController(baseLogger, {
       senderId: authResult.data.userId,
       senderUsername: authResult.data.username,
       recipientId: recipientId,
     });
+
     return new Response(
       JSON.stringify({
         message: result.message,
@@ -89,6 +93,7 @@ export async function handleNotificationFriend(
 
 // POST /notification/friend/accept
 export async function handleNotificationAcceptFriend(
+  baseLogger: BaseLogger,
   url: URL,
   req: Request,
   corsHeaders: any
@@ -142,10 +147,11 @@ export async function handleNotificationAcceptFriend(
     }
 
     // Call notification accept friend controller
-    const result = await notificationAcceptFriendController({
+    const result = await notificationAcceptFriendController(baseLogger, {
       senderId: authResult.data.userId,
       recipientId: recipientId,
     });
+
     if ("status" in result && "message" in result) {
       return new Response(
         JSON.stringify({
@@ -177,6 +183,7 @@ export async function handleNotificationAcceptFriend(
 
 // POST /notification/friend/deny
 export async function handleNotificationDenyFriend(
+  baseLogger: BaseLogger,
   url: URL,
   req: Request,
   corsHeaders: any
@@ -230,7 +237,7 @@ export async function handleNotificationDenyFriend(
     }
 
     // Call notification deny friend controller
-    const result = await notificationDenyFriendController({
+    const result = await notificationDenyFriendController(baseLogger, {
       senderId: authResult.data.userId,
       senderUsername: authResult.data.username,
       recipientId: recipientId,

@@ -47,6 +47,18 @@ export type PgMessage = {
 export type PgMessageWithUsername = PgMessage & {
   sender_username: string;
 };
+// ============================================================
+// PgError
+// ============================================================
+export interface PgError extends Error {
+  code: string;
+  detail?: string;
+  table?: string;
+  constraint?: string;
+  severity?: string;
+  routine?: string;
+  file?: string;
+}
 
 // ============================================================
 // Transaction Input/Output
@@ -62,6 +74,7 @@ export interface PgRegisterTransactionInput {
 export interface PgRegisterTransactionOutput {
   user: PgUser;
   account: PgAccount;
+  conversation: PgConversation;
 }
 
 //
@@ -138,10 +151,10 @@ export interface PgGetParticipantIdsOutput {
   user_id: string;
 }
 
-export interface PgGetInfoUserInput {
+export interface PgGetProfileUserInput {
   userId: string;
 }
 
-export interface PgGetInfoUserOutput extends PgUser {
+export interface PgGetProfileUserOutput extends PgUser {
   username: string;
 }

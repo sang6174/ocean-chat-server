@@ -26,7 +26,10 @@ export type EventCallback<T> = (payload: T) => void;
 
 export type ConversationMetadata = {
   name: string;
-  creator: string;
+  creator: {
+    userId: string;
+    username: string;
+  };
 };
 
 export type ConversationIdentifier = {
@@ -136,17 +139,17 @@ export interface LoginDomainOutput {
 
 export interface LogoutDomainInput {
   userId: string;
-  accessToken: string;
+  authToken: string;
 }
 
-export interface RefreshAccessTokenInput {
+export interface RefreshAuthTokenInput {
   userId: string;
 }
 
-export interface RefreshAccessTokenOutput {
+export interface RefreshAuthTokenOutput {
   userId: string;
   username: string;
-  accessToken: string;
+  authToken: string;
 }
 
 export interface CreateConversationDomainInput {
@@ -171,12 +174,16 @@ export interface AddParticipantsDomainInput {
   participantIds: string[];
 }
 
-export interface GetInfoUserDomainInput {
+export interface GetProfileUserDomainInput {
   userId: string;
 }
 
-export interface GetInfoUserDomainOutput extends User {
+export interface GetProfileUserDomainOutput extends User {
   username: string;
+}
+
+export interface GetConversationDomainInput {
+  userId: string;
 }
 
 export interface GetConversationDomainOutput {
@@ -221,6 +228,14 @@ export interface RegisterRepositoryInput {
 export interface RegisterRepositoryOutput {
   user: User;
   account: Account;
+  conversation: Conversation;
+}
+
+export interface PgErrorRepositoryOutput {
+  code: string;
+  table: string;
+  constraint: string;
+  detail: string;
 }
 
 export interface CreateConversationRepositoryInput {

@@ -2,12 +2,15 @@ import type {
   ConversationIdentifier,
   UserTokenPayload,
   ResponseDomain,
+  GetConversationIdentifiersRepositoryInput,
 } from "../types/domain";
 import type { DataWebSocket } from "../types/ws";
 import { parseAuthToken, authMiddleware } from "../middlewares";
 import { getConversationIdentifiersController } from "../controllers";
+import type { BaseLogger } from "../helpers/logger";
 
 export async function handleUpgradeWebSocket(
+  baseLogger: BaseLogger,
   server: Bun.Server<DataWebSocket>,
   req: Request,
   corsHeaders: any
@@ -35,12 +38,13 @@ export async function handleUpgradeWebSocket(
     }
 
     // Call conversation identifiers controller
+    const input: GetConversationIdentifiersRepositoryInput = {
+      userId: authResult.data.userId,
+    };
     const conversationIdentifiers:
       | ResponseDomain
       | ConversationIdentifier[]
-      | null = await getConversationIdentifiersController(
-      authResult.data.userId
-    );
+      | null = await getConversationIdentifiersController(baseLogger, input);
     if (!conversationIdentifiers) {
       return new Response(
         JSON.stringify({ message: "Failed to get conversation identifier." }),
@@ -50,6 +54,7 @@ export async function handleUpgradeWebSocket(
         }
       );
     }
+
     if (
       "status" in conversationIdentifiers &&
       "message" in conversationIdentifiers
@@ -87,10 +92,7 @@ export async function handleUpgradeWebSocket(
       }
     );
   } catch (err) {
-    console.log(
-      `[ROUTE_ERROR] - ${new Date().toISOString()} - Upgrade websocket error.\n`,
-      err
-    );
+    console.log("Upgrade WebSocket Error.\n", err);
     return new Response(
       JSON.stringify({
         message: "Upgrade websocket error. Please try again later.",

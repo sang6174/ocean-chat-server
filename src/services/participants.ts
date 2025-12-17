@@ -2,8 +2,6 @@ import { ConversationRoleType, WsServerEvent } from "../types/domain";
 import type {
   ResponseDomain,
   AddParticipantsDomainInput,
-  GetConversationRepositoryInput,
-  GetConversationRepositoryOutput,
 } from "../types/domain";
 import { eventBusServer } from "../websocket/events";
 import {
@@ -12,25 +10,26 @@ import {
   addParticipantsRepository,
   getConversationRepository,
 } from "../repository";
+import type { BaseLogger } from "../helpers/logger";
 
-export async function addParticipantsService({
-  userId,
-  accessToken,
-  conversation,
-  participantIds,
-}: AddParticipantsDomainInput): Promise<ResponseDomain | null> {
+export async function addParticipantsService(
+  baseLogger: BaseLogger,
+  input: AddParticipantsDomainInput
+): Promise<ResponseDomain | null> {
   try {
     // Check role user in conversation
-    const userRole = await getParticipantRoleRepository({
-      userId,
-      conversationId: conversation.id,
+    const userRole = await getParticipantRoleRepository(baseLogger, {
+      userId: input.userId,
+      conversationId: input.conversation.id,
     });
+
     if (!userRole) {
       return {
         status: 500,
         message: "Query database error. please try again.",
       };
     }
+
     if (userRole.role !== ConversationRoleType.ADMIN) {
       return {
         status: 403,
@@ -39,22 +38,26 @@ export async function addParticipantsService({
     }
 
     // Get the old participants
-    const resultOldParticipants = await getParticipantIdsRepository({
-      conversationId: conversation.id,
-    });
+    const resultOldParticipants = await getParticipantIdsRepository(
+      baseLogger,
+      {
+        conversationId: input.conversation.id,
+      }
+    );
+
     if (!resultOldParticipants) {
       return {
         status: 500,
         message: "Get old participants from database error.",
       };
     }
-    console.log(resultOldParticipants);
 
     // Add the new participants
-    const resultAddParticipant = await addParticipantsRepository({
-      conversationId: conversation.id,
-      participantIds,
+    const resultAddParticipant = await addParticipantsRepository(baseLogger, {
+      conversationId: input.conversation.id,
+      participantIds: input.participantIds,
     });
+
     if (!resultAddParticipant) {
       return {
         status: 500,
@@ -62,24 +65,25 @@ export async function addParticipantsService({
       };
     }
     console.log(resultAddParticipant);
-    // Add the event messages for each the new participants
 
     // Get the new conversation
-    const resultConversation = await getConversationRepository({
-      conversationId: conversation.id,
-    } as GetConversationRepositoryInput);
+    const resultConversation = await getConversationRepository(baseLogger, {
+      conversationId: input.conversation.id,
+      limit: 10,
+      offset: 0,
+    });
     if (!resultConversation) {
       return null;
     }
 
     // Broadcast/Send to participants
     eventBusServer.emit(WsServerEvent.CONVERSATION_ADDED_PARTICIPANTS, {
-      senderId: userId,
-      accessToken,
+      senderId: input.userId,
+      accessToken: input.accessToken,
       oldParticipants: resultOldParticipants.map((participant) => {
         return participant.userId;
       }),
-      newParticipants: participantIds,
+      newParticipants: input.participantIds,
       conversation: resultConversation,
     });
 
@@ -88,10 +92,6 @@ export async function addParticipantsService({
       message: "Add participants successfully.",
     };
   } catch (err) {
-    console.log(
-      `[SERVICE_ERROR] - ${new Date().toISOString()} - Add participants service error.\n`,
-      err
-    );
     return null;
   }
 }

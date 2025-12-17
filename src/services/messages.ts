@@ -11,19 +11,18 @@ import {
   getParticipantIdsRepository,
 } from "../repository";
 import { eventBusServer } from "../websocket/events";
+import type { BaseLogger } from "../helpers/logger";
 
-export async function sendMessageService({
-  senderId,
-  accessToken,
-  conversation,
-  message,
-}: SendMessageDomainInput): Promise<ResponseDomain | null> {
+export async function sendMessageService(
+  baseLogger: BaseLogger,
+  input: SendMessageDomainInput
+): Promise<ResponseDomain | null> {
   try {
     // Create a new message in database
-    const resultCreateMessage = await createMessageRepository({
-      conversationId: conversation.id,
-      senderId,
-      content: message,
+    const resultCreateMessage = await createMessageRepository(baseLogger, {
+      senderId: input.senderId,
+      conversationId: input.conversation.id,
+      content: input.message,
     });
     if (!resultCreateMessage) {
       return {
@@ -33,9 +32,10 @@ export async function sendMessageService({
     }
 
     // Get ids of participants in conversation
-    const resultParticipantIds = await getParticipantIdsRepository({
-      conversationId: conversation.id,
+    const resultParticipantIds = await getParticipantIdsRepository(baseLogger, {
+      conversationId: input.conversation.id,
     });
+
     if (!resultParticipantIds) {
       return {
         status: 500,
@@ -43,46 +43,38 @@ export async function sendMessageService({
       };
     }
 
-    eventBusServer.emit(WsServerEvent.MESSAGE_CREATED, {
-      senderId,
-      accessToken,
-      conversationIdentifier: conversation,
+    const inputWsEvent = {
+      senderId: input.senderId,
+      accessToken: input.accessToken,
+      conversationIdentifier: input.conversation,
       recipientIds: resultParticipantIds.map(
         (participant) => participant.userId
       ),
-      message,
-    });
+      message: input.message,
+    };
+    eventBusServer.emit(WsServerEvent.MESSAGE_CREATED, inputWsEvent);
 
     return {
       status: 201,
       message: "send message via http successfully",
     };
   } catch (err) {
-    console.log(
-      `[SERVICE_ERROR] - ${new Date().toISOString()} - Create message service error.\n`,
-      err
-    );
     return null;
   }
 }
 
-export async function getMessagesService({
-  conversationId,
-  limit = 10,
-  offset = 0,
-}: GetMessagesDomainInput): Promise<GetMessagesDomainOutput[] | null> {
+export async function getMessagesService(
+  baseLogger: BaseLogger,
+  input: GetMessagesDomainInput
+): Promise<GetMessagesDomainOutput[] | null> {
   try {
-    const result = await getMessagesRepository({
-      conversationId,
-      limit,
-      offset,
+    const result = await getMessagesRepository(baseLogger, {
+      conversationId: input.conversationId,
+      limit: input.limit ?? 10,
+      offset: input.offset ?? 0,
     });
     return result;
   } catch (err) {
-    console.log(
-      `[SERVICE_ERROR] - ${new Date().toISOString()} - Get messages error.\n`,
-      err
-    );
     return null;
   }
 }

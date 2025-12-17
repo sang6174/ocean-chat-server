@@ -1,26 +1,23 @@
-import type { ConversationIdentifier, ResponseDomain } from "../types/domain";
+import type {
+  SendMessageDomainInput,
+  ResponseDomain,
+  GetMessagesDomainInput,
+} from "../types/domain";
 import { sendMessageService, getMessagesService } from "../services";
+import type { BaseLogger } from "../helpers/logger";
 
 export async function sendMessageController(
-  senderId: string,
-  accessToken: string,
-  conversation: ConversationIdentifier,
-  message: string
+  baseLogger: BaseLogger,
+  input: SendMessageDomainInput
 ): Promise<ResponseDomain | null> {
-  const result = await sendMessageService({
-    senderId,
-    accessToken,
-    conversation,
-    message,
-  });
+  const result = await sendMessageService(baseLogger, input);
   return result;
 }
 
 export async function getMessagesController(
-  conversationId: string,
-  limit: number = 10,
-  offset: number = 0
+  baseLogger: BaseLogger,
+  input: GetMessagesDomainInput
 ) {
-  const result = getMessagesService({ conversationId, limit, offset });
+  const result = getMessagesService(baseLogger, input);
   return result;
 }

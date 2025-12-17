@@ -25,9 +25,14 @@ import {
   sendMessageController,
   addParticipantsController,
 } from "../controllers";
+import type { BaseLogger } from "../helpers/logger";
 
 // POST /conversation
-export async function handleCreateConversation(req: Request, corsHeaders: any) {
+export async function handleCreateConversation(
+  baseLogger: BaseLogger,
+  req: Request,
+  corsHeaders: any
+) {
   try {
     // Parse refresh token
     const auth: HttpResponse | string = parseAuthToken(req);
@@ -65,20 +70,17 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     if (rawBody.type === ConversationType.Myself) {
       validatedResult = validateCreateMyselfConversation(rawBody);
     } else if (rawBody.type === ConversationType.Group) {
-      validatedResult = validateCreateGroupConversation(
-        rawBody,
-        authResult.data.userId
-      );
+      validatedResult = validateCreateGroupConversation(rawBody);
     } else {
-      const validTypes = Object.values(ConversationType);
       return new Response(
-        JSON.stringify({ message: "Invalid conversation type.", validTypes }),
+        JSON.stringify({ message: "Invalid conversation type." }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
+
     if (!validatedResult.valid) {
       return new Response(
         JSON.stringify({ message: validatedResult.message }),
@@ -96,7 +98,10 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
         type: ConversationType.Myself,
         metadata: {
           name: rawBody.metadata.name,
-          creator: authResult.data.userId,
+          creator: {
+            userId: authResult.data.userId,
+            username: authResult.data.username,
+          },
         },
         participantIds: [authResult.data.userId],
         senderId: authResult.data.userId,
@@ -107,16 +112,18 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
         type: ConversationType.Group,
         metadata: {
           name: rawBody.metadata.name,
-          creator: authResult.data.userId,
+          creator: {
+            userId: authResult.data.userId,
+            username: authResult.data.username,
+          },
         },
         participantIds: rawBody.participantIds,
         senderId: authResult.data.userId,
         accessToken: auth,
       };
     } else {
-      const validTypes = Object.values(ConversationType);
       return new Response(
-        JSON.stringify({ message: "Invalid conversation type.", validTypes }),
+        JSON.stringify({ message: "Invalid conversation type." }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -125,13 +132,8 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     }
 
     // Call create conversation controller
-    const result = await createConversationController(
-      cleanBody.type,
-      cleanBody.metadata,
-      cleanBody.participantIds,
-      cleanBody.senderId,
-      cleanBody.accessToken
-    );
+    const result = await createConversationController(baseLogger, cleanBody);
+
     if (!result) {
       return new Response(
         JSON.stringify({ message: "Create a new conversation is failed." }),
@@ -142,7 +144,6 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
       );
     }
 
-    // HTTP response successfully
     return new Response(
       JSON.stringify({ message: "Create a new conversation is successful." }),
       {
@@ -151,10 +152,6 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
       }
     );
   } catch (err) {
-    console.log(
-      `[ROUTE_ERROR] - ${new Date().toISOString()} - Create a new conversation error.\n`,
-      err
-    );
     return new Response(
       JSON.stringify({
         message: "Create a conversation error. Please try again later.",
@@ -168,7 +165,11 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
 }
 
 // POST /conversation/message
-export async function handleSendMessage(req: Request, corsHeaders: any) {
+export async function handleSendMessage(
+  baseLogger: BaseLogger,
+  req: Request,
+  corsHeaders: any
+) {
   try {
     // Parse auth token
     const auth = parseAuthToken(req);
@@ -222,12 +223,13 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
       conversation: rawBody.conversation,
       message: rawBody.message,
     };
+
+    // Call send message controller
     const result: HttpResponse | null = await sendMessageController(
-      cleanBody.senderId,
-      cleanBody.accessToken,
-      cleanBody.conversation,
-      cleanBody.message
+      baseLogger,
+      cleanBody
     );
+
     if (!result) {
       return new Response(
         JSON.stringify({
@@ -246,10 +248,6 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.log(
-      `[ROUTE_ERROR] - ${new Date().toISOString()} - Send message error.\n`,
-      err
-    );
     return new Response(
       JSON.stringify({
         message: "Send a message error. Please try again later.",
@@ -263,7 +261,11 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
 }
 
 // POST /conversation/participants
-export async function handleAddParticipants(req: Request, corsHeaders: any) {
+export async function handleAddParticipants(
+  baseLogger: BaseLogger,
+  req: Request,
+  corsHeaders: any
+) {
   try {
     // Parse refresh token
     const auth: HttpResponse | string = parseAuthToken(req);
@@ -319,12 +321,7 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
     };
 
     // Call create add participants controller
-    const result = await addParticipantsController(
-      cleanBody.userId,
-      cleanBody.accessToken,
-      cleanBody.conversation,
-      cleanBody.participantIds
-    );
+    const result = await addParticipantsController(baseLogger, cleanBody);
     if (!result) {
       return new Response(
         JSON.stringify({ message: "Add participants error." }),
@@ -341,10 +338,6 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.log(
-      `[ROUTE_ERROR] - ${new Date().toISOString()} - Add participants error.\n`,
-      err
-    );
     return new Response(
       JSON.stringify({
         message: "Create a conversation error. Please try again later.",

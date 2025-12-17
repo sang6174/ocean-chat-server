@@ -4,9 +4,11 @@ import {
   getConversationsController,
   getMessagesController,
 } from "../controllers";
+import type { BaseLogger } from "../helpers/logger";
 
 // GET /conversations?userId=...
 export async function handleGetConversations(
+  baseLogger: BaseLogger,
   url: URL,
   req: Request,
   corsHeaders: any
@@ -57,7 +59,7 @@ export async function handleGetConversations(
     }
 
     // Call get conversations controller
-    const result = await getConversationsController(userId);
+    const result = await getConversationsController(baseLogger, userId);
     if (!result) {
       return new Response(
         JSON.stringify({
@@ -100,6 +102,7 @@ export async function handleGetConversations(
 
 // GET /conversations/messages?conversationId=...&limit=...&offset=...
 export async function handleGetMessages(
+  baseLogger: BaseLogger,
   url: URL,
   req: Request,
   corsHeaders: any
@@ -180,11 +183,11 @@ export async function handleGetMessages(
     }
 
     // Call get messages controller
-    const result = await getMessagesController(
+    const result = await getMessagesController(baseLogger, {
       conversationId,
-      limitNum,
-      offsetNum
-    );
+      limit: limitNum,
+      offset: offsetNum,
+    });
     if (!result) {
       return new Response(JSON.stringify("Get all messages error"), {
         status: 500,
@@ -198,10 +201,6 @@ export async function handleGetMessages(
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.log(
-      `[ROUTE_ERROR] - ${new Date().toISOString()} - Get messages error.\n`,
-      err
-    );
     return new Response(
       JSON.stringify({
         message: "Get messages error. Please try again later.",
