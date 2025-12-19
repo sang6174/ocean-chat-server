@@ -10,6 +10,9 @@ import {
 import { logger } from "../helpers/logger";
 import { handleError } from "../helpers/errors";
 
+// ============================================================
+// Get All Profile User
+// ============================================================
 export async function handleGetAllProfileUsers(req: Request, corsHeaders: any) {
   try {
     // Parse auth token
@@ -17,7 +20,11 @@ export async function handleGetAllProfileUsers(req: Request, corsHeaders: any) {
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -28,7 +35,11 @@ export async function handleGetAllProfileUsers(req: Request, corsHeaders: any) {
         JSON.stringify({ message: "Invalid or expired auth token." }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -38,7 +49,11 @@ export async function handleGetAllProfileUsers(req: Request, corsHeaders: any) {
     logger.info("Get all users' profile successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "x-request-id": logger.requestId,
+      },
     });
   } catch (err) {
     const errorResponse = handleError(err, corsHeaders);
@@ -53,12 +68,19 @@ export async function handleGetAllProfileUsers(req: Request, corsHeaders: any) {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }
 }
 
+// ============================================================
+// Get Profile User
+// ============================================================
 export async function handleGetProfileUser(req: Request, corsHeaders: any) {
   try {
     // Parse auth token
@@ -66,7 +88,11 @@ export async function handleGetProfileUser(req: Request, corsHeaders: any) {
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -77,7 +103,11 @@ export async function handleGetProfileUser(req: Request, corsHeaders: any) {
         JSON.stringify({ message: "Invalid or expired auth token." }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -89,7 +119,11 @@ export async function handleGetProfileUser(req: Request, corsHeaders: any) {
     logger.info("Get user's profile successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "x-request-id": logger.requestId,
+      },
     });
   } catch (err) {
     const errorResponse = handleError(err, corsHeaders);
@@ -104,7 +138,11 @@ export async function handleGetProfileUser(req: Request, corsHeaders: any) {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }

@@ -40,7 +40,11 @@ export async function handleRegister(req: Request, corsHeaders: any) {
     if ("status" in form && "message" in form) {
       return new Response(JSON.stringify({ message: form.message }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -92,7 +96,11 @@ export async function handleRegister(req: Request, corsHeaders: any) {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }
@@ -108,7 +116,11 @@ export async function handleLogin(req: Request, corsHeaders: any) {
     if ("status" in form && "message" in form) {
       return new Response(JSON.stringify({ message: form.message }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -141,6 +153,7 @@ export async function handleLogin(req: Request, corsHeaders: any) {
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
+        "x-request-id": logger.requestId,
         "Set-Cookie": `refresh_token=${result.refreshToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${refreshTokenMaxAge}`,
       },
     });
@@ -157,7 +170,11 @@ export async function handleLogin(req: Request, corsHeaders: any) {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }
@@ -172,7 +189,11 @@ export async function handleLogout(req: Request, corsHeaders: any) {
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -182,7 +203,11 @@ export async function handleLogout(req: Request, corsHeaders: any) {
         JSON.stringify({ message: "Invalid or expired auth token." }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -202,7 +227,11 @@ export async function handleLogout(req: Request, corsHeaders: any) {
       }),
       {
         status: result.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   } catch (err) {
@@ -218,7 +247,11 @@ export async function handleLogout(req: Request, corsHeaders: any) {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }
@@ -234,7 +267,11 @@ export async function handleRefreshAuthToken(req: Request, corsHeaders: any) {
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -245,7 +282,11 @@ export async function handleRefreshAuthToken(req: Request, corsHeaders: any) {
         JSON.stringify({ message: "Invalid or expired auth token." }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -258,7 +299,11 @@ export async function handleRefreshAuthToken(req: Request, corsHeaders: any) {
     logger.info("Refresh auth token successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "x-request-id": logger.requestId,
+      },
     });
   } catch (err: any) {
     const errorResponse = handleError(err, corsHeaders);
@@ -273,7 +318,11 @@ export async function handleRefreshAuthToken(req: Request, corsHeaders: any) {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }

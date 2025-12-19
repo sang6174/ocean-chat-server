@@ -6,7 +6,11 @@ import type { DataWebSocket } from "../types/ws";
 import { authMiddleware } from "../middlewares";
 import { getConversationIdsController } from "../controllers";
 import { handleError } from "../helpers/errors";
+import { logger } from "../helpers/logger";
 
+// ============================================================
+// Upgrade WebSocket
+// ============================================================
 export async function handleUpgradeWebSocket(
   server: Bun.Server<DataWebSocket>,
   url: URL,
@@ -24,7 +28,11 @@ export async function handleUpgradeWebSocket(
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -40,7 +48,11 @@ export async function handleUpgradeWebSocket(
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -64,7 +76,11 @@ export async function handleUpgradeWebSocket(
     if (!upgraded) {
       return new Response("Upgrade failed", {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -72,7 +88,11 @@ export async function handleUpgradeWebSocket(
       JSON.stringify({ message: "Upgrade websocket successfully" }),
       {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   } catch (err) {
@@ -88,7 +108,11 @@ export async function handleUpgradeWebSocket(
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }

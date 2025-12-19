@@ -7,7 +7,9 @@ import {
 import { logger } from "../helpers/logger";
 import { handleError } from "../helpers/errors";
 
+// ============================================================
 // GET /conversations?userId=...
+// ============================================================
 export async function handleGetConversations(
   url: URL,
   req: Request,
@@ -19,7 +21,11 @@ export async function handleGetConversations(
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -30,7 +36,11 @@ export async function handleGetConversations(
         JSON.stringify({ message: "Invalid or expired auth token." }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -42,7 +52,11 @@ export async function handleGetConversations(
         JSON.stringify({ message: "Search params is invalid." }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -52,7 +66,11 @@ export async function handleGetConversations(
     logger.info("Get the conversations successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "x-request-id": logger.requestId,
+      },
     });
   } catch (err) {
     const errorResponse = handleError(err, corsHeaders);
@@ -67,13 +85,19 @@ export async function handleGetConversations(
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }
 }
 
+// ============================================================
 // GET /conversations/messages?conversationId=...&limit=...&offset=...
+// ============================================================
 export async function handleGetMessages(
   url: URL,
   req: Request,
@@ -85,7 +109,11 @@ export async function handleGetMessages(
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -96,7 +124,11 @@ export async function handleGetMessages(
         JSON.stringify({ message: "Invalid or expired auth token." }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -110,7 +142,11 @@ export async function handleGetMessages(
         JSON.stringify({ message: "Search params is invalid." }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -127,7 +163,11 @@ export async function handleGetMessages(
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -141,7 +181,11 @@ export async function handleGetMessages(
     logger.info("Get the messages successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "x-request-id": logger.requestId,
+      },
     });
   } catch (err) {
     const errorResponse = handleError(err, corsHeaders);
@@ -156,7 +200,11 @@ export async function handleGetMessages(
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }

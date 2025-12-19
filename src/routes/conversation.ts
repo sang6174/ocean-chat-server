@@ -31,7 +31,9 @@ import {
 import { logger } from "../helpers/logger";
 import { handleError } from "../helpers/errors";
 
+// ============================================================
 // POST /conversation
+// ============================================================
 export async function handleCreateConversation(req: Request, corsHeaders: any) {
   try {
     // Parse refresh token
@@ -39,7 +41,11 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -50,7 +56,11 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
         JSON.stringify({ message: "Invalid or expired auth token." }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -60,7 +70,11 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     if ("status" in rawBody && "code" in rawBody && "message" in rawBody) {
       return new Response(JSON.stringify({ message: rawBody.message }), {
         status: rawBody.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
     assertHttpCreateConversationPost(rawBody);
@@ -112,7 +126,11 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -123,7 +141,11 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     logger.info("Create a new conversation successfully");
     return new Response(JSON.stringify(result), {
       status: 201,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "x-request-id": logger.requestId,
+      },
     });
   } catch (err) {
     const errorResponse = handleError(err, corsHeaders);
@@ -138,13 +160,19 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }
 }
 
+// ============================================================
 // POST /conversation/message
+// ============================================================
 export async function handleSendMessage(req: Request, corsHeaders: any) {
   try {
     // Parse auth token
@@ -152,7 +180,11 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -163,17 +195,25 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
         JSON.stringify({ message: "Invalid or expired auth token." }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
 
     // Parse request body
     const rawBody = await parseBodyJSON<HttpSendMessagePost>(req);
-    if ("status" in rawBody && "message" in rawBody) {
+    if ("status" in rawBody && "code" in rawBody && "message" in rawBody) {
       return new Response(JSON.stringify({ message: rawBody.message }), {
         status: rawBody.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
     assertHttpSendMessagePost(rawBody);
@@ -197,7 +237,11 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
       JSON.stringify({ code: result.code, message: result.message }),
       {
         status: result.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   } catch (err) {
@@ -213,13 +257,19 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }
 }
 
+// ============================================================
 // POST /conversation/participants
+// ============================================================
 export async function handleAddParticipants(req: Request, corsHeaders: any) {
   try {
     // Parse refresh token
@@ -227,7 +277,11 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -238,7 +292,11 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
         JSON.stringify({ message: "Invalid or expired auth token." }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -250,7 +308,11 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
         JSON.stringify({ code: rawBody.code, message: rawBody.message }),
         {
           status: rawBody.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -274,7 +336,11 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
       JSON.stringify({ code: result.code, message: result.message }),
       {
         status: result.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   } catch (err) {
@@ -290,7 +356,11 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }

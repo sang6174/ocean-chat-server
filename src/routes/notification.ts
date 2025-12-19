@@ -8,7 +8,9 @@ import {
 import { logger } from "../helpers/logger";
 import { handleError } from "../helpers/errors";
 
+// ============================================================
 // POST /notification/friend
+// ============================================================
 export async function handleNotificationAddFriend(
   url: URL,
   req: Request,
@@ -20,7 +22,11 @@ export async function handleNotificationAddFriend(
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -34,7 +40,11 @@ export async function handleNotificationAddFriend(
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -46,7 +56,11 @@ export async function handleNotificationAddFriend(
         JSON.stringify({ message: "Search params is invalid." }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -61,7 +75,11 @@ export async function handleNotificationAddFriend(
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -80,7 +98,11 @@ export async function handleNotificationAddFriend(
       }),
       {
         status: result.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   } catch (err) {
@@ -96,13 +118,19 @@ export async function handleNotificationAddFriend(
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }
 }
 
+// ============================================================
 // POST /notification/friend/accept
+// ============================================================
 export async function handleNotificationAcceptFriend(
   url: URL,
   req: Request,
@@ -114,7 +142,11 @@ export async function handleNotificationAcceptFriend(
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -128,7 +160,11 @@ export async function handleNotificationAcceptFriend(
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -140,7 +176,11 @@ export async function handleNotificationAcceptFriend(
         JSON.stringify({ message: "Search params is invalid." }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -155,7 +195,11 @@ export async function handleNotificationAcceptFriend(
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -169,7 +213,11 @@ export async function handleNotificationAcceptFriend(
     logger.info("Accepted notification sended successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "x-request-id": logger.requestId,
+      },
     });
   } catch (err) {
     const errorResponse = handleError(err, corsHeaders);
@@ -184,13 +232,19 @@ export async function handleNotificationAcceptFriend(
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }
 }
 
+// ============================================================
 // POST /notification/friend/deny
+// ============================================================
 export async function handleNotificationDenyFriend(
   url: URL,
   req: Request,
@@ -202,7 +256,11 @@ export async function handleNotificationDenyFriend(
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       });
     }
 
@@ -216,7 +274,11 @@ export async function handleNotificationDenyFriend(
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -228,7 +290,11 @@ export async function handleNotificationDenyFriend(
         JSON.stringify({ message: "Search params is invalid." }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -243,7 +309,11 @@ export async function handleNotificationDenyFriend(
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
         }
       );
     }
@@ -263,7 +333,11 @@ export async function handleNotificationDenyFriend(
       }),
       {
         status: result.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   } catch (err) {
@@ -279,7 +353,11 @@ export async function handleNotificationDenyFriend(
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }

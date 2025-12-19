@@ -182,7 +182,11 @@ export function handleError(err: any, corsHeaders: any) {
       }),
       {
         status: err.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }
@@ -196,7 +200,11 @@ export function handleError(err: any, corsHeaders: any) {
       }),
       {
         status: err.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }
@@ -210,7 +218,11 @@ export function handleError(err: any, corsHeaders: any) {
       }),
       {
         status: err.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
       }
     );
   }
