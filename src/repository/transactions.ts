@@ -17,7 +17,6 @@ import {
 export async function registerRepository(
   input: RegisterRepositoryInput
 ): Promise<RegisterRepositoryOutput> {
-  console.log("start repository");
   const resultRegister = await pgRegisterTransaction(input);
 
   return {

@@ -61,7 +61,6 @@ export function verifyRefreshToken(
 export async function registerService(
   input: RegisterDomainInput
 ): Promise<RegisterDomainOutput> {
-  console.log("Start service");
   const hashedPassword: string = await Bun.password.hash(input.password);
   const inputRepo: RegisterRepositoryInput = {
     name: input.name,

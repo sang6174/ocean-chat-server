@@ -26,7 +26,6 @@ export async function pgRegisterTransaction(
        VALUES ($1, $2) RETURNING id, name, email`,
       [input.name, input.email]
     );
-    console.log(user.rows[0]);
 
     const account = await client.query(
       `INSERT INTO main.accounts (id, username, password) 
@@ -51,12 +50,6 @@ export async function pgRegisterTransaction(
     await client.query(`COMMIT`);
     logger.info("Register Transaction Successfully");
 
-    console.log({
-      user: user.rows[0],
-      account: account.rows[0],
-      conversation: privateConversation.rows[0],
-    });
-
     return {
       user: user.rows[0],
       account: account.rows[0],
@@ -64,7 +57,6 @@ export async function pgRegisterTransaction(
     };
   } catch (err) {
     await client.query(`ROLLBACK`);
-    console.log("Hello");
     throw mapPgError(err);
   } finally {
     client.release();

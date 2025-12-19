@@ -68,7 +68,6 @@ export async function handleRegister(req: Request, corsHeaders: any) {
     };
 
     // Call register controller
-    console.log("Start controller.");
     const result: ResponseDomain = await registerController(cleanBody);
 
     logger.info("Register successfully");
