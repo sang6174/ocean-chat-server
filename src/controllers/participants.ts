@@ -3,12 +3,10 @@ import type {
   AddParticipantsDomainInput,
 } from "../types/domain";
 import { addParticipantsService } from "../services";
-import type { BaseLogger } from "../helpers/logger";
 
 export async function addParticipantsController(
-  baseLogger: BaseLogger,
   input: AddParticipantsDomainInput
-): Promise<ResponseDomain | null> {
-  const result = await addParticipantsService(baseLogger, input);
+): Promise<ResponseDomain> {
+  const result = await addParticipantsService(input);
   return result;
 }

@@ -1,40 +1,42 @@
 import type {
   ResponseDomain,
   CreateConversationDomainInput,
-  CreateConversationRepositoryOutput,
-  GetConversationIdentifiersRepositoryInput,
-  ConversationIdentifier,
+  GetConversationDomainOutput,
+  GetConversationIdsRepositoryOutput,
 } from "../types/domain";
-import { getConversationIdentifiersRepository } from "../repository";
+import { getConversationIdsRepository } from "../repository";
 import {
   createConversationService,
   getConversationsService,
 } from "../services";
-import type { BaseLogger } from "../helpers/logger";
+import { DomainError } from "../helpers/errors";
 
 export async function createConversationController(
-  baseLogger: BaseLogger,
   input: CreateConversationDomainInput
-): Promise<CreateConversationRepositoryOutput | ResponseDomain | null> {
-  const result = await createConversationService(baseLogger, input);
+) {
+  const result = await createConversationService(input);
   return result;
 }
 
-export async function getConversationIdentifiersController(
-  baseLogger: BaseLogger,
-  input: GetConversationIdentifiersRepositoryInput
-): Promise<ConversationIdentifier[] | ResponseDomain | null> {
-  const conversationIdentifiers = await getConversationIdentifiersRepository(
-    baseLogger,
-    input
-  );
-  return conversationIdentifiers;
+export async function getConversationIdsController(input: {
+  userId: string;
+}): Promise<GetConversationIdsRepositoryOutput> {
+  const result = await getConversationIdsRepository(input);
+
+  if (!result) {
+    throw new DomainError({
+      status: 500,
+      code: "USER_ID_INVALID",
+      message: "userId is invalid",
+    });
+  }
+
+  return result;
 }
 
-export async function getConversationsController(
-  baseLogger: BaseLogger,
-  userId: string
-) {
-  const conversations = await getConversationsService(baseLogger, { userId });
+export async function getConversationsController(input: {
+  userId: string;
+}): Promise<GetConversationDomainOutput[]> {
+  const conversations = await getConversationsService(input);
   return conversations;
 }

@@ -1,7 +1,6 @@
 // ============================================================
 //  ENUMS & VALUE OBJECTS
 // ============================================================
-
 export enum ConversationType {
   Group = "group",
   Direct = "direct",
@@ -32,11 +31,6 @@ export type ConversationMetadata = {
   };
 };
 
-export type ConversationIdentifier = {
-  id: string;
-  type: ConversationType;
-};
-
 export interface UserTokenPayload {
   data: {
     userId: string;
@@ -49,7 +43,7 @@ export interface UserTokenPayload {
 export interface RefreshTokenPayload {
   data: {
     userId: string;
-    accessToken: string;
+    authToken: string;
   };
   iat: number;
   exp: number;
@@ -63,13 +57,13 @@ export interface StringTokenPayload {
 
 export interface ResponseDomain {
   status: number;
+  code: string;
   message: string;
 }
 
 // ============================================================
 //  DOMAIN ENTITIES
 // ============================================================
-
 export type User = {
   id: string;
   name: string;
@@ -133,7 +127,7 @@ export interface LoginDomainInput {
 export interface LoginDomainOutput {
   userId: string;
   username: string;
-  accessToken: string;
+  authToken: string;
   refreshToken: string;
 }
 
@@ -156,21 +150,30 @@ export interface CreateConversationDomainInput {
   type: ConversationType;
   metadata: ConversationMetadata;
   participantIds: string[];
-  senderId: string;
-  accessToken: string;
+  creator: {
+    id: string;
+    username: string;
+  };
+  authToken: string;
 }
 
 export interface SendMessageDomainInput {
-  senderId: string;
-  accessToken: string;
-  conversation: ConversationIdentifier;
+  sender: {
+    id: string;
+    username: string;
+  };
+  authToken: string;
+  conversationId: string;
   message: string;
 }
 
 export interface AddParticipantsDomainInput {
-  userId: string;
-  accessToken: string;
-  conversation: ConversationIdentifier;
+  creator: {
+    id: string;
+    username: string;
+  };
+  authToken: string;
+  conversationId: string;
   participantIds: string[];
 }
 
@@ -231,13 +234,6 @@ export interface RegisterRepositoryOutput {
   conversation: Conversation;
 }
 
-export interface PgErrorRepositoryOutput {
-  code: string;
-  table: string;
-  constraint: string;
-  detail: string;
-}
-
 export interface CreateConversationRepositoryInput {
   type: ConversationType;
   metadata: ConversationMetadata;
@@ -247,6 +243,14 @@ export interface CreateConversationRepositoryInput {
 export interface CreateConversationRepositoryOutput {
   conversation: Conversation;
   participants: Participant[];
+}
+
+export interface GetConversationIdsRepositoryInput {
+  userId: string;
+}
+
+export interface GetConversationIdsRepositoryOutput {
+  ids: string[];
 }
 
 export interface GetConversationRepositoryInput {
@@ -259,10 +263,6 @@ export interface GetConversationRepositoryOutput {
   conversation: Conversation;
   participants: ParticipantNoConversationId[];
   messages: Message[];
-}
-
-export interface GetConversationIdentifiersRepositoryInput {
-  userId: string;
 }
 
 export interface GetParticipantRoleRepositoryInput {
@@ -309,11 +309,11 @@ export interface AddParticipantsRepositoryInput {
   participantIds: string[];
 }
 
-export interface GetInfoUserRepositoryInput {
+export interface GetProfileUserRepositoryInput {
   userId: string;
 }
 
-export interface GetInfoUserRepositoryOutput extends User {
+export interface GetProfileUserRepositoryOutput extends User {
   username: string;
 }
 
@@ -331,25 +331,25 @@ export interface GetParticipantIdsRepositoryOutput {
 
 export interface PublishConversationCreated {
   senderId: string;
-  accessToken: string;
+  authToken: string;
   recipientIds: string[];
   conversation: CreateConversationRepositoryOutput;
 }
 
 export interface PublishMessageCreated {
   senderId: string;
-  accessToken: string;
-  conversationIdentifier: ConversationIdentifier;
+  authToken: string;
+  conversationId: string;
   recipientIds: string[];
   message: string;
 }
 
 export interface PublishParticipantAdded {
   senderId: string;
-  accessToken: string;
+  authToken: string;
   oldParticipants: string[];
   newParticipants: string[];
-  conversationIdentifier: ConversationIdentifier;
+  conversationId: string;
   conversation: GetConversationRepositoryOutput;
 }
 
@@ -359,7 +359,7 @@ export interface PublishNotificationAddFriend {
   recipientId: string;
 }
 
-export interface PublishNotificationAddedFriend<T> {
+export interface PublishNotificationAcceptedFriend<T> {
   senderId: string;
   recipientId: string;
   data: T;

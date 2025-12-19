@@ -1,47 +1,45 @@
 import type {
-  User,
   Account,
   CreateMessageRepositoryInput,
   CreateMessageRepositoryOutput,
-  FindUserByEmailRepositoryInput,
   FindAccountByUsernameRepositoryInput,
   FindAccountByIdRepositoryInput,
-  GetInfoUserRepositoryInput,
-  GetInfoUserRepositoryOutput,
-  GetConversationIdentifiersRepositoryInput,
-  ConversationIdentifier,
+  ParticipantNoConversationId,
+  GetConversationRepositoryInput,
+  GetConversationRepositoryOutput,
+  GetProfileUserRepositoryInput,
+  GetProfileUserRepositoryOutput,
   GetMessagesRepositoryInput,
   GetMessageRepositoryOutput,
   GetParticipantRoleRepositoryInput,
   GetParticipantRoleRepositoryOutput,
   GetParticipantIdsRepositoryInput,
   GetParticipantIdsRepositoryOutput,
+  ConversationType,
+  ConversationMetadata,
+  GetConversationIdsRepositoryInput,
+  GetConversationIdsRepositoryOutput,
 } from "../types/domain";
 import {
-  pgFindUserByEmail,
   pgFindAccountByUsername,
   pgFindAccountById,
-  pgGetConversationIdentifiers,
+  pgGetConversation,
   pgCreateMessage,
   pgGetMessages,
   pgGetParticipantRole,
   pgGetParticipantIds,
   pgGetAllProfileUsers,
   pgGetProfileUser,
+  pgGetConversationIds,
 } from "../models";
-import type { BaseLogger } from "../helpers/logger";
 
 // ============================================================
 // CREATE
 // ============================================================
 export async function createMessageRepository(
-  baseLogger: BaseLogger,
   input: CreateMessageRepositoryInput
-): Promise<CreateMessageRepositoryOutput | null> {
-  const result = await pgCreateMessage(baseLogger, input);
-  if (!result) {
-    return null;
-  }
+): Promise<CreateMessageRepositoryOutput> {
+  const result = await pgCreateMessage(input);
   return {
     id: result.id,
     senderId: result.sender_id,
@@ -53,50 +51,73 @@ export async function createMessageRepository(
 // ============================================================
 // READ
 // ============================================================
-export async function findUserByEmail(
-  baseLogger: BaseLogger,
-  input: FindUserByEmailRepositoryInput
-): Promise<User | null> {
-  return await pgFindUserByEmail(baseLogger, input);
-}
-
 export async function findAccountByUsername(
-  baseLogger: BaseLogger,
   input: FindAccountByUsernameRepositoryInput
 ): Promise<Account | null> {
-  return await pgFindAccountByUsername(baseLogger, input);
+  return (await pgFindAccountByUsername(input)) ?? null;
 }
 
 export async function findAccountById(
-  baseLogger: BaseLogger,
   input: FindAccountByIdRepositoryInput
 ): Promise<Account | null> {
-  return await pgFindAccountById(baseLogger, input);
+  return (await pgFindAccountById(input)) ?? null;
 }
 
-export async function getConversationIdentifiersRepository(
-  baseLogger: BaseLogger,
-  input: GetConversationIdentifiersRepositoryInput
-): Promise<ConversationIdentifier[] | null> {
-  try {
-    const result = await pgGetConversationIdentifiers(baseLogger, input);
-    if (!result) {
-      return null;
-    }
-    return result as ConversationIdentifier[];
-  } catch (err) {
-    console.log(
-      `[SERVICE_ERROR] - ${new Date().toISOString()} - Get conversation identifiers service error.\n`,
-      err
-    );
+export async function getConversationIdsRepository(
+  input: GetConversationIdsRepositoryInput
+): Promise<GetConversationIdsRepositoryOutput | null> {
+  const result = await pgGetConversationIds(input);
+
+  if (!result) {
     return null;
   }
+
+  return result;
 }
 
-export async function getAllProfileUsersRepository(
-  baseLogger: BaseLogger
-): Promise<GetInfoUserRepositoryOutput[] | null> {
+export async function getConversationRepository(
+  input: GetConversationRepositoryInput
+): Promise<GetConversationRepositoryOutput | null> {
+  const result = await pgGetConversation(input);
+  if (!result) {
+    return null;
+  }
+
+  return {
+    conversation: {
+      id: result.conversation.id,
+      type: result.conversation.type as ConversationType,
+      metadata: result.conversation.metadata as ConversationMetadata,
+    },
+
+    participants: result.participants.map((participant) => {
+      return {
+        userId: participant.user_id,
+        role: participant.role,
+        lastSeen: participant.last_seen,
+        joinedAt: participant.joined_at,
+      } as ParticipantNoConversationId;
+    }),
+
+    messages: result.messages.map((message) => {
+      return {
+        id: message.id,
+        sender: {
+          id: message.sender_id,
+          username: message.sender_username,
+        },
+        conversationId: result.conversation.id,
+        content: message.content,
+      };
+    }),
+  };
+}
+
+export async function getAllProfileUsersRepository(): Promise<
+  GetProfileUserRepositoryOutput[] | null
+> {
   const result = await pgGetAllProfileUsers();
+
   if (!result) {
     return null;
   }
@@ -112,13 +133,14 @@ export async function getAllProfileUsersRepository(
 }
 
 export async function getProfileUserRepository(
-  baseLogger: BaseLogger,
-  input: GetInfoUserRepositoryInput
-): Promise<GetInfoUserRepositoryOutput | null> {
-  const result = await pgGetProfileUser(baseLogger, input);
+  input: GetProfileUserRepositoryInput
+): Promise<GetProfileUserRepositoryOutput | null> {
+  const result = await pgGetProfileUser(input);
+
   if (!result) {
     return null;
   }
+
   return {
     id: result.id,
     name: result.name,
@@ -128,10 +150,10 @@ export async function getProfileUserRepository(
 }
 
 export async function getMessagesRepository(
-  baseLogger: BaseLogger,
   input: GetMessagesRepositoryInput
 ): Promise<GetMessageRepositoryOutput[] | null> {
-  const result = await pgGetMessages(baseLogger, input);
+  const result = await pgGetMessages(input);
+
   if (!result) {
     return null;
   }
@@ -143,17 +165,16 @@ export async function getMessagesRepository(
         id: message.sender_id,
         username: message.sender_username,
       },
-      conversationId: message.conversation_id,
+      conversationId: message.id,
       message: message.content,
     };
   });
 }
 
 export async function getParticipantRoleRepository(
-  baseLogger: BaseLogger,
   input: GetParticipantRoleRepositoryInput
 ): Promise<GetParticipantRoleRepositoryOutput | null> {
-  const result = await pgGetParticipantRole(baseLogger, input);
+  const result = await pgGetParticipantRole(input);
   if (!result) {
     return null;
   }
@@ -161,19 +182,19 @@ export async function getParticipantRoleRepository(
 }
 
 export async function getParticipantIdsRepository(
-  baseLogger: BaseLogger,
   input: GetParticipantIdsRepositoryInput
 ): Promise<GetParticipantIdsRepositoryOutput[] | null> {
-  const pgResult = await pgGetParticipantIds(baseLogger, input);
-  if (!pgResult) {
+  const result = await pgGetParticipantIds(input);
+
+  if (!result) {
     return null;
   }
-  const result = pgResult.map((obj) => {
+
+  return result.map((obj) => {
     return {
       userId: obj.user_id,
     };
   });
-  return result;
 }
 
 // ============================================================

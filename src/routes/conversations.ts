@@ -4,11 +4,11 @@ import {
   getConversationsController,
   getMessagesController,
 } from "../controllers";
-import type { BaseLogger } from "../helpers/logger";
+import { logger } from "../helpers/logger";
+import { handleError } from "../helpers/errors";
 
 // GET /conversations?userId=...
 export async function handleGetConversations(
-  baseLogger: BaseLogger,
   url: URL,
   req: Request,
   corsHeaders: any
@@ -37,18 +37,7 @@ export async function handleGetConversations(
 
     // Get userId from search params
     const userId = url.searchParams.get("userId");
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ message: "Search params is invalid." }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const isValidUserId = isUUIDv4(userId);
-    if (!isValidUserId) {
+    if (!userId || isUUIDv4(userId)) {
       return new Response(
         JSON.stringify({ message: "Search params is invalid." }),
         {
@@ -58,38 +47,22 @@ export async function handleGetConversations(
       );
     }
 
-    // Call get conversations controller
-    const result = await getConversationsController(baseLogger, userId);
-    if (!result) {
-      return new Response(
-        JSON.stringify({
-          message: "Get conversations error, please try again.",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-    if ("status" in result && "message" in result) {
-      return new Response(JSON.stringify({ message: result.message }), {
-        status: result.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const result = await getConversationsController({ userId });
 
-    // HTTP response successfully
+    logger.info("Get the conversations successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.log(
-      `[ROUTE_ERROR] - ${new Date().toISOString()} - Get all conversation for a user error.\n`,
-      err
-    );
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     return new Response(
       JSON.stringify({
+        code: "INTERNAL_ERROR",
         message: "Get conversations error. Please try again later.",
       }),
       {
@@ -102,7 +75,6 @@ export async function handleGetConversations(
 
 // GET /conversations/messages?conversationId=...&limit=...&offset=...
 export async function handleGetMessages(
-  baseLogger: BaseLogger,
   url: URL,
   req: Request,
   corsHeaders: any
@@ -133,18 +105,7 @@ export async function handleGetMessages(
     const conversationId = url.searchParams.get("conversationId");
     const limit = url.searchParams.get("limit") || 10;
     const offset = url.searchParams.get("offset") || 0;
-    if (!conversationId) {
-      return new Response(
-        JSON.stringify({ message: "Search params is invalid." }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const isValidConversationId = isUUIDv4(conversationId);
-    if (!isValidConversationId) {
+    if (!conversationId || isUUIDv4(conversationId)) {
       return new Response(
         JSON.stringify({ message: "Search params is invalid." }),
         {
@@ -155,25 +116,14 @@ export async function handleGetMessages(
     }
 
     const limitNum = Number(limit);
-    if (isNaN(limitNum) || limitNum <= 0) {
-      return new Response(
-        JSON.stringify({
-          message:
-            "search params is invalid. Limit must be a positive integer.",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
     const offsetNum = Number(offset);
-    if (isNaN(offsetNum) || offsetNum < 0) {
+    if (isNaN(limitNum) || limitNum <= 0 || isNaN(offsetNum) || offsetNum < 0) {
       return new Response(
         JSON.stringify({
           message:
-            "search params is invalid. Offset must be a non-negative integer.",
+            "search params is invalid." +
+            " Limit must be a positive integer." +
+            " Offset must be a non-negative integer.",
         }),
         {
           status: 400,
@@ -182,27 +132,26 @@ export async function handleGetMessages(
       );
     }
 
-    // Call get messages controller
-    const result = await getMessagesController(baseLogger, {
+    const result = await getMessagesController({
       conversationId,
       limit: limitNum,
       offset: offsetNum,
     });
-    if (!result) {
-      return new Response(JSON.stringify("Get all messages error"), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
-    // HTTP response successfully
+    logger.info("Get the messages successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     return new Response(
       JSON.stringify({
+        code: "INTERNAL_ERROR",
         message: "Get messages error. Please try again later.",
       }),
       {

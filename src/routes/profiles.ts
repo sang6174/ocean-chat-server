@@ -2,19 +2,15 @@ import type {
   GetProfileUserDomainInput,
   UserTokenPayload,
 } from "../types/domain";
-import { parseAuthToken, authMiddleware, isUUIDv4 } from "../middlewares";
+import { parseAuthToken, authMiddleware } from "../middlewares";
 import {
   getProfileUsersController,
   getProfileUserController,
 } from "../controllers";
-import type { HttpResponse } from "../types/http";
-import type { BaseLogger } from "../helpers/logger";
+import { logger } from "../helpers/logger";
+import { handleError } from "../helpers/errors";
 
-export async function handleGetAllProfileUsers(
-  baseLogger: BaseLogger,
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleGetAllProfileUsers(req: Request, corsHeaders: any) {
   try {
     // Parse auth token
     const auth = parseAuthToken(req);
@@ -37,24 +33,24 @@ export async function handleGetAllProfileUsers(
       );
     }
 
-    // Call get messages controller
-    const result = await getProfileUsersController(baseLogger);
+    const result = await getProfileUsersController();
 
-    if ("status" in result && "message" in result) {
-      return new Response(JSON.stringify({ message: result.message }), {
-        status: result.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // HTTP response successfully
+    logger.info("Get all users' profile successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     return new Response(
-      JSON.stringify({ message: "Get all users error. Please try again." }),
+      JSON.stringify({
+        code: "INTERNAL_ERROR",
+        message: "Get all users error. Please try again.",
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -63,12 +59,7 @@ export async function handleGetAllProfileUsers(
   }
 }
 
-export async function handleGetProfileUser(
-  baseLogger: BaseLogger,
-  url: URL,
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleGetProfileUser(req: Request, corsHeaders: any) {
   try {
     // Parse auth token
     const auth = parseAuthToken(req);
@@ -93,23 +84,24 @@ export async function handleGetProfileUser(
 
     // Call get info user controller
     const input: GetProfileUserDomainInput = { userId: authResult.data.userId };
-    const result = await getProfileUserController(baseLogger, input);
+    const result = await getProfileUserController(input);
 
-    if ("status" in result && "message" in result) {
-      return new Response(JSON.stringify({ message: result.message }), {
-        status: result.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // HTTP response successfully
+    logger.info("Get user's profile successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     return new Response(
-      JSON.stringify({ message: "Get all users error. Please try again." }),
+      JSON.stringify({
+        code: "INTERNAL_ERROR",
+        message: "Get all users error. Please try again.",
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

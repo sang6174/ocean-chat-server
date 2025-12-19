@@ -10,88 +10,59 @@ import {
   addParticipantsRepository,
   getConversationRepository,
 } from "../repository";
-import type { BaseLogger } from "../helpers/logger";
+import { DomainError } from "../helpers/errors";
 
 export async function addParticipantsService(
-  baseLogger: BaseLogger,
   input: AddParticipantsDomainInput
-): Promise<ResponseDomain | null> {
-  try {
-    // Check role user in conversation
-    const userRole = await getParticipantRoleRepository(baseLogger, {
-      userId: input.userId,
-      conversationId: input.conversation.id,
+): Promise<ResponseDomain> {
+  const userRole = await getParticipantRoleRepository({
+    userId: input.creator.id,
+    conversationId: input.conversationId,
+  });
+
+  if (!userRole || (userRole && userRole.role !== "admin")) {
+    throw new DomainError({
+      status: 401,
+      code: "AUTHORIZATION_ERROR",
+      message: "The user is not permission to add new participants",
     });
-
-    if (!userRole) {
-      return {
-        status: 500,
-        message: "Query database error. please try again.",
-      };
-    }
-
-    if (userRole.role !== ConversationRoleType.ADMIN) {
-      return {
-        status: 403,
-        message: "Only group admins can add new participants.",
-      };
-    }
-
-    // Get the old participants
-    const resultOldParticipants = await getParticipantIdsRepository(
-      baseLogger,
-      {
-        conversationId: input.conversation.id,
-      }
-    );
-
-    if (!resultOldParticipants) {
-      return {
-        status: 500,
-        message: "Get old participants from database error.",
-      };
-    }
-
-    // Add the new participants
-    const resultAddParticipant = await addParticipantsRepository(baseLogger, {
-      conversationId: input.conversation.id,
-      participantIds: input.participantIds,
-    });
-
-    if (!resultAddParticipant) {
-      return {
-        status: 500,
-        message: "Save all new participants to database error.",
-      };
-    }
-    console.log(resultAddParticipant);
-
-    // Get the new conversation
-    const resultConversation = await getConversationRepository(baseLogger, {
-      conversationId: input.conversation.id,
-      limit: 10,
-      offset: 0,
-    });
-    if (!resultConversation) {
-      return null;
-    }
-
-    // Broadcast/Send to participants
-    eventBusServer.emit(WsServerEvent.CONVERSATION_ADDED_PARTICIPANTS, {
-      senderId: input.userId,
-      accessToken: input.accessToken,
-      oldParticipants: resultOldParticipants.map((participant) => {
-        return participant.userId;
-      }),
-      newParticipants: input.participantIds,
-      conversation: resultConversation,
-    });
-
-    return {
-      status: 201,
-      message: "Add participants successfully.",
-    };
-  } catch (err) {
-    return null;
   }
+
+  let resultOldParticipants = await getParticipantIdsRepository({
+    conversationId: input.conversationId,
+  });
+
+  if (!resultOldParticipants) {
+    resultOldParticipants = [];
+  }
+
+  const resultAddParticipant = await addParticipantsRepository({
+    conversationId: input.conversationId,
+    participantIds: input.participantIds,
+  });
+
+  console.log(resultAddParticipant);
+
+  const resultConversation = await getConversationRepository({
+    conversationId: input.conversationId,
+    limit: 10,
+    offset: 0,
+  });
+
+  // Broadcast/Send to participants
+  eventBusServer.emit(WsServerEvent.CONVERSATION_ADDED_PARTICIPANTS, {
+    senderId: input.creator.id,
+    accessToken: input.authToken,
+    oldParticipants: resultOldParticipants.map((participant) => {
+      return participant.userId;
+    }),
+    newParticipants: input.participantIds,
+    conversation: resultConversation,
+  });
+
+  return {
+    status: 201,
+    code: "ADD_PARTICIPANT_SUCCESS",
+    message: "Add participants successfully.",
+  };
 }

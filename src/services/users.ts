@@ -1,51 +1,37 @@
 import type {
   GetProfileUserDomainInput,
-  ResponseDomain,
   GetProfileUserDomainOutput,
 } from "../types/domain";
 import {
   getAllProfileUsersRepository,
   getProfileUserRepository,
 } from "../repository";
-import type { BaseLogger } from "../helpers/logger";
+import { DomainError } from "../helpers/errors";
 
-export async function getProfileUsersService(
-  baseLogger: BaseLogger
-): Promise<ResponseDomain | GetProfileUserDomainOutput[]> {
-  try {
-    const result = await getAllProfileUsersRepository(baseLogger);
-    if (!result) {
-      return {
-        status: 500,
-        message: "Get all users from database error. Please try again.",
-      };
-    }
-    return result;
-  } catch (err) {
-    return {
+export async function getProfileUsersService(): Promise<
+  GetProfileUserDomainOutput[]
+> {
+  const result = await getAllProfileUsersRepository();
+  if (!result) {
+    throw new DomainError({
       status: 500,
-      message: "Get all users from database error. Please try again.",
-    };
+      code: "GET_OTHER_USER_PROFILE_ERROR",
+      message: "Get other user profile error",
+    });
   }
+  return result;
 }
 
 export async function getProfileUserService(
-  baseLogger: BaseLogger,
   input: GetProfileUserDomainInput
-): Promise<ResponseDomain | GetProfileUserDomainOutput> {
-  try {
-    const result = await getProfileUserRepository(baseLogger, input);
-    if (!result) {
-      return {
-        status: 500,
-        message: "Get the user from database error. Please try again.",
-      };
-    }
-    return result;
-  } catch (err) {
-    return {
-      status: 500,
-      message: "Get all user from database error. Please try again.",
-    };
+): Promise<GetProfileUserDomainOutput> {
+  const result = await getProfileUserRepository(input);
+  if (!result) {
+    throw new DomainError({
+      status: 400,
+      code: "USER_ID_INVALID",
+      message: "Get the user profile error",
+    });
   }
+  return result;
 }

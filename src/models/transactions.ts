@@ -3,24 +3,21 @@ import type {
   RegisterRepositoryInput,
   CreateConversationRepositoryInput,
   AddParticipantsRepositoryInput,
-  GetConversationRepositoryInput,
   ConversationMetadata,
 } from "../types/domain";
 import type {
   PgParticipant,
   PgRegisterTransactionOutput,
   PgCreateConversationTransactionOutput,
-  PgGetConversationTransactionOutput,
 } from "../types/models";
-
-import type {} from "../";
-import type { BaseLogger } from "../helpers/logger";
+import { mapPgError } from "../helpers/errors";
+import { logger } from "../helpers/logger";
 
 export async function pgRegisterTransaction(
-  baseLogger: BaseLogger,
   input: RegisterRepositoryInput
 ): Promise<PgRegisterTransactionOutput> {
   const client = await pool.connect();
+  logger.info("Register transaction is started");
   try {
     await client.query(`BEGIN`);
 
@@ -29,11 +26,12 @@ export async function pgRegisterTransaction(
        VALUES ($1, $2) RETURNING id, name, email`,
       [input.name, input.email]
     );
+    console.log(user.rows[0]);
 
     const account = await client.query(
       `INSERT INTO main.accounts (id, username, password) 
        VALUES ($1, $2, $3) RETURNING id, username`,
-      [user.rows[0].id, input.username]
+      [user.rows[0].id, input.username, input.password]
     );
 
     const metadata: ConversationMetadata = {
@@ -51,12 +49,14 @@ export async function pgRegisterTransaction(
     );
 
     await client.query(`COMMIT`);
+    logger.info("Register Transaction Successfully");
 
-    console.info("Register Transaction Successfully", {
+    console.log({
       user: user.rows[0],
       account: account.rows[0],
       conversation: privateConversation.rows[0],
     });
+
     return {
       user: user.rows[0],
       account: account.rows[0],
@@ -64,17 +64,18 @@ export async function pgRegisterTransaction(
     };
   } catch (err) {
     await client.query(`ROLLBACK`);
-    throw err;
+    console.log("Hello");
+    throw mapPgError(err);
   } finally {
     client.release();
   }
 }
 
 export async function pgCreateConversationTransaction(
-  baseLogger: BaseLogger,
   input: CreateConversationRepositoryInput
 ): Promise<PgCreateConversationTransactionOutput> {
   const client = await pool.connect();
+  logger.info("Create conversation transaction is started");
   try {
     await client.query(`BEGIN`);
 
@@ -104,24 +105,25 @@ export async function pgCreateConversationTransaction(
     }
 
     await client.query(`COMMIT`);
+    logger.info("Create conversation transaction successfully");
+
     return {
       conversation: conversationResult.rows[0],
       participants,
     };
   } catch (err) {
     await client.query(`ROLLBACK`);
-    throw err;
+    throw mapPgError(err);
   } finally {
     client.release();
   }
 }
 
 export async function pgAddParticipantsTransaction(
-  baseLogger: BaseLogger,
   input: AddParticipantsRepositoryInput
 ): Promise<PgParticipant[]> {
   const client = await pool.connect();
-
+  logger.info("Add participants transaction is started");
   try {
     await client.query("BEGIN");
 
@@ -139,52 +141,12 @@ export async function pgAddParticipantsTransaction(
     }
 
     await client.query("COMMIT");
+    logger.info("Add participants transaction successfully");
+
     return participants;
   } catch (err) {
     await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
-}
-
-export async function pgGetConversationTransaction(
-  baseLogger: BaseLogger,
-  input: GetConversationRepositoryInput
-): Promise<PgGetConversationTransactionOutput> {
-  const client = await pool.connect();
-  try {
-    await client.query(`BEGIN`);
-
-    const resultConversation = await client.query(
-      `SELECT id, type, metadata FROM main.conversations WHERE id = $1`,
-      [input.conversationId]
-    );
-
-    const resultParticipants = await client.query(
-      `SELECT user_id, role, last_seen, joined_at FROM main.participants WHERE conversation_id = $1`,
-      [input.conversationId]
-    );
-
-    const resultMessages = await client.query(
-      `SELECT m.id, m.content, m.sender_id, a.username as sender_username, m.conversation_id
-       FROM main.messages m 
-       JOIN main.accounts a ON a.id = m.sender_id
-       WHERE m.conversation_id = $1
-       ORDER BY m.created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [input.conversationId, input.limit, input.offset]
-    );
-
-    await client.query(`COMMIT`);
-    return {
-      conversation: resultConversation.rows[0],
-      participants: resultParticipants.rows,
-      messages: resultMessages.rows,
-    };
-  } catch (err) {
-    await client.query(`ROLLBACK`);
-    throw err;
+    throw mapPgError(err);
   } finally {
     client.release();
   }

@@ -5,12 +5,11 @@ import {
   notificationAcceptFriendController,
   notificationDenyFriendController,
 } from "../controllers";
-import type { HttpResponse } from "../types/http";
-import type { BaseLogger } from "../helpers/logger";
+import { logger } from "../helpers/logger";
+import { handleError } from "../helpers/errors";
 
 // POST /notification/friend
 export async function handleNotificationAddFriend(
-  baseLogger: BaseLogger,
   url: URL,
   req: Request,
   corsHeaders: any
@@ -29,7 +28,10 @@ export async function handleNotificationAddFriend(
     const authResult: UserTokenPayload | null = authMiddleware(auth);
     if (!authResult) {
       return new Response(
-        JSON.stringify({ message: "Invalid or expired auth token." }),
+        JSON.stringify({
+          code: "TOKEN_INVALID",
+          message: "Invalid or expired auth token.",
+        }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -54,6 +56,7 @@ export async function handleNotificationAddFriend(
     if (!isValidRecipient) {
       return new Response(
         JSON.stringify({
+          code: "VALIDATE_ERROR",
           message: "recipientId is invalid. Please try again.",
         }),
         {
@@ -63,14 +66,16 @@ export async function handleNotificationAddFriend(
       );
     }
 
-    const result = await notificationAddFriendController(baseLogger, {
+    const result = await notificationAddFriendController({
       senderId: authResult.data.userId,
       senderUsername: authResult.data.username,
       recipientId: recipientId,
     });
 
+    logger.info("Send notification add friend successfully");
     return new Response(
       JSON.stringify({
+        code: result.code,
         message: result.message,
       }),
       {
@@ -79,9 +84,15 @@ export async function handleNotificationAddFriend(
       }
     );
   } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     return new Response(
       JSON.stringify({
-        message: "Send notification add friend error. Please try again.",
+        code: "INTERNAL_ERROR",
+        message: "Friend request notification is failed. Please try again.",
       }),
       {
         status: 500,
@@ -93,7 +104,6 @@ export async function handleNotificationAddFriend(
 
 // POST /notification/friend/accept
 export async function handleNotificationAcceptFriend(
-  baseLogger: BaseLogger,
   url: URL,
   req: Request,
   corsHeaders: any
@@ -112,7 +122,10 @@ export async function handleNotificationAcceptFriend(
     const authResult: UserTokenPayload | null = authMiddleware(auth);
     if (!authResult) {
       return new Response(
-        JSON.stringify({ message: "Invalid or expired auth token." }),
+        JSON.stringify({
+          code: "TOKEN_INVALID",
+          message: "Invalid or expired auth token.",
+        }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -137,6 +150,7 @@ export async function handleNotificationAcceptFriend(
     if (!isValidRecipient) {
       return new Response(
         JSON.stringify({
+          code: "VALIDATE_ERROR",
           message: "recipientId is invalid. Please try again.",
         }),
         {
@@ -147,31 +161,26 @@ export async function handleNotificationAcceptFriend(
     }
 
     // Call notification accept friend controller
-    const result = await notificationAcceptFriendController(baseLogger, {
+    const result = await notificationAcceptFriendController({
       senderId: authResult.data.userId,
       recipientId: recipientId,
     });
 
-    if ("status" in result && "message" in result) {
-      return new Response(
-        JSON.stringify({
-          message: result.message,
-        }),
-        {
-          status: result.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
+    logger.info("Accepted notification sended successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     return new Response(
       JSON.stringify({
-        message: "Send notification add friend error. Please try again.",
+        code: "INTERNAL_ERROR",
+        message: "Accepted notification sended failed. Please try again.",
       }),
       {
         status: 500,
@@ -183,7 +192,6 @@ export async function handleNotificationAcceptFriend(
 
 // POST /notification/friend/deny
 export async function handleNotificationDenyFriend(
-  baseLogger: BaseLogger,
   url: URL,
   req: Request,
   corsHeaders: any
@@ -202,7 +210,10 @@ export async function handleNotificationDenyFriend(
     const authResult: UserTokenPayload | null = authMiddleware(auth);
     if (!authResult) {
       return new Response(
-        JSON.stringify({ message: "Invalid or expired auth token." }),
+        JSON.stringify({
+          code: "TOKEN_INVALID",
+          message: "Invalid or expired auth token.",
+        }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -227,6 +238,7 @@ export async function handleNotificationDenyFriend(
     if (!isValidRecipient) {
       return new Response(
         JSON.stringify({
+          code: "VALIDATE_ERROR",
           message: "recipientId is invalid. Please try again.",
         }),
         {
@@ -237,14 +249,16 @@ export async function handleNotificationDenyFriend(
     }
 
     // Call notification deny friend controller
-    const result = await notificationDenyFriendController(baseLogger, {
+    const result = await notificationDenyFriendController({
       senderId: authResult.data.userId,
       senderUsername: authResult.data.username,
       recipientId: recipientId,
     });
 
+    logger.info("Denied notification sended successfully");
     return new Response(
       JSON.stringify({
+        code: result.code,
         message: result.message,
       }),
       {
@@ -253,9 +267,15 @@ export async function handleNotificationDenyFriend(
       }
     );
   } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     return new Response(
       JSON.stringify({
-        message: "Send notification add friend error. Please try again.",
+        code: "INTERNAL_ERROR",
+        message: "Denied notification sended failed. Please try again.",
       }),
       {
         status: 500,

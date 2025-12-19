@@ -5,27 +5,30 @@ import {
   validateAuthToken,
   isDecodedRefreshToken,
   validateRefreshToken,
-} from "./validations";
-import {
   assertUserTokenPayload,
   assertRefreshTokenPayload,
-} from "../middlewares/asserts";
+} from "./validation/domain";
+import { logger } from "../helpers/logger";
+
 import { blacklistSessions } from "../models";
+import { AuthError } from "../helpers/errors";
 
 export function authMiddleware(token: string): UserTokenPayload | null {
   try {
-    if (!blacklistSessions.has(token)) {
+    if (blacklistSessions.has(token)) {
+      logger.info("The token is on the blacklist");
       return null;
     }
 
     const decoded = verifyAccessToken(token);
-
     if (!isDecodedAuthToken(decoded)) {
+      logger.info("Decoded of token is invalid");
       return null;
     }
 
     const validateResult = validateAuthToken(decoded);
     if (!validateResult.valid) {
+      logger.info("Decoded of token is invalid");
       return null;
     }
 
@@ -39,7 +42,8 @@ export function authMiddleware(token: string): UserTokenPayload | null {
       data: JSON.parse(decoded.data),
     };
   } catch (err) {
-    return null;
+    logger.info("Decoded of token is invalid");
+    throw new AuthError("Failed to verify auth token");
   }
 }
 
@@ -50,11 +54,13 @@ export function refreshTokenMiddleware(
     const decoded = verifyRefreshToken(token);
 
     if (!isDecodedRefreshToken(decoded)) {
+      logger.info("Decoded of token is invalid");
       return null;
     }
 
     const validateResult = validateRefreshToken(decoded);
     if (!validateResult.valid) {
+      logger.info("Decoded of token is invalid");
       return null;
     }
 
@@ -68,6 +74,7 @@ export function refreshTokenMiddleware(
       data: JSON.parse(decoded.data),
     };
   } catch (err) {
-    return null;
+    logger.info("Decoded of token is invalid");
+    throw new AuthError("Failed to verify auth token");
   }
 }

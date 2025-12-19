@@ -1,11 +1,11 @@
 import type {
-  HttpResponse,
-  HttpConversationPost,
-  HttpMessagePost,
-  HttpParticipantsPost,
+  HttpCreateConversationPost,
+  HttpSendMessagePost,
+  HttpAddParticipantPost,
 } from "../types/http";
 import { ConversationType } from "../types/domain";
 import type {
+  ResponseDomain,
   UserTokenPayload,
   CreateConversationDomainInput,
   SendMessageDomainInput,
@@ -15,27 +15,27 @@ import {
   parseAuthToken,
   parseBodyJSON,
   authMiddleware,
-  validateCreateMyselfConversation,
-  validateCreateGroupConversation,
-  validateSendMessageInput,
-  validateAddParticipants,
+  assertHttpCreateConversationPost,
+  assertHttpSendMessagePost,
+  assertHttpAddParticipantPost,
+  assertCreateMyselfConversationDomainInput,
+  assertCreateGroupConversationDomainInput,
+  assertSendMessageDomainInput,
+  assertAddParticipantsDomainInput,
 } from "../middlewares";
 import {
   createConversationController,
   sendMessageController,
   addParticipantsController,
 } from "../controllers";
-import type { BaseLogger } from "../helpers/logger";
+import { logger } from "../helpers/logger";
+import { handleError } from "../helpers/errors";
 
 // POST /conversation
-export async function handleCreateConversation(
-  baseLogger: BaseLogger,
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleCreateConversation(req: Request, corsHeaders: any) {
   try {
     // Parse refresh token
-    const auth: HttpResponse | string = parseAuthToken(req);
+    const auth = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
@@ -44,7 +44,7 @@ export async function handleCreateConversation(
     }
 
     // Verify refresh token
-    const authResult: UserTokenPayload | null = authMiddleware(auth);
+    const authResult = authMiddleware(auth);
     if (!authResult) {
       return new Response(
         JSON.stringify({ message: "Invalid or expired auth token." }),
@@ -56,74 +56,60 @@ export async function handleCreateConversation(
     }
 
     // Parse request body
-    const rawBody: HttpConversationPost | HttpResponse =
-      await parseBodyJSON<HttpConversationPost>(req);
-    if ("status" in rawBody && "message" in rawBody) {
+    const rawBody = await parseBodyJSON<HttpCreateConversationPost>(req);
+    if ("status" in rawBody && "code" in rawBody && "message" in rawBody) {
       return new Response(JSON.stringify({ message: rawBody.message }), {
         status: rawBody.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    assertHttpCreateConversationPost(rawBody);
 
-    // Validate request body according to conversation type
-    let validatedResult;
-    if (rawBody.type === ConversationType.Myself) {
-      validatedResult = validateCreateMyselfConversation(rawBody);
-    } else if (rawBody.type === ConversationType.Group) {
-      validatedResult = validateCreateGroupConversation(rawBody);
-    } else {
-      return new Response(
-        JSON.stringify({ message: "Invalid conversation type." }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    if (!validatedResult.valid) {
-      return new Response(
-        JSON.stringify({ message: validatedResult.message }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    // Sanitize request body according to conversation type
+    // Sanitize, validate and assert request body according to conversation type
     let cleanBody: CreateConversationDomainInput;
-    if (rawBody.type === ConversationType.Myself) {
+    if (rawBody.conversation.type === ConversationType.Myself) {
       cleanBody = {
         type: ConversationType.Myself,
         metadata: {
-          name: rawBody.metadata.name,
+          name: rawBody.conversation.metadata.name,
           creator: {
             userId: authResult.data.userId,
             username: authResult.data.username,
           },
         },
         participantIds: [authResult.data.userId],
-        senderId: authResult.data.userId,
-        accessToken: auth,
+        creator: {
+          id: authResult.data.userId,
+          username: authResult.data.username,
+        },
+        authToken: auth,
       };
-    } else if (rawBody.type === ConversationType.Group) {
+      assertCreateMyselfConversationDomainInput(cleanBody);
+    } else if (rawBody.conversation.type === ConversationType.Group) {
       cleanBody = {
         type: ConversationType.Group,
         metadata: {
-          name: rawBody.metadata.name,
+          name: rawBody.conversation.metadata.name,
           creator: {
             userId: authResult.data.userId,
             username: authResult.data.username,
           },
         },
         participantIds: rawBody.participantIds,
-        senderId: authResult.data.userId,
-        accessToken: auth,
+        creator: {
+          id: authResult.data.userId,
+          username: authResult.data.username,
+        },
+        authToken: auth,
       };
+      assertCreateGroupConversationDomainInput(cleanBody);
     } else {
       return new Response(
-        JSON.stringify({ message: "Invalid conversation type." }),
+        JSON.stringify({
+          code: "CONVERSATION_TYPE_INVALID",
+          message:
+            "Invalid conversation type. Type must is 'myself' or 'group'.",
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -132,28 +118,22 @@ export async function handleCreateConversation(
     }
 
     // Call create conversation controller
-    const result = await createConversationController(baseLogger, cleanBody);
+    const result = await createConversationController(cleanBody);
 
-    if (!result) {
-      return new Response(
-        JSON.stringify({ message: "Create a new conversation is failed." }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    logger.info("Create a new conversation successfully");
+    return new Response(JSON.stringify(result), {
+      status: 201,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
     }
 
     return new Response(
-      JSON.stringify({ message: "Create a new conversation is successful." }),
-      {
-        status: 201,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
-  } catch (err) {
-    return new Response(
       JSON.stringify({
+        code: "INTERNAL_ERROR",
         message: "Create a conversation error. Please try again later.",
       }),
       {
@@ -165,11 +145,7 @@ export async function handleCreateConversation(
 }
 
 // POST /conversation/message
-export async function handleSendMessage(
-  baseLogger: BaseLogger,
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleSendMessage(req: Request, corsHeaders: any) {
   try {
     // Parse auth token
     const auth = parseAuthToken(req);
@@ -181,7 +157,7 @@ export async function handleSendMessage(
     }
 
     // Verify auth token
-    const authResult: UserTokenPayload | null = authMiddleware(auth);
+    const authResult = authMiddleware(auth);
     if (!authResult) {
       return new Response(
         JSON.stringify({ message: "Invalid or expired auth token." }),
@@ -193,63 +169,46 @@ export async function handleSendMessage(
     }
 
     // Parse request body
-    const rawBody = await parseBodyJSON<HttpMessagePost>(req);
+    const rawBody = await parseBodyJSON<HttpSendMessagePost>(req);
     if ("status" in rawBody && "message" in rawBody) {
       return new Response(JSON.stringify({ message: rawBody.message }), {
         status: rawBody.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // Validate request body
-    const validatedResult = validateSendMessageInput(
-      rawBody.conversation,
-      rawBody.message
-    );
-    if (!validatedResult.valid) {
-      return new Response(
-        JSON.stringify({ message: validatedResult.message }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
+    assertHttpSendMessagePost(rawBody);
 
     // Sanitize validated body
     const cleanBody: SendMessageDomainInput = {
-      senderId: authResult.data.userId,
-      accessToken: auth,
-      conversation: rawBody.conversation,
+      sender: {
+        id: authResult.data.userId,
+        username: authResult.data.username,
+      },
+      authToken: auth,
+      conversationId: rawBody.conversationId,
       message: rawBody.message,
     };
 
-    // Call send message controller
-    const result: HttpResponse | null = await sendMessageController(
-      baseLogger,
-      cleanBody
-    );
+    assertSendMessageDomainInput(cleanBody);
+    const result = await sendMessageController(cleanBody);
 
-    if (!result) {
-      return new Response(
-        JSON.stringify({
-          message: "Send message error, please resend message.",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    logger.info("Send the message successfully");
+    return new Response(
+      JSON.stringify({ code: result.code, message: result.message }),
+      {
+        status: result.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
     }
 
-    // HTTP response successfully
-    return new Response(JSON.stringify({ message: result.message }), {
-      status: result.status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (err) {
     return new Response(
       JSON.stringify({
+        code: "INTERNAL_ERROR",
         message: "Send a message error. Please try again later.",
       }),
       {
@@ -261,14 +220,10 @@ export async function handleSendMessage(
 }
 
 // POST /conversation/participants
-export async function handleAddParticipants(
-  baseLogger: BaseLogger,
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleAddParticipants(req: Request, corsHeaders: any) {
   try {
     // Parse refresh token
-    const auth: HttpResponse | string = parseAuthToken(req);
+    const auth: ResponseDomain | string = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
@@ -289,57 +244,48 @@ export async function handleAddParticipants(
     }
 
     // Parse request body
-    const rawBody: HttpParticipantsPost | HttpResponse =
-      await parseBodyJSON<HttpParticipantsPost>(req);
-    if ("status" in rawBody && "message" in rawBody) {
-      return new Response(JSON.stringify({ message: rawBody.message }), {
-        status: rawBody.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Validate request body
-    const validatedResult = validateAddParticipants(
-      rawBody.conversation,
-      rawBody.participantIds
-    );
-    if (!validatedResult.valid) {
+    const rawBody = await parseBodyJSON<HttpAddParticipantPost>(req);
+    if ("status" in rawBody && "code" in rawBody && "message" in rawBody) {
       return new Response(
-        JSON.stringify({ message: validatedResult.message }),
+        JSON.stringify({ code: rawBody.code, message: rawBody.message }),
         {
-          status: 400,
+          status: rawBody.status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
+    assertHttpAddParticipantPost(rawBody);
 
     const cleanBody: AddParticipantsDomainInput = {
-      userId: authResult.data.userId,
-      accessToken: auth,
-      conversation: rawBody.conversation,
+      creator: {
+        id: authResult.data.userId,
+        username: authResult.data.username,
+      },
+      authToken: auth,
+      conversationId: rawBody.conversationId,
       participantIds: rawBody.participantIds,
     };
+    assertAddParticipantsDomainInput(cleanBody);
 
-    // Call create add participants controller
-    const result = await addParticipantsController(baseLogger, cleanBody);
-    if (!result) {
-      return new Response(
-        JSON.stringify({ message: "Add participants error." }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    const result = await addParticipantsController(cleanBody);
+
+    logger.info("Add new participants successfully");
+    return new Response(
+      JSON.stringify({ code: result.code, message: result.message }),
+      {
+        status: result.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
     }
 
-    // HTTP response successfully
-    return new Response(JSON.stringify({ message: result.message }), {
-      status: result.status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (err) {
     return new Response(
       JSON.stringify({
+        code: "INTERNAL_ERROR",
         message: "Create a conversation error. Please try again later.",
       }),
       {

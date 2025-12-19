@@ -7,97 +7,42 @@ import type {
   RefreshAuthTokenOutput,
   LogoutDomainInput,
 } from "../types/domain";
-import type { HttpResponse } from "../types/http";
 import {
   registerService,
   loginService,
   refreshAuthTokenService,
   logoutService,
 } from "../services";
-import type { BaseLogger } from "../helpers/logger";
 
 export async function registerController(
-  baseLogger: BaseLogger,
   input: RegisterDomainInput
-): Promise<HttpResponse> {
-  const result = await registerService(baseLogger, input);
-
-  if (!result) {
-    return {
-      status: 500,
-      message: "Sign up the account error, please try again.",
-    };
-  }
-
-  if (
-    "code" in result &&
-    "table" in result &&
-    "constraint" in result &&
-    "detail" in result
-  ) {
-    if (result.code === "23505" && result.table === "users") {
-      return {
-        status: 409,
-        message: "The email address is already in use by another user.",
-      };
-    }
-
-    if (result.code === "23505" && result.table === "accounts") {
-      return {
-        status: 409,
-        message: "The username is already in use by another account.",
-      };
-    }
-
-    return {
-      status: 500,
-      message: "Sign up the account error, please try again.",
-    };
-  }
+): Promise<ResponseDomain> {
+  const result = await registerService(input);
 
   return {
     status: 201,
-    message: "Registration successfully",
+    code: "REGISTER_SUCCESS",
+    message: "Register successfully",
   };
 }
 
 export async function loginController(
-  baseLogger: BaseLogger,
   input: LoginDomainInput
-): Promise<HttpResponse | LoginDomainOutput> {
-  const result = await loginService(baseLogger, input);
-
-  if (!result) {
-    return {
-      status: 500,
-      message: "Login error.",
-    };
-  }
-
-  if ("status" in result && "message" in result) {
-    return result;
-  }
+): Promise<LoginDomainOutput> {
+  const result = await loginService(input);
   return result;
 }
 
 export async function logoutController(
-  baseLogger: BaseLogger,
   input: LogoutDomainInput
 ): Promise<ResponseDomain> {
-  const result = logoutService(baseLogger, input);
+  const result = logoutService(input);
   return result;
 }
 
 export async function refreshAuthTokenController(
-  baseLogger: BaseLogger,
   input: RefreshAuthTokenInput
-): Promise<RefreshAuthTokenOutput | ResponseDomain> {
-  const result = await refreshAuthTokenService(baseLogger, input);
-  if (!result) {
-    return {
-      status: 500,
-      message: "Refresh token service error.",
-    };
-  }
+): Promise<RefreshAuthTokenOutput> {
+  const result = await refreshAuthTokenService(input);
   return result;
 }

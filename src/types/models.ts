@@ -22,8 +22,6 @@ export type PgConversation = {
   metadata: Record<string, any>;
 };
 
-export type PgConversationIdentifier = Omit<PgConversation, "metadata">;
-
 export type PgParticipant = {
   user_id: string;
   conversation_id: string;
@@ -44,20 +42,33 @@ export type PgMessage = {
   content: string;
 };
 
-export type PgMessageWithUsername = PgMessage & {
+export type PgMessageWithUsername = Omit<PgMessage, "conversation_id"> & {
   sender_username: string;
 };
+
 // ============================================================
-// PgError
+// Database Error
 // ============================================================
-export interface PgError extends Error {
-  code: string;
-  detail?: string;
-  table?: string;
-  constraint?: string;
-  severity?: string;
-  routine?: string;
-  file?: string;
+export const DB_ERROR_CODE = {
+  SYNTAX: "syntax",
+  PROGRAM_LIMIT_EXCEEDED: "program_limit_exceeded",
+  FOREIGN_KEY: "FOREIGN_KEY",
+  NOT_NULL: "NOT_NULL",
+  INVALID_INPUT: "INVALID_INPUT",
+  CHECK_CONSTRAINT: "CHECK_CONSTRAINT",
+  PERMISSION: "PERMISSION",
+  CONNECTION: "CONNECTION",
+  UNKNOWN: "UNKNOWN",
+} as const;
+
+export type DbErrorCode = (typeof DB_ERROR_CODE)[keyof typeof DB_ERROR_CODE];
+
+export interface DbErrorResponse {
+  type: DbErrorCode;
+  response: {
+    status: number;
+    message: string;
+  };
 }
 
 // ============================================================
@@ -94,13 +105,17 @@ export interface PgAddParticipantsTransactionInput {
   participantIds: string[];
 }
 
-export interface PgGetConversationTransactionInput {
+export interface PgGetConversationInput {
   conversationId: string;
   limit?: number;
   offset?: number;
 }
 
-export interface PgGetConversationTransactionOutput {
+export interface PgGetConversationIdsOutput {
+  ids: string[];
+}
+
+export interface PgGetConversationOutput {
   conversation: PgConversation;
   participants: PgParticipantNoConversationId[];
   messages: PgMessageWithUsername[];

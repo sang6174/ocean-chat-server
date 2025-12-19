@@ -1,35 +1,43 @@
 import type {
-  ConversationIdentifier,
   UserTokenPayload,
-  ResponseDomain,
-  GetConversationIdentifiersRepositoryInput,
+  GetConversationIdsRepositoryInput,
 } from "../types/domain";
 import type { DataWebSocket } from "../types/ws";
-import { parseAuthToken, authMiddleware } from "../middlewares";
-import { getConversationIdentifiersController } from "../controllers";
-import type { BaseLogger } from "../helpers/logger";
+import { authMiddleware } from "../middlewares";
+import { getConversationIdsController } from "../controllers";
+import { handleError } from "../helpers/errors";
 
 export async function handleUpgradeWebSocket(
-  baseLogger: BaseLogger,
   server: Bun.Server<DataWebSocket>,
+  url: URL,
   req: Request,
   corsHeaders: any
 ) {
   try {
-    // Parse auth token
-    const auth = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Get auth token
+    const token = url.searchParams.get("token");
+    if (!token) {
+      return new Response(
+        JSON.stringify({
+          code: "AUTH_ERROR",
+          message: "Please send token via search params",
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
+    const auth = "Bearer " + token;
 
     // Verify auth token
     const authResult: UserTokenPayload | null = authMiddleware(auth);
     if (!authResult) {
       return new Response(
-        JSON.stringify({ message: "Invalid or expired auth token." }),
+        JSON.stringify({
+          code: "AUTH_ERROR",
+          message: "Invalid or expired auth token.",
+        }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -38,42 +46,18 @@ export async function handleUpgradeWebSocket(
     }
 
     // Call conversation identifiers controller
-    const input: GetConversationIdentifiersRepositoryInput = {
+    const input: GetConversationIdsRepositoryInput = {
       userId: authResult.data.userId,
     };
-    const conversationIdentifiers:
-      | ResponseDomain
-      | ConversationIdentifier[]
-      | null = await getConversationIdentifiersController(baseLogger, input);
-    if (!conversationIdentifiers) {
-      return new Response(
-        JSON.stringify({ message: "Failed to get conversation identifier." }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
 
-    if (
-      "status" in conversationIdentifiers &&
-      "message" in conversationIdentifiers
-    ) {
-      return new Response(
-        JSON.stringify({ message: conversationIdentifiers.message }),
-        {
-          status: conversationIdentifiers.status,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
+    const conversation = await getConversationIdsController(input);
 
     // Upgrade websocket
     const upgraded = server.upgrade(req, {
       data: {
         ...authResult.data,
-        accessToken: auth,
-        conversation: conversationIdentifiers,
+        authToken: auth,
+        conversationIds: conversation.ids,
       },
     });
 
@@ -92,9 +76,14 @@ export async function handleUpgradeWebSocket(
       }
     );
   } catch (err) {
-    console.log("Upgrade WebSocket Error.\n", err);
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     return new Response(
       JSON.stringify({
+        code: "INTERNAL_ERROR",
         message: "Upgrade websocket error. Please try again later.",
       }),
       {

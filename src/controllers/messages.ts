@@ -2,22 +2,20 @@ import type {
   SendMessageDomainInput,
   ResponseDomain,
   GetMessagesDomainInput,
+  GetMessagesDomainOutput,
 } from "../types/domain";
 import { sendMessageService, getMessagesService } from "../services";
-import type { BaseLogger } from "../helpers/logger";
 
 export async function sendMessageController(
-  baseLogger: BaseLogger,
   input: SendMessageDomainInput
-): Promise<ResponseDomain | null> {
-  const result = await sendMessageService(baseLogger, input);
+): Promise<ResponseDomain> {
+  const result = await sendMessageService(input);
   return result;
 }
 
 export async function getMessagesController(
-  baseLogger: BaseLogger,
   input: GetMessagesDomainInput
-) {
-  const result = getMessagesService(baseLogger, input);
+): Promise<GetMessagesDomainOutput[]> {
+  const result = getMessagesService(input);
   return result;
 }

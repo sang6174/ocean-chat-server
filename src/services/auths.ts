@@ -9,16 +9,16 @@ import type {
   LogoutDomainInput,
   RefreshAuthTokenInput,
   RefreshAuthTokenOutput,
-  PgErrorRepositoryOutput,
   RegisterRepositoryInput,
 } from "../types/domain";
-import type { BaseLogger } from "../helpers/logger";
 import {
   findAccountByUsername,
   findAccountById,
   registerRepository,
 } from "../repository";
 import { blacklistSessions } from "../models";
+import { DomainError } from "../helpers/errors";
+import { logger } from "../helpers/logger";
 
 export const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET!;
 export const accessTokenExpiresIn = process.env
@@ -59,9 +59,9 @@ export function verifyRefreshToken(
 }
 
 export async function registerService(
-  baseLogger: BaseLogger,
   input: RegisterDomainInput
-): Promise<RegisterDomainOutput | PgErrorRepositoryOutput | null> {
+): Promise<RegisterDomainOutput> {
+  console.log("Start service");
   const hashedPassword: string = await Bun.password.hash(input.password);
   const inputRepo: RegisterRepositoryInput = {
     name: input.name,
@@ -70,104 +70,104 @@ export async function registerService(
     password: hashedPassword,
   };
 
-  const result = await registerRepository(baseLogger, inputRepo);
+  const result = await registerRepository(inputRepo);
   return result;
 }
 
 export async function loginService(
-  baseLogger: BaseLogger,
   input: LoginDomainInput
-): Promise<LoginDomainOutput | ResponseDomain | null> {
-  try {
-    const existingAccount = await findAccountByUsername(baseLogger, {
-      username: input.username,
+): Promise<LoginDomainOutput> {
+  const existingAccount = await findAccountByUsername({
+    username: input.username,
+  });
+
+  if (!existingAccount) {
+    throw new DomainError({
+      status: 400,
+      code: "ACCOUNT_INVALID",
+      message: "Account is invalid",
     });
-    if (!existingAccount) {
-      return { status: 404, message: "Account not found." };
-    }
+  }
 
-    const isMatchPassword = await Bun.password.verify(
-      input.password,
-      existingAccount.password
-    );
-    if (!isMatchPassword) {
-      return { status: 401, message: "Password is invalid" };
-    }
+  const isMatchPassword = await Bun.password.verify(
+    input.password,
+    existingAccount.password
+  );
 
-    const accessToken: string = createAccessToken(
-      JSON.stringify({
-        userId: existingAccount.id,
-        username: existingAccount.username,
-      })
-    );
+  if (!isMatchPassword) {
+    throw new DomainError({
+      status: 401,
+      code: "PASSWORD_INVALID",
+      message: "Password is invalid",
+    });
+  }
 
-    const refreshToken: string = createRefreshToken(
-      JSON.stringify({
-        userId: existingAccount.id,
-        accessToken,
-      })
-    );
-
-    return {
+  const accessToken: string = createAccessToken(
+    JSON.stringify({
       userId: existingAccount.id,
       username: existingAccount.username,
+    })
+  );
+  logger.warn("Generate a new auth token successfully");
+
+  const refreshToken: string = createRefreshToken(
+    JSON.stringify({
+      userId: existingAccount.id,
       accessToken,
-      refreshToken,
-    };
-  } catch (err) {
-    return null;
-  }
+    })
+  );
+  logger.warn("Generate a new refresh token successfully");
+
+  return {
+    userId: existingAccount.id,
+    username: existingAccount.username,
+    authToken: accessToken,
+    refreshToken,
+  };
 }
 
 export async function logoutService(
-  baseLogger: BaseLogger,
   input: LogoutDomainInput
 ): Promise<ResponseDomain> {
-  try {
-    // Add auth token into blacklist
-    if (blacklistSessions.has(input.userId)) {
-      blacklistSessions.get(input.userId)?.push(input.authToken);
-    } else {
-      blacklistSessions.set(input.userId, [input.authToken]);
-    }
-
-    return {
-      status: 200,
-      message: "Logout is successful.",
-    };
-  } catch (err) {
-    return {
-      status: 500,
-      message: "Failed to logout. Please try again.",
-    };
+  if (blacklistSessions.has(input.userId)) {
+    blacklistSessions.get(input.userId)?.push(input.authToken);
+  } else {
+    blacklistSessions.set(input.userId, [input.authToken]);
   }
+
+  return {
+    status: 200,
+    code: "LOGOUT_SUCCESS",
+    message: "Logout is successful.",
+  };
 }
 
 export async function refreshAuthTokenService(
-  baseLogger: BaseLogger,
   input: RefreshAuthTokenInput
-): Promise<RefreshAuthTokenOutput | ResponseDomain | null> {
-  try {
-    const existingAccount = await findAccountById(baseLogger, {
-      id: input.userId,
+): Promise<RefreshAuthTokenOutput> {
+  const existingAccount = await findAccountById({
+    id: input.userId,
+  });
+
+  if (!existingAccount) {
+    throw new DomainError({
+      status: 400,
+      code: "ACCOUNT_INVALID",
+      message: "Account is invalid",
     });
-    if (!existingAccount) {
-      return { status: 400, message: "Account not found." };
-    }
+  }
 
-    const authToken: string = createAccessToken(
-      JSON.stringify({
-        userId: existingAccount.id,
-        username: existingAccount.username,
-      })
-    );
-
-    return {
+  const authToken: string = createAccessToken(
+    JSON.stringify({
       userId: existingAccount.id,
       username: existingAccount.username,
-      authToken: authToken,
-    };
-  } catch (err) {
-    return null;
-  }
+    })
+  );
+  logger.warn("Generate a new auth token successfully");
+
+  return {
+    userId: existingAccount.id,
+    username: existingAccount.username,
+    authToken: authToken,
+  };
 }

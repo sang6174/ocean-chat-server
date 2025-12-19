@@ -1,10 +1,8 @@
-import type { ConversationIdentifier } from "./domain";
-
 export interface DataWebSocket {
   userId: string;
   username: string;
-  accessToken: string;
-  conversation: ConversationIdentifier[];
+  authToken: string;
+  conversationIds: string[];
 }
 
 export type WsToUser = {
@@ -14,7 +12,7 @@ export type WsToUser = {
 
 export type WsToConversation = {
   senderId: string;
-  toConversation: ConversationIdentifier;
+  toConversationId: string;
 };
 
 export interface WsDataToSendToClient<T> {

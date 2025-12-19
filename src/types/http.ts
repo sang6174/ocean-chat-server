@@ -1,19 +1,12 @@
-import type { ConversationIdentifier } from "./domain";
-
-// POST /auth/register
-export interface HttpResponse {
-  status: number;
-  message: string;
-}
-
+// ============================================================
+// HTTP Input
+// ============================================================
 export interface HttpRegisterPost {
   name: string;
   email: string;
   username: string;
   password: string;
 }
-
-// POST /auth/login
 export interface HttpLoginPost {
   username: string;
   password: string;
@@ -25,26 +18,41 @@ export interface HttpLoginPostResponse {
   authToken: string;
 }
 
-export interface HttpConversationPost {
-  type: string;
-  metadata: {
-    name: string;
+export interface HttpCreateConversationPost {
+  conversation: {
+    type: string;
+    metadata: {
+      name: string;
+    };
   };
   participantIds: string[];
 }
 
-export interface HttpMessagePost {
-  conversation: ConversationIdentifier;
+export interface HttpSendMessagePost {
+  conversationId: string;
+  sender: {
+    id: string;
+    username: string;
+  };
   message: string;
 }
 
-export interface HttpParticipantsPost {
-  conversation: ConversationIdentifier;
+export interface HttpAddParticipantPost {
+  conversationId: string;
+  creator: {
+    id: string;
+    username: string;
+  };
   participantIds: string[];
 }
 
-export interface HttpMessagesGet {
-  conversationId: string;
-  limit?: number;
-  offset?: number;
+export interface HttpNotificationFriendPost {
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipient: {
+    id: string;
+    username: string;
+  };
 }

@@ -1,5 +1,6 @@
-import type { HttpResponse, HttpLoginPostResponse } from "../types/http";
+import type { HttpLoginPostResponse } from "../types/http";
 import type {
+  ResponseDomain,
   LoginDomainInput,
   LogoutDomainInput,
   RefreshAuthTokenInput,
@@ -9,14 +10,12 @@ import type {
 } from "../types/domain";
 import {
   parseBodyFormData,
-  parseRefreshToken,
   refreshTokenMiddleware,
-  assertRegisterBody,
-  validateRegisterInput,
-  assertLoginBody,
-  validateLoginInput,
   parseAuthToken,
   authMiddleware,
+  assertHttpRegisterPost,
+  assertHttpLoginPost,
+  assertLogoutDomainInput,
 } from "../middlewares";
 import {
   registerController,
@@ -24,20 +23,18 @@ import {
   refreshAuthTokenController,
   logoutController,
 } from "../controllers";
-import type { LoginDomainOutput } from "../types/domain";
-import type { BaseLogger } from "../helpers/logger";
+import { logger } from "../helpers/logger";
+import { handleError } from "../helpers/errors";
 
 const refreshTokenMaxAge = process.env.REFRESH_TOKEN_MAX_AGE!;
 
 // ============================================================
 // POST /auth/register
 // ============================================================
-export async function handleRegister(
-  baseLogger: BaseLogger,
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleRegister(req: Request, corsHeaders: any) {
   try {
+    logger.info("Start handle register");
+
     // Parse request body
     const form = await parseBodyFormData(req);
     if ("status" in form && "message" in form) {
@@ -55,15 +52,8 @@ export async function handleRegister(
       password: form.get("password"),
     };
 
-    // Validation request body
-    const validateResult = validateRegisterInput(rawBody);
-    if (!validateResult.valid) {
-      return new Response(JSON.stringify({ message: validateResult.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    assertRegisterBody(rawBody);
+    // Validate and assert request body
+    assertHttpRegisterPost(rawBody);
 
     // Sanitize validated body
     const cleanBody: RegisterDomainInput = {
@@ -74,22 +64,30 @@ export async function handleRegister(
     };
 
     // Call register controller
-    const result: HttpResponse = await registerController(
-      baseLogger,
-      cleanBody
-    );
+    console.log("Start controller.");
+    const result: ResponseDomain = await registerController(cleanBody);
 
-    return new Response(JSON.stringify({ message: result.message }), {
-      status: result.status,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-        "x-trace-id": baseLogger.requestId,
-      },
-    });
+    logger.info("Register successfully");
+    return new Response(
+      JSON.stringify({ code: result.code, message: result.message }),
+      {
+        status: result.status,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
+      }
+    );
   } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     return new Response(
       JSON.stringify({
+        code: "INTERNAL_ERROR",
         message: "Register error. Please try again later.",
       }),
       {
@@ -103,11 +101,7 @@ export async function handleRegister(
 // ============================================================
 // POST /auth/login
 // ============================================================
-export async function handleLogin(
-  baseLogger: BaseLogger,
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleLogin(req: Request, corsHeaders: any) {
   try {
     // Parse request body and sanitize fields.
     const form = await parseBodyFormData(req);
@@ -124,20 +118,8 @@ export async function handleLogin(
       password: form.get("password"),
     };
 
-    // Validate request body
-    const validateResult = validateLoginInput(rawBody);
-    if (!validateResult.valid) {
-      return new Response(
-        JSON.stringify({
-          message: validateResult.message,
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-    assertLoginBody(rawBody);
+    // Validate and assert request body
+    assertHttpLoginPost(rawBody);
 
     // Sanitize validated body
     const cleanBody: LoginDomainInput = {
@@ -145,25 +127,15 @@ export async function handleLogin(
       password: rawBody.password,
     };
 
-    // Call login controller:
-    const result: HttpResponse | LoginDomainOutput = await loginController(
-      baseLogger,
-      cleanBody
-    );
-
-    if ("status" in result && "message" in result) {
-      return new Response(JSON.stringify({ message: result.message }), {
-        status: result.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const result = await loginController(cleanBody);
 
     const response: HttpLoginPostResponse = {
       userId: result.userId,
       username: result.username,
-      authToken: result.accessToken,
+      authToken: result.authToken,
     };
 
+    logger.info("Login successfully");
     return new Response(JSON.stringify(response), {
       status: 200,
       headers: {
@@ -173,8 +145,14 @@ export async function handleLogin(
       },
     });
   } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     return new Response(
       JSON.stringify({
+        code: "INTERNAL_ERROR",
         message: "Login error. Please try again later.",
       }),
       {
@@ -188,13 +166,9 @@ export async function handleLogin(
 // ============================================================
 // GET /auth/logout
 // ============================================================
-export async function handleLogout(
-  baseLogger: BaseLogger,
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleLogout(req: Request, corsHeaders: any) {
   try {
-    const auth: HttpResponse | string = parseAuthToken(req);
+    const auth: ResponseDomain | string = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
@@ -217,8 +191,11 @@ export async function handleLogout(
       userId: authResult.data.userId,
       authToken: auth,
     };
-    const result = await logoutController(baseLogger, input);
 
+    assertLogoutDomainInput(input);
+    const result = await logoutController(input);
+
+    logger.info("Logout successfully");
     return new Response(
       JSON.stringify({
         message: result.message,
@@ -229,8 +206,14 @@ export async function handleLogout(
       }
     );
   } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     return new Response(
       JSON.stringify({
+        code: "INTERNAL_ERROR",
         message: "Logout error. Please try again later.",
       }),
       {
@@ -244,14 +227,10 @@ export async function handleLogout(
 // ============================================================
 // POST /auth/refresh/token
 // ============================================================
-export async function handleRefreshAuthToken(
-  baseLogger: BaseLogger,
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleRefreshAuthToken(req: Request, corsHeaders: any) {
   try {
     // Parse refresh token
-    const auth: HttpResponse | string = parseRefreshToken(req);
+    const auth: ResponseDomain | string = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
@@ -274,23 +253,22 @@ export async function handleRefreshAuthToken(
     const input: RefreshAuthTokenInput = {
       userId: authResult.data.userId,
     };
-    const result = await refreshAuthTokenController(baseLogger, input);
+    const result = await refreshAuthTokenController(input);
 
-    if ("status" in result && "message" in result) {
-      return new Response(JSON.stringify({ message: result.message }), {
-        status: result.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // HTTP response successfully
+    logger.info("Refresh auth token successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err) {
+  } catch (err: any) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
     return new Response(
       JSON.stringify({
+        code: "INTERNAL_ERROR",
         message: "Refresh token error. Please try again later.",
       }),
       {

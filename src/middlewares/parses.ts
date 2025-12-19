@@ -1,10 +1,12 @@
-import type { HttpResponse } from "../types/http";
+import type { ResponseDomain } from "../types/domain";
+import { logger } from "../helpers/logger";
+import { isPlainObject } from "./validation/helper";
 
 export async function safeFormData(req: Request) {
   try {
     return await req.formData();
   } catch (err) {
-    console.log(`[${new Date().toISOString()}] Form-data parse error:`, err);
+    logger.error("Form-data parse error");
     return null;
   }
 }
@@ -15,69 +17,66 @@ export async function parseBodyFormData(req: Request) {
   if (!form) {
     return {
       status: 400,
+      code: "PARSE_BODY_ERROR",
       message:
         "Invalid request body. Please submit the data using multipart/form-data.",
     };
   }
 
+  logger.info("Form-data parse successfully");
   return form;
 }
 
 export async function safeJSON(req: Request): Promise<object | null> {
   try {
     const data = await req.json();
-    if (data && typeof data === "object" && !Array.isArray(data)) {
-      return data;
+    if (!isPlainObject(data)) {
+      return null;
     }
-    return null;
+
+    return data;
   } catch (err) {
-    console.log(`[${new Date().toISOString()}] JSON parse error:`, err);
+    logger.error("JSON parse error");
     return null;
   }
 }
 
 export async function parseBodyJSON<T = any>(
   req: Request
-): Promise<HttpResponse | T> {
+): Promise<ResponseDomain | T> {
   const body = (await safeJSON(req)) as T | null;
+
   if (!body) {
     return {
       status: 400,
+      code: "PARSE_BODY_ERROR",
       message: "Invalid request body. Please send a valid JSON object.",
     };
   }
+
+  logger.info("JSON parse successfully");
   return body;
 }
 
-export function parseAuthToken(req: Request): HttpResponse | string {
-  let auth = req.headers.get("Authorization")?.slice(7);
-  const isBearer = req.headers.get("Authorization")?.startsWith("Bearer ");
+export function parseAuthToken(req: Request) {
+  const authHeader = req.headers.get("Authorization");
+  let token: string | null = null;
 
-  if (!auth || !isBearer) {
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
+  } else {
     const url = new URL(req.url);
-    const tokenParam = url.searchParams.get("token");
-    if (tokenParam) {
-      auth = tokenParam;
-    }
+    token = url.searchParams.get("token");
   }
 
-  if (!auth) {
-    console.log("Error");
+  if (!token) {
     return {
       status: 401,
+      code: "AUTHENTICATE_FAILED",
       message: "Missing or invalid authentication token",
     };
   }
-  return auth;
-}
 
-export function parseRefreshToken(req: Request): HttpResponse | string {
-  const auth = req.headers.get("Authorization")?.slice(7);
-  if (!auth || !req.headers.get("Authorization")?.startsWith("Bearer ")) {
-    return {
-      status: 401,
-      message: "Missing or invalid refresh token.",
-    };
-  }
-  return auth;
+  logger.info("Token parse successfully");
+  return token;
 }

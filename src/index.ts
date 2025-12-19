@@ -1,5 +1,5 @@
 import type { DataWebSocket } from "./types/ws";
-import type { BaseLogger } from "./helpers/logger";
+import { requestContextStorage } from "./helpers/logger";
 import {
   handleRegister,
   handleLogin,
@@ -36,13 +36,11 @@ const server = Bun.serve<DataWebSocket>({
     const path = url.pathname;
     const method = req.method;
 
-    const requestId = crypto.randomUUID();
-
-    const baseLogger: BaseLogger = {
-      endpoint: `${method} ${path}`,
-      requestId,
-      event: "HTTP Request",
-      timestamp: new Date().toISOString(),
+    const ctx = {
+      requestId: crypto.randomUUID(),
+      method,
+      path,
+      startTime: Date.now(),
     };
 
     const corsHeaders = {
@@ -63,92 +61,107 @@ const server = Bun.serve<DataWebSocket>({
 
     // POST /auth/register
     if (path === "/auth/register" && method === "POST") {
-      return await handleRegister(baseLogger, req, corsHeaders);
+      return requestContextStorage.run(ctx, () => {
+        return handleRegister(req, corsHeaders);
+      });
     }
 
     // POST /auth/login
     if (path === "/auth/login" && method === "POST") {
-      return await handleLogin(baseLogger, req, corsHeaders);
+      return requestContextStorage.run(ctx, () => {
+        return handleLogin(req, corsHeaders);
+      });
     }
 
     // POST /auth/logout
     if (path === "/auth/logout" && method === "POST") {
-      return await handleLogout(baseLogger, req, corsHeaders);
+      return requestContextStorage.run(ctx, () => {
+        return handleLogout(req, corsHeaders);
+      });
     }
 
     // POST /auth/refresh/token
     if (path === "/auth/refresh/token" && method === "GET") {
-      return await handleRefreshAuthToken(baseLogger, req, corsHeaders);
+      return requestContextStorage.run(ctx, () => {
+        return handleRefreshAuthToken(req, corsHeaders);
+      });
     }
 
     // POST /conversation
     if (path === "/conversation" && method === "POST") {
-      return await handleCreateConversation(baseLogger, req, corsHeaders);
+      return requestContextStorage.run(ctx, () => {
+        return handleCreateConversation(req, corsHeaders);
+      });
     }
 
     // POST /conversation/message
     if (path === "/conversation/message" && method === "POST") {
-      return await handleSendMessage(baseLogger, req, corsHeaders);
+      return requestContextStorage.run(ctx, () => {
+        return handleSendMessage(req, corsHeaders);
+      });
     }
 
     // POST /conversation/participants
     if (path === "/conversation/participants" && method === "POST") {
-      return await handleAddParticipants(baseLogger, req, corsHeaders);
+      return requestContextStorage.run(ctx, () => {
+        return handleAddParticipants(req, corsHeaders);
+      });
     }
 
     // POST /notification/friend
     if (path === "/notification/friend") {
-      return await handleNotificationAddFriend(
-        baseLogger,
-        url,
-        req,
-        corsHeaders
-      );
+      return requestContextStorage.run(ctx, () => {
+        return handleNotificationAddFriend(url, req, corsHeaders);
+      });
     }
 
     // POST /notification/friend/accept
     if (path === "/notification/friend/accept" && method === "POST") {
-      return await handleNotificationAcceptFriend(
-        baseLogger,
-        url,
-        req,
-        corsHeaders
-      );
+      return requestContextStorage.run(ctx, () => {
+        return handleNotificationAcceptFriend(url, req, corsHeaders);
+      });
     }
 
     // POST /notification/friend/deny
     if (path === "/notification/friend/deny" && method === "POST") {
-      return await handleNotificationDenyFriend(
-        baseLogger,
-        url,
-        req,
-        corsHeaders
-      );
+      return requestContextStorage.run(ctx, () => {
+        return handleNotificationDenyFriend(url, req, corsHeaders);
+      });
     }
 
     // GET /profile/users
     if (path === "/profile/users" && method === "GET") {
-      return await handleGetAllProfileUsers(baseLogger, req, corsHeaders);
+      return requestContextStorage.run(ctx, () => {
+        return handleGetAllProfileUsers(req, corsHeaders);
+      });
     }
 
     // GET /profile/user
     if (path === "/profile/user" && method === "GET") {
-      return await handleGetProfileUser(baseLogger, url, req, corsHeaders);
+      return requestContextStorage.run(ctx, () => {
+        return handleGetProfileUser(req, corsHeaders);
+      });
     }
 
     // GET /conversations?userId=...
     if (path === "/conversations" && method === "GET") {
-      return await handleGetConversations(baseLogger, url, req, corsHeaders);
+      return requestContextStorage.run(ctx, () => {
+        return handleGetConversations(url, req, corsHeaders);
+      });
     }
 
     // GET /conversations/messages?conversationId=...&limit=...&offset=...
     if (path === "/conversations/messages" && method === "GET") {
-      return await handleGetMessages(baseLogger, url, req, corsHeaders);
+      return requestContextStorage.run(ctx, () => {
+        return handleGetMessages(url, req, corsHeaders);
+      });
     }
 
     // Upgrade websocket
     if (req.headers.get("Upgrade")?.toLowerCase() === "websocket") {
-      return await handleUpgradeWebSocket(baseLogger, server, req, corsHeaders);
+      return requestContextStorage.run(ctx, () => {
+        return handleUpgradeWebSocket(server, url, req, corsHeaders);
+      });
     }
 
     return new Response(JSON.stringify({ message: "not found" }), {
