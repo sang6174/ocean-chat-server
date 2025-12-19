@@ -109,13 +109,13 @@ export function validateHttpSendMessagePost(
   if (!isPlainObject(value))
     return { valid: false, message: "Must be an object" };
 
-  if (!isString(value.conversationId))
+  if (!isUUIDv4(value.conversationId))
     return { valid: false, message: "conversationId must be string" };
 
   if (!isPlainObject(value.sender))
     return { valid: false, message: "sender must be object" };
 
-  if (!isString(value.sender.id))
+  if (!isUUIDv4(value.sender.id))
     return { valid: false, message: "sender.id must be string" };
 
   if (!isString(value.sender.username))
@@ -139,20 +139,26 @@ export function validateHttpAddParticipantPost(
   if (!isPlainObject(value))
     return { valid: false, message: "Must be an object" };
 
-  if (!isString(value.conversationId))
+  if (!isUUIDv4(value.conversationId))
     return { valid: false, message: "conversationId must be string" };
 
   if (!isPlainObject(value.creator))
     return { valid: false, message: "creator must be object" };
 
-  if (!isString(value.creator.id))
+  if (!isUUIDv4(value.creator.id))
     return { valid: false, message: "creator.id must be string" };
 
   if (!isString(value.creator.username))
     return { valid: false, message: "creator.username must be string" };
 
   if (!isStringArray(value.participantIds))
-    return { valid: false, message: "participantIds must be string[]" };
+    return { valid: false, message: "participantIds must be uuidv4[]" };
+
+  for (const i of value.participantIds) {
+    if (!isUUIDv4(i)) {
+      return { valid: false, message: "participantIds must be uuidv4[]" };
+    }
+  }
 
   return { valid: true };
 }

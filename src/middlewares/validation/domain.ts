@@ -344,6 +344,17 @@ export function validateCreateDirectConversationDomainInput(
       return { valid: false, message: "participantIds must be uuidv4[]" };
   }
 
+  if (value.participantIds.length !== 2) {
+    return { valid: false, message: "participantIds must have length be two" };
+  }
+
+  if (value.participantIds[0] === value.participantIds[1]) {
+    return {
+      valid: false,
+      message: "participantIds must be different",
+    };
+  }
+
   validateConversationMetadata(value.metadata);
 
   if (!isString(value.authToken))
@@ -390,6 +401,21 @@ export function validateCreateGroupConversationDomainInput(
       return { valid: false, message: "participantIds must be uuidv4[]" };
   }
 
+  if (value.participantIds.length >= 3) {
+    return {
+      valid: false,
+      message: "participantIds must have length more than or equal three",
+    };
+  }
+
+  const participantIds = new Set(value.participantIds);
+  if (value.participantIds.length !== participantIds.size) {
+    return {
+      valid: false,
+      message: "participantIds must be different",
+    };
+  }
+
   validateConversationMetadata(value.metadata);
 
   if (!isString(value.authToken))
@@ -431,8 +457,8 @@ export function validateSendMessageDomainInput(
   if (!isString(value.authToken))
     return { valid: false, message: "authToken must be string" };
 
-  if (typeof value.conversation === "object" && value.conversation !== null)
-    return { valid: false, message: "conversation must be object" };
+  if (!isString(value.conversationId))
+    return { valid: false, message: "conversationId must be string" };
 
   if (!isString(value.message))
     return { valid: false, message: "message must be string" };
@@ -467,11 +493,16 @@ export function validateAddParticipantsDomainInput(
   if (!isString(value.accessToken))
     return { valid: false, message: "accessToken must be string" };
 
-  if (typeof value.conversation === "object" && value.conversation !== null)
-    return { valid: false, message: "conversation must be object" };
+  if (!isString(value.conversationId))
+    return { valid: false, message: "conversation must be string" };
 
   if (!isStringArray(value.participantIds))
-    return { valid: false, message: "participantIds must be string[]" };
+    return { valid: false, message: "participantIds must be uuidv4[]" };
+
+  for (const i of value.participantIds) {
+    if (!isUUIDv4(i))
+      return { valid: false, message: "participantIds must be uuidv4[]" };
+  }
 
   return { valid: true };
 }
@@ -598,8 +629,8 @@ export function validateGetConversationDomainOutput(
 ): { valid: true } | { valid: false; message: string } {
   if (!isPlainObject(value)) return { valid: false, message: "Must be object" };
 
-  if (typeof value.conversation === "object" && value.conversation !== null)
-    return { valid: false, message: "conversation must be object" };
+  if (!isString(value.conversationId))
+    return { valid: false, message: "conversation must be string" };
 
   if (!Array.isArray(value.participants))
     return { valid: false, message: "participants must be array" };
@@ -649,7 +680,7 @@ export function validateGetMessagesDomainOutput(
   if (!isString(value.id))
     return { valid: false, message: "id must be string" };
 
-  if (typeof value.sender === "object" && value.sender !== null)
+  if (!isPlainObject(value.sender))
     return { valid: false, message: "sender must be object" };
 
   if (!isString(value.conversationId))

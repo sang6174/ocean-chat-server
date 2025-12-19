@@ -221,13 +221,13 @@ eventBusServer.on(
     const notification: WsDataToSendToClient<string> = {
       type: WsServerEvent.NOTIFICATION_ADD_FRIEND,
       metadata: {
-        senderId: input.senderId,
-        toUserId: input.recipientId,
+        senderId: input.sender.id,
+        toUserId: input.recipient.id,
       },
-      data: `${input.senderUsername} send you a add friend invitation.`,
+      data: `${input.sender.username} send you a add friend invitation.`,
     };
     console.log(notification);
-    sendToUser(input.recipientId, notification);
+    sendToUser(input.recipient.id, notification);
     logger.info("Publish friend quest notification successfully");
   }
 );
@@ -241,13 +241,13 @@ eventBusServer.on(
       {
         type: WsServerEvent.NOTIFICATION_ADD_FRIEND,
         metadata: {
-          senderId: input.senderId,
-          toUserId: input.recipientId,
+          senderId: input.sender.id,
+          toUserId: input.recipient.id,
         },
         data: input.data,
       };
 
-    sendToUser(input.recipientId, notification);
+    sendToUser(input.recipient.id, notification);
     logger.info("Publish notification accepted friend request successfully");
   }
 );
@@ -258,13 +258,13 @@ eventBusServer.on(
     const notification: WsDataToSendToClient<string> = {
       type: WsServerEvent.NOTIFICATION_ADD_FRIEND,
       metadata: {
-        senderId: input.senderId,
-        toUserId: input.recipientId,
+        senderId: input.sender.id,
+        toUserId: input.recipient.id,
       },
-      data: `${input.senderUsername} denied your add friend invitation.`,
+      data: `${input.sender.username} denied your add friend invitation.`,
     };
 
-    sendToUser(input.recipientId, notification);
+    sendToUser(input.recipient.id, notification);
     logger.info("Publish notification denied friend request successfully");
   }
 );

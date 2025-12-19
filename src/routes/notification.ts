@@ -1,5 +1,11 @@
 import type { UserTokenPayload } from "../types/domain";
-import { parseAuthToken, authMiddleware, isUUIDv4 } from "../middlewares";
+import {
+  parseAuthToken,
+  authMiddleware,
+  isUUIDv4,
+  isUsername,
+  assertHttpNotificationFriendPost,
+} from "../middlewares";
 import {
   notificationAddFriendController,
   notificationAcceptFriendController,
@@ -50,45 +56,21 @@ export async function handleNotificationAddFriend(
     }
 
     // Get recipient id from search params
-    const recipientId = url.searchParams.get("recipientId");
-    if (!recipientId) {
-      return new Response(
-        JSON.stringify({ message: "Search params is invalid." }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    const httpBody = {
+      sender: {
+        id: authResult.data.userId,
+        username: authResult.data.username,
+      },
+      recipient: {
+        id: url.searchParams.get("id"),
+        username: url.searchParams.get("username"),
+      },
+    };
 
     // validate recipient id from search params
-    const isValidRecipient = isUUIDv4(recipientId);
-    if (!isValidRecipient) {
-      return new Response(
-        JSON.stringify({
-          code: "VALIDATE_ERROR",
-          message: "recipientId is invalid. Please try again.",
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    assertHttpNotificationFriendPost(httpBody);
 
-    const result = await notificationAddFriendController({
-      senderId: authResult.data.userId,
-      senderUsername: authResult.data.username,
-      recipientId: recipientId,
-    });
+    const result = await notificationAddFriendController(httpBody);
 
     logger.info("Send notification add friend successfully");
     return new Response(
@@ -170,45 +152,22 @@ export async function handleNotificationAcceptFriend(
     }
 
     // Get recipient id from search params
-    const recipientId = url.searchParams.get("recipientId");
-    if (!recipientId) {
-      return new Response(
-        JSON.stringify({ message: "Search params is invalid." }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    const httpBody = {
+      sender: {
+        id: authResult.data.userId,
+        username: authResult.data.username,
+      },
+      recipient: {
+        id: url.searchParams.get("id"),
+        username: url.searchParams.get("username"),
+      },
+    };
 
     // validate recipient id from search params
-    const isValidRecipient = isUUIDv4(recipientId);
-    if (!isValidRecipient) {
-      return new Response(
-        JSON.stringify({
-          code: "VALIDATE_ERROR",
-          message: "recipientId is invalid. Please try again.",
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    assertHttpNotificationFriendPost(httpBody);
 
     // Call notification accept friend controller
-    const result = await notificationAcceptFriendController({
-      senderId: authResult.data.userId,
-      recipientId: recipientId,
-    });
+    const result = await notificationAcceptFriendController(httpBody);
 
     logger.info("Accepted notification sended successfully");
     return new Response(JSON.stringify(result), {
@@ -284,46 +243,22 @@ export async function handleNotificationDenyFriend(
     }
 
     // Get recipient id from search params
-    const recipientId = url.searchParams.get("recipientId");
-    if (!recipientId) {
-      return new Response(
-        JSON.stringify({ message: "Search params is invalid." }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    const httpBody = {
+      sender: {
+        id: authResult.data.userId,
+        username: authResult.data.username,
+      },
+      recipient: {
+        id: url.searchParams.get("id"),
+        username: url.searchParams.get("username"),
+      },
+    };
 
     // validate recipient id from search params
-    const isValidRecipient = isUUIDv4(recipientId);
-    if (!isValidRecipient) {
-      return new Response(
-        JSON.stringify({
-          code: "VALIDATE_ERROR",
-          message: "recipientId is invalid. Please try again.",
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    assertHttpNotificationFriendPost(httpBody);
 
     // Call notification deny friend controller
-    const result = await notificationDenyFriendController({
-      senderId: authResult.data.userId,
-      senderUsername: authResult.data.username,
-      recipientId: recipientId,
-    });
+    const result = await notificationDenyFriendController(httpBody);
 
     logger.info("Denied notification sended successfully");
     return new Response(

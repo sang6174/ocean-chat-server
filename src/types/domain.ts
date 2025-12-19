@@ -354,19 +354,35 @@ export interface PublishParticipantAdded {
 }
 
 export interface PublishNotificationAddFriend {
-  senderId: string;
-  senderUsername: string;
-  recipientId: string;
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipient: {
+    id: string;
+    username: string;
+  };
 }
 
 export interface PublishNotificationAcceptedFriend<T> {
-  senderId: string;
-  recipientId: string;
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipient: {
+    id: string;
+    username: string;
+  };
   data: T;
 }
 
 export interface PublishNotificationDeniedFriend {
-  senderId: string;
-  senderUsername: string;
-  recipientId: string;
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipient: {
+    id: string;
+    username: string;
+  };
 }

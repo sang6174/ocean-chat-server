@@ -7,15 +7,16 @@ import {
 import { eventBusServer } from "../websocket/events";
 
 export async function notificationAddFriendController(input: {
-  senderId: string;
-  senderUsername: string;
-  recipientId: string;
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipient: {
+    id: string;
+    username: string;
+  };
 }) {
-  eventBusServer.emit(WsServerEvent.NOTIFICATION_ADD_FRIEND, {
-    senderId: input.senderId,
-    senderUsername: input.senderUsername,
-    recipientId: input.recipientId,
-  });
+  eventBusServer.emit(WsServerEvent.NOTIFICATION_ADD_FRIEND, { input });
 
   return {
     status: 200,
@@ -25,8 +26,14 @@ export async function notificationAddFriendController(input: {
 }
 
 export async function notificationAcceptFriendController(input: {
-  senderId: string;
-  recipientId: string;
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipient: {
+    id: string;
+    username: string;
+  };
 }): Promise<CreateConversationRepositoryOutput> {
   const resultConversation = await createConversationRepository({
     type: ConversationType.Direct,
@@ -37,28 +44,27 @@ export async function notificationAcceptFriendController(input: {
         username: "",
       },
     },
-    participantIds: [input.recipientId, input.senderId],
+    participantIds: [input.recipient.id, input.sender.id],
   });
 
   eventBusServer.emit(WsServerEvent.NOTIFICATION_ACCEPTED_FRIEND, {
-    senderId: input.senderId,
-    recipientId: input.senderId,
-    data: resultConversation,
+    input,
   });
 
   return resultConversation;
 }
 
 export async function notificationDenyFriendController(input: {
-  senderId: string;
-  senderUsername: string;
-  recipientId: string;
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipient: {
+    id: string;
+    username: string;
+  };
 }) {
-  eventBusServer.emit(WsServerEvent.NOTIFICATION_DENIED_FRIEND, {
-    senderId: input.senderId,
-    senderUsername: input.senderUsername,
-    recipientId: input.recipientId,
-  });
+  eventBusServer.emit(WsServerEvent.NOTIFICATION_DENIED_FRIEND, { input });
 
   return {
     status: 200,
