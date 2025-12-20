@@ -49,7 +49,7 @@ const server = Bun.serve<DataWebSocket>({
     };
 
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "http://localhost:5173",
+      "Access-Control-Allow-Origin": "https://ocean-chat-web.vercel.app",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Access-Control-Allow-Credentials": "true",
@@ -183,7 +183,7 @@ const server = Bun.serve<DataWebSocket>({
       addWsConnection(ws);
     },
 
-    async message(ws) { },
+    async message(ws) {},
 
     close(ws) {
       removeWsConnection(ws);
