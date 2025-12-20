@@ -95,8 +95,8 @@ export function validateConversationMetadata(
   if (!isPlainObject(value.creator))
     return { valid: false, message: "metadata.creator must be an object" };
 
-  if (!isUUIDv4(value.creator.userId))
-    return { valid: false, message: "metadata.creator.userId must be uuidv4" };
+  if (!isUUIDv4(value.creator.id))
+    return { valid: false, message: "metadata.creator.id must be uuidv4" };
 
   if (!isString(value.creator.username))
     return { valid: false, message: "metadata.creator.userId must be string" };

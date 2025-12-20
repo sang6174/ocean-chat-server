@@ -26,7 +26,7 @@ export type EventCallback<T> = (payload: T) => void;
 export type ConversationMetadata = {
   name: string;
   creator: {
-    userId: string;
+    id: string;
     username: string;
   };
 };
@@ -153,11 +153,10 @@ export interface RefreshAuthTokenOutput {
 export interface CreateConversationDomainInput {
   type: ConversationType;
   metadata: ConversationMetadata;
-  participantIds: string[];
-  creator: {
+  participants: {
     id: string;
     username: string;
-  };
+  }[];
   authToken: string;
 }
 
@@ -172,13 +171,16 @@ export interface SendMessageDomainInput {
 }
 
 export interface AddParticipantsDomainInput {
+  authToken: string;
   creator: {
     id: string;
     username: string;
   };
-  authToken: string;
   conversationId: string;
-  participantIds: string[];
+  participants: {
+    id: string;
+    username: string;
+  }[];
 }
 
 export interface GetProfileUserDomainInput {
@@ -241,12 +243,15 @@ export interface RegisterRepositoryOutput {
 export interface CreateConversationRepositoryInput {
   type: ConversationType;
   metadata: ConversationMetadata;
-  participantIds: string[];
+  participants: {
+    id: string;
+    username: string;
+  }[];
 }
 
 export interface CreateConversationRepositoryOutput {
   conversation: Conversation;
-  participants: Participant[];
+  participants: ParticipantWithUsername[];
 }
 
 export interface GetConversationIdsRepositoryInput {
@@ -334,25 +339,40 @@ export interface GetParticipantIdsRepositoryOutput {
 // ============================================================
 
 export interface PublishConversationCreated {
-  senderId: string;
   authToken: string;
-  recipientIds: string[];
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipients: {
+    id: string;
+    username: string;
+  }[];
   conversation: CreateConversationRepositoryOutput;
 }
 
 export interface PublishMessageCreated {
-  senderId: string;
   authToken: string;
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipients: {
+    id: string;
+    username: string;
+  }[];
   conversationId: string;
-  recipientIds: string[];
   message: string;
 }
 
 export interface PublishParticipantAdded {
-  senderId: string;
+  sender: {
+    id: string;
+    username: string;
+  };
   authToken: string;
-  oldParticipants: string[];
-  newParticipants: string[];
+  oldParticipants: ParticipantWithUsername[];
+  newParticipants: ParticipantWithUsername[];
   conversationId: string;
   conversation: GetConversationRepositoryOutput;
 }

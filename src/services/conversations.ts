@@ -1,6 +1,5 @@
 import { ConversationType, WsServerEvent } from "../types/domain";
 import type {
-  ResponseDomain,
   GetConversationRepositoryOutput,
   GetConversationDomainInput,
   GetConversationDomainOutput,
@@ -22,16 +21,16 @@ export async function createConversationService(
   const resultCreateConversation = await createConversationRepository({
     type: input.type,
     metadata: input.metadata,
-    participantIds: input.participantIds,
+    participants: input.participants,
   });
 
   if (input.type === ConversationType.Group) {
     eventBusServer.emit<PublishConversationCreated>(
       WsServerEvent.CONVERSATION_CREATED,
       {
-        senderId: input.creator.id,
         authToken: input.authToken,
-        recipientIds: input.participantIds,
+        sender: input.metadata.creator,
+        recipients: input.participants,
         conversation: resultCreateConversation,
       }
     );

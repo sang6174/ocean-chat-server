@@ -128,16 +128,12 @@ export async function loginService(
 export async function logoutService(
   input: LogoutDomainInput
 ): Promise<ResponseDomain> {
-  if (blacklistAuthToken.has(input.userId)) {
-    blacklistAuthToken.get(input.userId)?.push(input.authToken);
-  } else {
-    blacklistAuthToken.set(input.userId, [input.authToken]);
+  if (!blacklistAuthToken.has(input.authToken)) {
+    blacklistAuthToken.add(input.authToken);
   }
 
-  if (blacklistRefreshToken.has(input.userId)) {
-    blacklistRefreshToken.get(input.userId)?.push(input.refreshToken);
-  } else {
-    blacklistRefreshToken.set(input.userId, [input.refreshToken]);
+  if (!blacklistRefreshToken.has(input.authToken)) {
+    blacklistRefreshToken.add(input.authToken);
   }
 
   return {

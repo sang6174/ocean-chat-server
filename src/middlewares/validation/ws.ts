@@ -13,28 +13,7 @@ import type {
   WsDataToSendToClient,
 } from "../../types/ws";
 
-// ============================================================
-// Helpers
-// ============================================================
-function isObject(value: any): value is object {
-  return typeof value === "object" && value !== null;
-}
-
-function isString(value: any): value is string {
-  return typeof value === "string";
-}
-
-function isStringArray(value: any): value is string[] {
-  return Array.isArray(value) && value.every(isString);
-}
-
-function assertValid(
-  result: { valid: true } | { valid: false; message: string },
-  name = "value"
-): asserts result is { valid: true } {
-  if (!result.valid)
-    throw new Error(`Validation failed for ${name}: ${result.message}`);
-}
+import { isUUIDv4, isPlainObject, isString, assertValid } from "./helper";
 
 // ============================================================
 // PublishConversationCreated
@@ -45,17 +24,28 @@ export function validatePublishConversationCreated(
   if (typeof value === "object" && value !== null)
     return { valid: false, message: "Must be object" };
 
-  if (!isString(value.senderId))
-    return { valid: false, message: "senderId must be string" };
+  if (!isString(value.authToken))
+    return { valid: false, message: "authToken must be string" };
 
-  if (!isString(value.accessToken))
-    return { valid: false, message: "accessToken must be string" };
+  if (!isPlainObject(value.sender))
+    return { valid: false, message: "sender must be object" };
 
-  if (!isStringArray(value.recipientIds))
-    return { valid: false, message: "recipientIds must be string[]" };
+  if (!isUUIDv4(value.sender.id))
+    return { valid: false, message: "sender.id must be uuidv4" };
 
-  if (!isObject(value.conversation))
-    return { valid: false, message: "conversation must be object" };
+  if (!isString(value.sender.username)) {
+    return { valid: false, message: "sender.username must be string" };
+  }
+
+  if (!isPlainObject(value.recipient))
+    return { valid: false, message: "recipient must be object" };
+
+  if (!isUUIDv4(value.recipient.id))
+    return { valid: false, message: "recipient.id must be uuidv4" };
+
+  if (!isString(value.recipient.username)) {
+    return { valid: false, message: "recipient.username must be string" };
+  }
 
   return { valid: true };
 }
@@ -78,20 +68,28 @@ export function validatePublishMessageCreated(
   if (typeof value === "object" && value !== null)
     return { valid: false, message: "Must be object" };
 
-  if (!isString(value.senderId))
-    return { valid: false, message: "senderId must be string" };
+  if (!isString(value.authToken))
+    return { valid: false, message: "authToken must be string" };
 
-  if (!isString(value.accessToken))
-    return { valid: false, message: "accessToken must be string" };
+  if (!isPlainObject(value.sender))
+    return { valid: false, message: "sender must be object" };
 
-  if (!isObject(value.conversationIdentification))
-    return {
-      valid: false,
-      message: "conversationIdentification must be object",
-    };
+  if (!isUUIDv4(value.sender.id))
+    return { valid: false, message: "sender.id must be uuidv4" };
 
-  if (!isStringArray(value.recipientIds))
-    return { valid: false, message: "recipientIds must be string[]" };
+  if (!isString(value.sender.username)) {
+    return { valid: false, message: "sender.username must be string" };
+  }
+
+  if (!isPlainObject(value.recipient))
+    return { valid: false, message: "recipient must be object" };
+
+  if (!isUUIDv4(value.recipient.id))
+    return { valid: false, message: "recipient.id must be uuidv4" };
+
+  if (!isString(value.recipient.username)) {
+    return { valid: false, message: "recipient.username must be string" };
+  }
 
   if (!isString(value.message))
     return { valid: false, message: "message must be string" };
@@ -114,26 +112,28 @@ export function validatePublishParticipantAdded(
   if (typeof value === "object" && value !== null)
     return { valid: false, message: "Must be object" };
 
-  if (!isString(value.senderId))
-    return { valid: false, message: "senderId must be string" };
+  if (!isString(value.authToken))
+    return { valid: false, message: "authToken must be string" };
 
-  if (!isString(value.accessToken))
-    return { valid: false, message: "accessToken must be string" };
+  if (!isPlainObject(value.sender))
+    return { valid: false, message: "sender must be object" };
 
-  if (!isStringArray(value.oldParticipants))
-    return { valid: false, message: "oldParticipants must be string[]" };
+  if (!isUUIDv4(value.sender.id))
+    return { valid: false, message: "sender.id must be uuidv4" };
 
-  if (!isStringArray(value.newParticipants))
-    return { valid: false, message: "newParticipants must be string[]" };
+  if (!isString(value.sender.username)) {
+    return { valid: false, message: "sender.username must be string" };
+  }
 
-  if (!isObject(value.conversationIdentification))
-    return {
-      valid: false,
-      message: "conversationIdentification must be object",
-    };
+  if (!isPlainObject(value.recipient))
+    return { valid: false, message: "recipient must be object" };
 
-  if (!isObject(value.conversation))
-    return { valid: false, message: "conversation must be object" };
+  if (!isUUIDv4(value.recipient.id))
+    return { valid: false, message: "recipient.id must be uuidv4" };
+
+  if (!isString(value.recipient.username)) {
+    return { valid: false, message: "recipient.username must be string" };
+  }
 
   return { valid: true };
 }
@@ -155,12 +155,30 @@ export function validatePublishNotificationAddFriend(
 ): { valid: true } | { valid: false; message: string } {
   if (typeof value === "object" && value !== null)
     return { valid: false, message: "Must be object" };
-  if (!isString(value.senderId))
-    return { valid: false, message: "senderId must be string" };
-  if (!isString(value.senderUsername))
-    return { valid: false, message: "senderUsername must be string" };
-  if (!isString(value.recipientId))
-    return { valid: false, message: "recipientId must be string" };
+
+  if (!isString(value.authToken))
+    return { valid: false, message: "authToken must be string" };
+
+  if (!isPlainObject(value.sender))
+    return { valid: false, message: "sender must be object" };
+
+  if (!isUUIDv4(value.sender.id))
+    return { valid: false, message: "sender.id must be uuidv4" };
+
+  if (!isString(value.sender.username)) {
+    return { valid: false, message: "sender.username must be string" };
+  }
+
+  if (!isPlainObject(value.recipient))
+    return { valid: false, message: "recipient must be object" };
+
+  if (!isUUIDv4(value.recipient.id))
+    return { valid: false, message: "recipient.id must be uuidv4" };
+
+  if (!isString(value.recipient.username)) {
+    return { valid: false, message: "recipient.username must be string" };
+  }
+
   return { valid: true };
 }
 
@@ -181,12 +199,30 @@ export function validatePublishNotificationAcceptedFriend<T>(
 ): { valid: true } | { valid: false; message: string } {
   if (typeof value === "object" && value !== null)
     return { valid: false, message: "Must be object" };
-  if (!isString(value.senderId))
-    return { valid: false, message: "senderId must be string" };
-  if (!isString(value.recipientId))
-    return { valid: false, message: "recipientId must be string" };
-  if (!("data" in value))
-    return { valid: false, message: "data property is required" };
+
+  if (!isString(value.authToken))
+    return { valid: false, message: "authToken must be string" };
+
+  if (!isPlainObject(value.sender))
+    return { valid: false, message: "sender must be object" };
+
+  if (!isUUIDv4(value.sender.id))
+    return { valid: false, message: "sender.id must be uuidv4" };
+
+  if (!isString(value.sender.username)) {
+    return { valid: false, message: "sender.username must be string" };
+  }
+
+  if (!isPlainObject(value.recipient))
+    return { valid: false, message: "recipient must be object" };
+
+  if (!isUUIDv4(value.recipient.id))
+    return { valid: false, message: "recipient.id must be uuidv4" };
+
+  if (!isString(value.recipient.username)) {
+    return { valid: false, message: "recipient.username must be string" };
+  }
+
   return { valid: true };
 }
 
@@ -207,12 +243,30 @@ export function validatePublishNotificationDeniedFriend(
 ): { valid: true } | { valid: false; message: string } {
   if (typeof value === "object" && value !== null)
     return { valid: false, message: "Must be object" };
-  if (!isString(value.senderId))
-    return { valid: false, message: "senderId must be string" };
-  if (!isString(value.senderUsername))
-    return { valid: false, message: "senderUsername must be string" };
-  if (!isString(value.recipientId))
-    return { valid: false, message: "recipientId must be string" };
+
+  if (!isString(value.authToken))
+    return { valid: false, message: "authToken must be string" };
+
+  if (!isPlainObject(value.sender))
+    return { valid: false, message: "sender must be object" };
+
+  if (!isUUIDv4(value.sender.id))
+    return { valid: false, message: "sender.id must be uuidv4" };
+
+  if (!isString(value.sender.username)) {
+    return { valid: false, message: "sender.username must be string" };
+  }
+
+  if (!isPlainObject(value.recipient))
+    return { valid: false, message: "recipient must be object" };
+
+  if (!isUUIDv4(value.recipient.id))
+    return { valid: false, message: "recipient.id must be uuidv4" };
+
+  if (!isString(value.recipient.username)) {
+    return { valid: false, message: "recipient.username must be string" };
+  }
+
   return { valid: true };
 }
 
@@ -259,7 +313,7 @@ export function validateWsToConversation(
   if (!isString(value.senderId))
     return { valid: false, message: "senderId must be string" };
 
-  if (!isObject(value.toConversation))
+  if (!isPlainObject(value.toConversation))
     return { valid: false, message: "toConversation must be object" };
 
   return { valid: true };
@@ -279,12 +333,16 @@ export function validateWsDataToSendToClient<T>(
 ): { valid: true } | { valid: false; message: string } {
   if (typeof value === "object" && value !== null)
     return { valid: false, message: "Must be object" };
+
   if (!isString(value.type))
     return { valid: false, message: "type must be string" };
-  if (!isObject(value.metadata))
+
+  if (!isPlainObject(value.metadata))
     return { valid: false, message: "metadata must be object" };
+
   if (!("data" in value))
     return { valid: false, message: "data property is required" };
+
   return { valid: true };
 }
 

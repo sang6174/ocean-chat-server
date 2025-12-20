@@ -7,6 +7,7 @@ import type {
 } from "../types/domain";
 import type {
   PgParticipant,
+  PgParticipantNoConversationId,
   PgRegisterTransactionOutput,
   PgCreateConversationTransactionOutput,
 } from "../types/models";
@@ -23,33 +24,37 @@ export async function pgRegisterTransaction(
 
     const user = await client.query(
       `INSERT INTO main.users (name, email) 
-       VALUES ($1, $2) RETURNING id, name, email`,
+       VALUES ($1, $2) 
+       RETURNING id, name, email`,
       [input.name, input.email]
     );
 
     const account = await client.query(
       `INSERT INTO main.accounts (id, username, password) 
-       VALUES ($1, $2, $3) RETURNING id, username`,
+       VALUES ($1, $2, $3) 
+       RETURNING id, username`,
       [user.rows[0].id, input.username, input.password]
     );
 
     const metadata: ConversationMetadata = {
       name: account.rows[0].username,
       creator: {
-        userId: user.rows[0].id,
+        id: user.rows[0].id,
         username: account.rows[0].username,
       },
     };
 
     const privateConversation = await client.query(
       `INSERT INTO main.conversations (type, metadata) 
-       VALUES ($1, $2) RETURNING id, type, metadata`,
+       VALUES ($1, $2) 
+       RETURNING id, type, metadata`,
       ["myself", metadata]
     );
 
-    const participant = await client.query(
+    await client.query(
       `INSERT INTO main.participants (conversation_id, user_id, role)
-       VALUES ($1, $2, $3) RETURNING user_id, conversation_id, role, last_seen, joined_at`,
+       VALUES ($1, $2, $3) 
+       RETURNING user_id, conversation_id, role, last_seen, joined_at`,
       [privateConversation.rows[0].id, user.rows[0].id, "admin"]
     );
 
@@ -79,28 +84,29 @@ export async function pgCreateConversationTransaction(
 
     const conversationResult = await client.query(
       `INSERT INTO main.conversations (type, metadata)
-       VALUES ($1, $2) RETURNING id, type, metadata`,
+       VALUES ($1, $2) 
+       RETURNING id, type, metadata`,
       [input.type, input.metadata]
     );
 
-    let participants: PgParticipant[] = [];
-    for (const participantId of input.participantIds) {
-      if (
-        participantId === conversationResult.rows[0].metadata.creator.userId
-      ) {
-        const participant = await client.query(
+    let participants: PgParticipantNoConversationId[] = [];
+    for (const participant of input.participants) {
+      if (participant.id === input.metadata.creator.id) {
+        const participantResult = await client.query(
           `INSERT INTO main.participants (conversation_id, user_id, role)
-           VALUES ($1, $2, $3) RETURNING user_id, conversation_id, role, last_seen, joined_at`,
-          [conversationResult.rows[0].id, participantId, "admin"]
+           VALUES ($1, $2, $3) 
+           RETURNING user_id, role, last_seen, joined_at`,
+          [conversationResult.rows[0].id, participant.id, "admin"]
         );
-        participants.push(participant.rows[0]);
+        participants.push(participantResult.rows[0]);
       } else {
-        const participant = await client.query(
+        const participantResult = await client.query(
           `INSERT INTO main.participants (conversation_id, user_id)
-          VALUES ($1, $2) RETURNING user_id, conversation_id, role, last_seen, joined_at`,
-          [conversationResult.rows[0].id, participantId]
+           VALUES ($1, $2) 
+           RETURNING user_id, role, last_seen, joined_at`,
+          [conversationResult.rows[0].id, participant.id]
         );
-        participants.push(participant.rows[0]);
+        participants.push(participantResult.rows[0]);
       }
     }
 

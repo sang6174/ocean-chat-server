@@ -101,7 +101,7 @@ export interface PgCreateConversationTransactionInput {
 
 export interface PgCreateConversationTransactionOutput {
   conversation: PgConversation;
-  participants: PgParticipant[];
+  participants: PgParticipantNoConversationId[];
 }
 
 export interface PgAddParticipantsTransactionInput {

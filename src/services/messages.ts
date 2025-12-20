@@ -8,7 +8,7 @@ import type {
 import {
   createMessageRepository,
   getMessagesRepository,
-  getParticipantIdsRepository,
+  getParticipantWithUsernameRepository,
 } from "../repository";
 import { eventBusServer } from "../websocket/events";
 import { DomainError } from "../helpers/errors";
@@ -22,11 +22,11 @@ export async function sendMessageService(
     content: input.message,
   });
 
-  const resultParticipantIds = await getParticipantIdsRepository({
+  const resultParticipants = await getParticipantWithUsernameRepository({
     conversationId: input.conversationId,
   });
 
-  if (!resultParticipantIds) {
+  if (!resultParticipants) {
     throw new DomainError({
       status: 400,
       code: "CONVERSATION_ID_INVALID",
@@ -35,12 +35,15 @@ export async function sendMessageService(
   }
 
   const inputWsEvent = {
-    senderId: input.sender.id,
     authToken: input.authToken,
+    sender: input.sender,
+    recipients: resultParticipants.map((p) => {
+      return { id: p.userId, username: p.username };
+    }),
     conversationId: input.conversationId,
-    recipientIds: resultParticipantIds.map((participant) => participant.userId),
     message: input.message,
   };
+
   eventBusServer.emit(WsServerEvent.MESSAGE_CREATED, inputWsEvent);
 
   return {

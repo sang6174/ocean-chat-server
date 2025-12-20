@@ -40,11 +40,11 @@ export async function notificationAcceptFriendController(input: {
     metadata: {
       name: "",
       creator: {
-        userId: "",
+        id: "",
         username: "",
       },
     },
-    participantIds: [input.recipient.id, input.sender.id],
+    participants: [input.recipient, input.sender],
   });
 
   eventBusServer.emit(WsServerEvent.NOTIFICATION_ACCEPTED_FRIEND, {

@@ -18,7 +18,6 @@ import {
   assertHttpCreateConversationPost,
   assertHttpSendMessagePost,
   assertHttpAddParticipantPost,
-  assertCreateMyselfConversationDomainInput,
   assertCreateGroupConversationDomainInput,
   assertSendMessageDomainInput,
   assertAddParticipantsDomainInput,
@@ -36,6 +35,7 @@ import { handleError } from "../helpers/errors";
 // ============================================================
 export async function handleCreateConversation(req: Request, corsHeaders: any) {
   try {
+    logger.info("Start handle create a conversation");
     // Parse refresh token
     const auth = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
@@ -81,43 +81,23 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
 
     // Sanitize, validate and assert request body according to conversation type
     let cleanBody: CreateConversationDomainInput;
-    if (rawBody.conversation.type === ConversationType.Myself) {
-      cleanBody = {
-        type: ConversationType.Myself,
-        metadata: {
-          name: rawBody.conversation.metadata.name,
-          creator: {
-            userId: authResult.data.userId,
-            username: authResult.data.username,
-          },
-        },
-        participantIds: [authResult.data.userId],
-        creator: {
-          id: authResult.data.userId,
-          username: authResult.data.username,
-        },
-        authToken: auth,
-      };
-      assertCreateMyselfConversationDomainInput(cleanBody);
-    } else if (rawBody.conversation.type === ConversationType.Group) {
+    if (rawBody.conversation.type === ConversationType.Group) {
+      console.log("Be group");
       cleanBody = {
         type: ConversationType.Group,
         metadata: {
           name: rawBody.conversation.metadata.name,
           creator: {
-            userId: authResult.data.userId,
+            id: authResult.data.userId,
             username: authResult.data.username,
           },
         },
-        participantIds: rawBody.participantIds,
-        creator: {
-          id: authResult.data.userId,
-          username: authResult.data.username,
-        },
+        participants: rawBody.participants,
         authToken: auth,
       };
       assertCreateGroupConversationDomainInput(cleanBody);
     } else {
+      console.log("be not group");
       return new Response(
         JSON.stringify({
           code: "CONVERSATION_TYPE_INVALID",
@@ -175,6 +155,7 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
 // ============================================================
 export async function handleSendMessage(req: Request, corsHeaders: any) {
   try {
+    logger.info("Start handle send a message");
     // Parse auth token
     const auth = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
@@ -272,6 +253,7 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
 // ============================================================
 export async function handleAddParticipants(req: Request, corsHeaders: any) {
   try {
+    logger.info("Start handle add participants");
     // Parse refresh token
     const auth: ResponseDomain | string = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
@@ -319,13 +301,13 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
     assertHttpAddParticipantPost(rawBody);
 
     const cleanBody: AddParticipantsDomainInput = {
+      authToken: auth,
       creator: {
         id: authResult.data.userId,
         username: authResult.data.username,
       },
-      authToken: auth,
       conversationId: rawBody.conversationId,
-      participantIds: rawBody.participantIds,
+      participants: rawBody.participants,
     };
     assertAddParticipantsDomainInput(cleanBody);
 

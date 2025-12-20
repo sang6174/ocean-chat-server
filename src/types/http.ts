@@ -25,7 +25,10 @@ export interface HttpCreateConversationPost {
       name: string;
     };
   };
-  participantIds: string[];
+  participants: {
+    id: string;
+    username: string;
+  }[];
 }
 
 export interface HttpSendMessagePost {
@@ -43,7 +46,10 @@ export interface HttpAddParticipantPost {
     id: string;
     username: string;
   };
-  participantIds: string[];
+  participants: {
+    id: string;
+    username: string;
+  }[];
 }
 
 export interface HttpNotificationFriendPost {

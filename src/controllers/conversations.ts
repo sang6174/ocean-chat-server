@@ -1,5 +1,4 @@
 import type {
-  ResponseDomain,
   CreateConversationDomainInput,
   GetConversationDomainOutput,
   GetConversationIdsRepositoryOutput,

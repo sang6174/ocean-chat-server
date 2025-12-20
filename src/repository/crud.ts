@@ -31,6 +31,7 @@ import {
   pgGetAllProfileUsers,
   pgGetProfileUser,
   pgGetConversationIds,
+  pgGetParticipantWithUsername,
 } from "../models";
 
 // ============================================================
@@ -80,6 +81,7 @@ export async function getConversationRepository(
   input: GetConversationRepositoryInput
 ): Promise<GetConversationRepositoryOutput | null> {
   const result = await pgGetConversation(input);
+
   if (!result) {
     return null;
   }
@@ -90,7 +92,6 @@ export async function getConversationRepository(
       type: result.conversation.type as ConversationType,
       metadata: result.conversation.metadata as ConversationMetadata,
     },
-
     participants: result.participants.map((participant) => {
       return {
         userId: participant.user_id,
@@ -100,7 +101,6 @@ export async function getConversationRepository(
         joinedAt: participant.joined_at,
       } as ParticipantWithUsername;
     }),
-
     messages: result.messages.map((message) => {
       return {
         id: message.id,
@@ -173,9 +173,33 @@ export async function getParticipantRoleRepository(
   input: GetParticipantRoleRepositoryInput
 ): Promise<GetParticipantRoleRepositoryOutput | null> {
   const result = await pgGetParticipantRole(input);
+
   if (!result) {
     return null;
   }
+
+  return result;
+}
+
+export async function getParticipantWithUsernameRepository(input: {
+  conversationId: string;
+}): Promise<ParticipantWithUsername[] | null> {
+  const pgResult = await pgGetParticipantWithUsername(input);
+
+  if (!pgResult) {
+    return null;
+  }
+
+  const result = pgResult.map((p) => {
+    return {
+      userId: p.user_id,
+      username: p.username,
+      role: p.role,
+      joinedAt: p.joined_at,
+      lastSeen: p.last_seen,
+    } as ParticipantWithUsername;
+  });
+
   return result;
 }
 

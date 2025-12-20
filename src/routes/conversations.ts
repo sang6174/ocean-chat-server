@@ -16,6 +16,7 @@ export async function handleGetConversations(
   corsHeaders: any
 ) {
   try {
+    logger.info("Start handle get conversations");
     // Parse auth token
     const auth = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
@@ -104,6 +105,7 @@ export async function handleGetMessages(
   corsHeaders: any
 ) {
   try {
+    logger.info("Start handle get messages");
     // Parse auth token
     const auth = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {

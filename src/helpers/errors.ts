@@ -2,7 +2,7 @@ import { logger } from "./logger";
 
 export abstract class AppError extends Error {
   abstract readonly status: number;
-  abstract readonly code: string;
+  abstract code: string;
 
   constructor(message: string, public override readonly cause?: unknown) {
     super(message);

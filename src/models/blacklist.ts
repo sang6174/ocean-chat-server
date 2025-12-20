@@ -1,2 +1,2 @@
-export const blacklistAuthToken: Map<string, string[]> = new Map();
-export const blacklistRefreshToken: Map<string, string[]> = new Map();
+export const blacklistAuthToken: Set<string> = new Set();
+export const blacklistRefreshToken: Set<string> = new Set();

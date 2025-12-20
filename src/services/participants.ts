@@ -1,4 +1,4 @@
-import { ConversationRoleType, WsServerEvent } from "../types/domain";
+import { WsServerEvent } from "../types/domain";
 import type {
   ResponseDomain,
   AddParticipantsDomainInput,
@@ -6,9 +6,9 @@ import type {
 import { eventBusServer } from "../websocket/events";
 import {
   getParticipantRoleRepository,
-  getParticipantIdsRepository,
   addParticipantsRepository,
   getConversationRepository,
+  getParticipantWithUsernameRepository,
 } from "../repository";
 import { DomainError } from "../helpers/errors";
 
@@ -28,7 +28,7 @@ export async function addParticipantsService(
     });
   }
 
-  let resultOldParticipants = await getParticipantIdsRepository({
+  let resultOldParticipants = await getParticipantWithUsernameRepository({
     conversationId: input.conversationId,
   });
 
@@ -36,12 +36,10 @@ export async function addParticipantsService(
     resultOldParticipants = [];
   }
 
-  const resultAddParticipant = await addParticipantsRepository({
+  const resultParticipants = await addParticipantsRepository({
     conversationId: input.conversationId,
-    participantIds: input.participantIds,
+    participantIds: input.participants.map((p) => p.id),
   });
-
-  console.log(resultAddParticipant);
 
   const resultConversation = await getConversationRepository({
     conversationId: input.conversationId,
@@ -51,12 +49,11 @@ export async function addParticipantsService(
 
   // Broadcast/Send to participants
   eventBusServer.emit(WsServerEvent.CONVERSATION_ADDED_PARTICIPANTS, {
-    senderId: input.creator.id,
-    accessToken: input.authToken,
-    oldParticipants: resultOldParticipants.map((participant) => {
-      return participant.userId;
-    }),
-    newParticipants: input.participantIds,
+    sender: input.creator,
+    authToken: input.authToken,
+    oldParticipants: resultOldParticipants,
+    newParticipants: resultParticipants,
+    conversationId: resultConversation?.conversation.id,
     conversation: resultConversation,
   });
 

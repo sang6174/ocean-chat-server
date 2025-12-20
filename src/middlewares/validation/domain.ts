@@ -301,15 +301,13 @@ export function validateCreateMyselfConversationDomainInput(
   if (!isUUIDv4(value.participantIds[0]))
     return { valid: false, message: "participantIds must be uuidv4[]" };
 
-  validateConversationMetadata(value.metadata);
-
   if (!value.authToken)
     return { valid: false, message: "authToken must be string" };
 
   if (!isTypeConversationEnum(value.type))
     return { valid: false, message: "type must be string" };
 
-  return { valid: true };
+  return validateConversationMetadata(value.metadata);
 }
 
 export function assertCreateMyselfConversationDomainInput(
@@ -358,15 +356,13 @@ export function validateCreateDirectConversationDomainInput(
     };
   }
 
-  validateConversationMetadata(value.metadata);
-
   if (!isString(value.authToken))
     return { valid: false, message: "authToken must be string" };
 
   if (!isString(value.type))
     return { valid: false, message: "type must be string" };
 
-  return { valid: true };
+  return validateConversationMetadata(value.metadata);
 }
 
 export function assertCreateDirectConversationDomainInput(
@@ -387,48 +383,41 @@ export function validateCreateGroupConversationDomainInput(
   if (!isPlainObject(value))
     return { valid: false, message: "Must be an object" };
 
-  if (!isPlainObject(value.creator))
-    return { valid: false, message: "creator must be an object" };
-
-  if (!isUUIDv4(value.creator.id))
-    return { valid: false, message: "creator.id must be uuidv4" };
-
-  if (!isString(value.creator.username))
-    return { valid: false, message: "creator.username must be string" };
-
-  if (!isStringArray(value.participantIds))
-    return { valid: false, message: "participantIds must be uuidv4[]" };
-
-  for (const i of value.participantIds) {
-    if (!isUUIDv4(i))
-      return { valid: false, message: "participantIds must be uuidv4[]" };
-  }
-
-  console.log(value.participantIds.length);
-  if (value.participantIds.length < 3) {
-    return {
-      valid: false,
-      message: "participantIds must have length more than or equal three",
-    };
-  }
-
-  const participantIds = new Set(value.participantIds);
-  if (value.participantIds.length !== participantIds.size) {
-    return {
-      valid: false,
-      message: "participantIds must be different",
-    };
-  }
-
-  validateConversationMetadata(value.metadata);
+  if (!isString(value.type))
+    return { valid: false, message: "type must be string" };
 
   if (!isString(value.authToken))
     return { valid: false, message: "authToken must be string" };
 
-  if (!isString(value.type))
-    return { valid: false, message: "type must be string" };
+  if (!Array.isArray(value.participants))
+    return { valid: false, message: "participants must be array" };
 
-  return { valid: true };
+  for (const p of value.participants) {
+    if (!isUUIDv4(p.id))
+      return { valid: false, message: "participants[i].id must be uuidv4" };
+    if (!isString(p.username))
+      return {
+        valid: false,
+        message: "participants[i].username must be string",
+      };
+  }
+
+  if (value.participants.length < 3) {
+    return {
+      valid: false,
+      message: "participants's length must more than or equal three",
+    };
+  }
+
+  const participants = new Set(value.participants);
+  if (value.participants.length !== participants.size) {
+    return {
+      valid: false,
+      message: "participants must be different",
+    };
+  }
+
+  return validateConversationMetadata(value.metadata);
 }
 
 export function assertCreateGroupConversationDomainInput(
@@ -500,12 +489,28 @@ export function validateAddParticipantsDomainInput(
   if (!isString(value.conversationId))
     return { valid: false, message: "conversation must be string" };
 
-  if (!isStringArray(value.participantIds))
-    return { valid: false, message: "participantIds must be uuidv4[]" };
+  if (!Array.isArray(value.participants))
+    return { valid: false, message: "participants must be string" };
 
-  for (const i of value.participantIds) {
-    if (!isUUIDv4(i))
-      return { valid: false, message: "participantIds must be uuidv4[]" };
+  for (const i of value.participants) {
+    if (!isUUIDv4(i.id)) {
+      return { valid: false, message: "participants[i].id must be uuidv4[]" };
+    }
+
+    if (!isString(i.username)) {
+      return {
+        valid: false,
+        message: "participants[i].username must be string",
+      };
+    }
+  }
+
+  const participants = new Set(value.participants);
+  if (value.participants.length !== participants.size) {
+    return {
+      valid: false,
+      message: "participants must be different",
+    };
   }
 
   return { valid: true };

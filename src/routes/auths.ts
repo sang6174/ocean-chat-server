@@ -110,6 +110,7 @@ export async function handleRegister(req: Request, corsHeaders: any) {
 // ============================================================
 export async function handleLogin(req: Request, corsHeaders: any) {
   try {
+    logger.info("Start handle login");
     // Parse request body and sanitize fields.
     const form = await parseBodyFormData(req);
     if ("status" in form && "message" in form) {
@@ -184,6 +185,7 @@ export async function handleLogin(req: Request, corsHeaders: any) {
 // ============================================================
 export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
   try {
+    logger.info("Start handle logout");
     const auth: ResponseDomain | string = parseAuthToken(req);
     if (
       typeof auth !== "string" &&
@@ -221,7 +223,6 @@ export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
         }
       );
     }
-    console.log(refreshToken);
 
     const authResult: UserTokenPayload | null = authMiddleware(auth);
     const refreshResult = refreshTokenMiddleware(refreshToken);
@@ -291,6 +292,7 @@ export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
 // ============================================================
 export async function handleRefreshAuthToken(req: Request, corsHeaders: any) {
   try {
+    logger.info("Start handle refresh auth token");
     // Parse refresh token
     const auth: ResponseDomain | string = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {

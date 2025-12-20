@@ -19,6 +19,7 @@ import type {
   PgGetParticipantRoleOutput,
   PgGetConversationIdsOutput,
   PgGetConversationOutput,
+  PgParticipantWithUsername,
 } from "../types/models";
 import { mapPgError } from "../helpers/errors";
 
@@ -57,6 +58,7 @@ export async function pgFindAccountByUsername(
     if (result.rowCount === 0) {
       return null;
     }
+
     return result.rows[0];
   } catch (err: any) {
     throw mapPgError(err);
@@ -75,6 +77,7 @@ export async function pgFindAccountById(
     if (result.rowCount === 0) {
       return null;
     }
+
     return result.rows[0];
   } catch (err: any) {
     return err;
@@ -95,6 +98,7 @@ export async function pgGetAllProfileUsers(): Promise<
     if (result.rowCount === 0) {
       return null;
     }
+
     return result.rows;
   } catch (err: any) {
     throw mapPgError(err);
@@ -117,6 +121,7 @@ export async function pgGetProfileUser(
     if (result.rowCount === 0) {
       return null;
     }
+
     return result.rows[0];
   } catch (err: any) {
     throw mapPgError(err);
@@ -174,8 +179,6 @@ export async function pgGetConversation(
       ),
     ]);
 
-    console.log(conversation.rows, participants.rows, messages.rows);
-
     if (conversation.rowCount === 0 || participants.rowCount === 0) {
       return null;
     }
@@ -204,8 +207,32 @@ export async function pgGetParticipantRole(
     if (result.rowCount === 0) {
       return null;
     }
+
     return result.rows[0];
   } catch (err: any) {
+    throw mapPgError(err);
+  }
+}
+
+export async function pgGetParticipantWithUsername(input: {
+  conversationId: string;
+}): Promise<PgParticipantWithUsername[] | null> {
+  try {
+    const result = await pool.query(
+      `SELECT a.id, a.username, p.role, p.joined_at, p.last_seen
+       FROM main.accounts a
+       JOIN main.participants p 
+       ON p.user_id = a.id 
+       WHERE conversation_id = $1`,
+      [input.conversationId]
+    );
+
+    if (result.rowCount === 0) {
+      return null;
+    }
+
+    return result.rows;
+  } catch (err) {
     throw mapPgError(err);
   }
 }
@@ -224,6 +251,7 @@ export async function pgGetParticipantIds(
     if (result.rowCount === 0) {
       return null;
     }
+
     return result.rows;
   } catch (err: any) {
     throw mapPgError(err);

@@ -26,7 +26,7 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 setInterval(() => {
-  blacklistRefreshToken.clear();
+  blacklistRefreshToken.clear;
   console.log("Blacklist of refresh token cleared");
 }, 5 * 24 * 60 * 60 * 1000);
 

@@ -2,8 +2,6 @@ import type { UserTokenPayload } from "../types/domain";
 import {
   parseAuthToken,
   authMiddleware,
-  isUUIDv4,
-  isUsername,
   assertHttpNotificationFriendPost,
 } from "../middlewares";
 import {
@@ -23,6 +21,7 @@ export async function handleNotificationAddFriend(
   corsHeaders: any
 ) {
   try {
+    logger.info("Start handle friend request notification");
     // Parse auth token
     const auth = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
@@ -119,6 +118,7 @@ export async function handleNotificationAcceptFriend(
   corsHeaders: any
 ) {
   try {
+    logger.info("Start handle friend request accepted notification");
     // Parse auth token
     const auth = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {
@@ -210,6 +210,7 @@ export async function handleNotificationDenyFriend(
   corsHeaders: any
 ) {
   try {
+    logger.info("Start handle friend request denied notification");
     // Parse auth token
     const auth = parseAuthToken(req);
     if (typeof auth !== "string" && "status" in auth && "message" in auth) {

@@ -7,6 +7,7 @@ import type {
   CreateConversationRepositoryInput,
   CreateConversationRepositoryOutput,
   AddParticipantsRepositoryInput,
+  ParticipantWithUsername,
 } from "../types/domain";
 import {
   pgRegisterTransaction,
@@ -36,7 +37,7 @@ export async function registerRepository(
       metadata: {
         name: resultRegister.conversation.metadata.name,
         creator: {
-          userId: resultRegister.conversation.metadata.userId,
+          id: resultRegister.conversation.metadata.userId,
           username: resultRegister.conversation.metadata.username,
         },
       },
@@ -48,20 +49,28 @@ export async function createConversationRepository(
   input: CreateConversationRepositoryInput
 ): Promise<CreateConversationRepositoryOutput> {
   const result = await pgCreateConversationTransaction(input);
+
+  let participants = result.participants.map((p) => {
+    return {
+      ...p,
+      ...input.participants.find((participant) => participant.id === p.user_id),
+    };
+  });
+
   return {
     conversation: {
       id: result.conversation.id,
       type: result.conversation.type as ConversationType,
       metadata: result.conversation.metadata as ConversationMetadata,
     },
-    participants: result.participants.map((participant) => {
+    participants: participants.map((participant) => {
       return {
         userId: participant.user_id,
-        conversationId: participant.conversation_id,
+        username: participant.username,
         role: participant.role,
         lastSeen: participant.last_seen,
         joinedAt: participant.joined_at,
-      };
+      } as ParticipantWithUsername;
     }),
   };
 }
