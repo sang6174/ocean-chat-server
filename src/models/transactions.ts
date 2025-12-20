@@ -47,6 +47,12 @@ export async function pgRegisterTransaction(
       ["myself", metadata]
     );
 
+    const participant = await client.query(
+      `INSERT INTO main.participants (conversation_id, user_id, role)
+       VALUES ($1, $2, $3) RETURNING user_id, conversation_id, role, last_seen, joined_at`,
+      [privateConversation.rows[0].id, user.rows[0].id, "admin"]
+    );
+
     await client.query(`COMMIT`);
     logger.info("Register Transaction Successfully");
 

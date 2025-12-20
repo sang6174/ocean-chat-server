@@ -47,9 +47,9 @@ export async function handleGetConversations(
 
     // Get userId from search params
     const userId = url.searchParams.get("userId");
-    if (!userId || isUUIDv4(userId)) {
+    if (!userId || !isUUIDv4(userId)) {
       return new Response(
-        JSON.stringify({ message: "Search params is invalid." }),
+        JSON.stringify({ message: "Search params is invalid ..." }),
         {
           status: 400,
           headers: {

@@ -173,6 +173,24 @@ export function mapPgError(error: any): DatabaseError {
 }
 
 export function handleError(err: any, corsHeaders: any) {
+  if (err instanceof AuthError) {
+    logger.error(err.message);
+    return new Response(
+      JSON.stringify({
+        code: err.code,
+        message: err.message,
+      }),
+      {
+        status: err.status,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
+      }
+    );
+  }
+
   if (err instanceof ValidateError) {
     logger.error(err.message);
     return new Response(

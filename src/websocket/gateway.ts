@@ -28,7 +28,6 @@ export function addWsConnection(ws: Bun.ServerWebSocket<DataWebSocket>) {
 
   wsConnections.get(ws.data.userId)!.add(ws);
   console.log(`Client ${ws.data.userId} is connected.`);
-  ws.send(`Client ${ws.data.userId} is connected.`);
   return;
 }
 
@@ -125,14 +124,14 @@ eventBusServer.on(
   (input: PublishConversationCreated) => {
     // Send payload to other connections of sender
     const dataToOtherConnectionsOfSender: WsDataToSendToClient<CreateConversationRepositoryOutput> =
-      {
-        type: WsServerEvent.CONVERSATION_CREATED,
-        metadata: {
-          senderId: input.senderId,
-          toUserId: input.senderId,
-        },
-        data: input.conversation,
-      };
+    {
+      type: WsServerEvent.CONVERSATION_CREATED,
+      metadata: {
+        senderId: input.senderId,
+        toUserId: input.senderId,
+      },
+      data: input.conversation,
+    };
 
     sendToOtherConnectionsOfSender(
       input.authToken,
@@ -143,14 +142,14 @@ eventBusServer.on(
     // Send payload to participants
     for (const recipientId of input.recipientIds) {
       const dataToRecipient: WsDataToSendToClient<CreateConversationRepositoryOutput> =
-        {
-          type: WsServerEvent.CONVERSATION_CREATED,
-          metadata: {
-            senderId: input.senderId,
-            toUserId: recipientId,
-          },
-          data: input.conversation,
-        };
+      {
+        type: WsServerEvent.CONVERSATION_CREATED,
+        metadata: {
+          senderId: input.senderId,
+          toUserId: recipientId,
+        },
+        data: input.conversation,
+      };
       sendToUser(recipientId, dataToRecipient);
     }
     logger.info("Publish conversation created successfully");
@@ -199,14 +198,14 @@ eventBusServer.on(
 
     // Send the new conversation to new participants
     const dataToNewParticipants: WsDataToSendToClient<GetConversationRepositoryOutput> =
-      {
-        type: WsServerEvent.MESSAGE_CREATED,
-        metadata: {
-          senderId: input.senderId,
-          toConversationId: input.conversationId,
-        },
-        data: input.conversation,
-      };
+    {
+      type: WsServerEvent.MESSAGE_CREATED,
+      metadata: {
+        senderId: input.senderId,
+        toConversationId: input.conversationId,
+      },
+      data: input.conversation,
+    };
 
     for (const recipient of input.newParticipants) {
       sendToUser(recipient, dataToNewParticipants);
@@ -238,14 +237,14 @@ eventBusServer.on(
     input: PublishNotificationAcceptedFriend<CreateConversationRepositoryOutput>
   ) => {
     const notification: WsDataToSendToClient<CreateConversationRepositoryOutput> =
-      {
-        type: WsServerEvent.NOTIFICATION_ADD_FRIEND,
-        metadata: {
-          senderId: input.sender.id,
-          toUserId: input.recipient.id,
-        },
-        data: input.data,
-      };
+    {
+      type: WsServerEvent.NOTIFICATION_ADD_FRIEND,
+      metadata: {
+        senderId: input.sender.id,
+        toUserId: input.recipient.id,
+      },
+      data: input.data,
+    };
 
     sendToUser(input.recipient.id, notification);
     logger.info("Publish notification accepted friend request successfully");

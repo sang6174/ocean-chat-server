@@ -101,7 +101,7 @@ export async function loginService(
     });
   }
 
-  const accessToken: string = createAccessToken(
+  const authToken: string = createAccessToken(
     JSON.stringify({
       userId: existingAccount.id,
       username: existingAccount.username,
@@ -112,7 +112,7 @@ export async function loginService(
   const refreshToken: string = createRefreshToken(
     JSON.stringify({
       userId: existingAccount.id,
-      accessToken,
+      authToken,
     })
   );
   logger.warn("Generate a new refresh token successfully");
@@ -120,7 +120,7 @@ export async function loginService(
   return {
     userId: existingAccount.id,
     username: existingAccount.username,
-    authToken: accessToken,
+    authToken: authToken,
     refreshToken,
   };
 }

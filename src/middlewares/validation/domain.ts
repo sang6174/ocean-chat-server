@@ -30,6 +30,7 @@ import {
   isTypeConversationEnum,
   validateConversationMetadata,
 } from "./helper";
+import { AuthError } from "../../helpers/errors";
 
 // ============================================================
 // Register
@@ -138,7 +139,7 @@ export function isDecodedAuthToken(
   return (
     isPlainObject(dataObj) &&
     isUUIDv4(dataObj.userId) &&
-    typeof dataObj.username === "string"
+    isString(dataObj.username)
   );
 }
 
@@ -166,30 +167,30 @@ export function validateAuthToken(
 export function assertUserTokenPayload(
   value: unknown
 ): asserts value is UserTokenPayload {
-  if (typeof value !== "object" || value === null) {
-    throw new Error("UserTokenPayload must be an object");
+  if (!isPlainObject(value)) {
+    throw new AuthError("UserTokenPayload must be an object");
   }
 
   const v = value as any;
 
-  if (!isPlainObject(v.data)) {
-    throw new Error("UserTokenPayload.data must be an object");
-  }
-
-  if (!isUUIDv4(v.data.userId)) {
-    throw new Error("UserTokenPayload.data.userId must be a string");
-  }
-
-  if (!isString(v.data.username)) {
-    throw new Error("UserTokenPayload.data.username must be a string");
-  }
-
-  if (isNumber(v.iat)) {
-    throw new Error("UserTokenPayload.iat must be a number");
+  if (!isNumber(v.iat)) {
+    throw new AuthError("UserTokenPayload.iat must be a number");
   }
 
   if (!isNumber(v.exp)) {
-    throw new Error("UserTokenPayload.exp must be a number");
+    throw new AuthError("UserTokenPayload.exp must be a number");
+  }
+
+  if (!isPlainObject(v.data)) {
+    throw new AuthError("UserTokenPayload.data must be an object");
+  }
+
+  if (!isUUIDv4(v.data.userId)) {
+    throw new AuthError("UserTokenPayload.data.userId must be a string");
+  }
+
+  if (!isString(v.data.username)) {
+    throw new AuthError("UserTokenPayload.data.username must be a string");
   }
 }
 
@@ -221,7 +222,7 @@ export function isDecodedRefreshToken(
   return (
     isPlainObject(dataObj) &&
     isUUIDv4(dataObj.userId) &&
-    typeof dataObj.accessToken === "string"
+    isString(dataObj.authToken)
   );
 }
 
@@ -251,29 +252,31 @@ export function assertRefreshTokenPayload(
   value: unknown
 ): asserts value is RefreshTokenPayload {
   if (!isPlainObject(value)) {
-    throw new Error("RefreshTokenPayload must be an object");
+    throw new AuthError("RefreshTokenPayload must be an object");
   }
 
   const v = value as any;
 
   if (!isNumber(v.iat)) {
-    throw new Error("RefreshTokenPayload.iat must be a number");
+    throw new AuthError("RefreshTokenPayload.iat must be a number");
   }
 
   if (!isNumber(v.exp)) {
-    throw new Error("RefreshTokenPayload.exp must be a number");
+    throw new AuthError("RefreshTokenPayload.exp must be a number");
   }
 
   if (!isPlainObject(v.data)) {
-    throw new Error("RefreshTokenPayload.data must be an object");
+    throw new AuthError("RefreshTokenPayload.data must be an object");
   }
 
   if (!isUUIDv4(v.data.userId)) {
-    throw new Error("RefreshTokenPayload.data.userId must be a string");
+    throw new AuthError("RefreshTokenPayload.data.userId must be a string");
   }
 
   if (!isString(v.data.authToken)) {
-    throw new Error("RefreshTokenPayload.data.accessToken must be a string");
+    throw new AuthError(
+      "RefreshTokenPayload.data.accessToken must be a string"
+    );
   }
 }
 
@@ -401,7 +404,8 @@ export function validateCreateGroupConversationDomainInput(
       return { valid: false, message: "participantIds must be uuidv4[]" };
   }
 
-  if (value.participantIds.length >= 3) {
+  console.log(value.participantIds.length);
+  if (value.participantIds.length < 3) {
     return {
       valid: false,
       message: "participantIds must have length more than or equal three",

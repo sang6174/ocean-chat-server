@@ -20,6 +20,7 @@ export async function handleUpgradeWebSocket(
   try {
     // Get auth token
     const token = url.searchParams.get("token");
+    console.log(token);
     if (!token) {
       return new Response(
         JSON.stringify({
@@ -36,10 +37,9 @@ export async function handleUpgradeWebSocket(
         }
       );
     }
-    const auth = "Bearer " + token;
 
     // Verify auth token
-    const authResult: UserTokenPayload | null = authMiddleware(auth);
+    const authResult: UserTokenPayload | null = authMiddleware(token);
     if (!authResult) {
       return new Response(
         JSON.stringify({
@@ -68,7 +68,7 @@ export async function handleUpgradeWebSocket(
     const upgraded = server.upgrade(req, {
       data: {
         ...authResult.data,
-        authToken: auth,
+        authToken: token,
         conversationIds: conversation.ids,
       },
     });

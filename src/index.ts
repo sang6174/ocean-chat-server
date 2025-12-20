@@ -44,11 +44,11 @@ const server = Bun.serve<DataWebSocket>({
     };
 
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "http://localhost:3000",
+      "Access-Control-Allow-Origin": "http://localhost:5173",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Access-Control-Allow-Credentials": "true",
-      "Access-Control-Expose-Headers": "x-trace-id",
+      "Access-Control-Expose-Headers": "x-request-id",
     };
 
     // OPTIONS
@@ -80,7 +80,7 @@ const server = Bun.serve<DataWebSocket>({
       });
     }
 
-    // POST /auth/refresh/token
+    // GET /auth/refresh/token
     if (path === "/auth/refresh/token" && method === "GET") {
       return requestContextStorage.run(ctx, () => {
         return handleRefreshAuthToken(req, corsHeaders);

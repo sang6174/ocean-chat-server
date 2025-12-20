@@ -125,7 +125,7 @@ export async function pgGetProfileUser(
 
 export async function pgGetConversationIds(
   input: GetConversationIdsRepositoryInput
-): Promise<PgGetConversationIdsOutput | null> {
+): Promise<PgGetConversationIdsOutput[] | null> {
   try {
     const result = await pool.query(
       `SELECT c.id 
@@ -138,7 +138,8 @@ export async function pgGetConversationIds(
     if (result.rowCount === 0) {
       return null;
     }
-    return { ids: result.rows };
+
+    return result.rows;
   } catch (err: any) {
     throw mapPgError(err);
   }
@@ -148,6 +149,7 @@ export async function pgGetConversation(
   input: GetConversationRepositoryInput
 ): Promise<PgGetConversationOutput | null> {
   try {
+    console.log(input);
     const [conversation, participants, messages] = await Promise.all([
       pool.query(
         `SELECT id, type, metadata FROM main.conversations WHERE id = $1`,
@@ -167,6 +169,8 @@ export async function pgGetConversation(
         [input.conversationId, input.limit, input.offset]
       ),
     ]);
+
+    console.log(conversation.rows, participants.rows, messages.rows);
 
     if (conversation.rowCount === 0 || participants.rowCount === 0) {
       return null;

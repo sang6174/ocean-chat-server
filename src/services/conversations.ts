@@ -56,6 +56,8 @@ export async function getConversationsService(
   for (const conId of conversation.ids) {
     const resultConversation = await getConversationRepository({
       conversationId: conId,
+      limit: 10,
+      offset: 0,
     });
 
     if (!resultConversation) {

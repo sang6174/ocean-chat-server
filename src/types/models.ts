@@ -112,7 +112,7 @@ export interface PgGetConversationInput {
 }
 
 export interface PgGetConversationIdsOutput {
-  ids: string[];
+  id: string;
 }
 
 export interface PgGetConversationOutput {

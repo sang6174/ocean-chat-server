@@ -72,7 +72,8 @@ export async function getConversationIdsRepository(
     return null;
   }
 
-  return result;
+  const ids = result.map((obj) => obj.id);
+  return { ids };
 }
 
 export async function getConversationRepository(

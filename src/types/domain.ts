@@ -255,8 +255,8 @@ export interface GetConversationIdsRepositoryOutput {
 
 export interface GetConversationRepositoryInput {
   conversationId: string;
-  limit?: number;
-  offset?: number;
+  limit: number;
+  offset: number;
 }
 
 export interface GetConversationRepositoryOutput {
