@@ -154,7 +154,6 @@ export async function pgGetConversation(
   input: GetConversationRepositoryInput
 ): Promise<PgGetConversationOutput | null> {
   try {
-    console.log(input);
     const [conversation, participants, messages] = await Promise.all([
       pool.query(
         `SELECT id, type, metadata FROM main.conversations WHERE id = $1`,
@@ -219,7 +218,7 @@ export async function pgGetParticipantWithUsername(input: {
 }): Promise<PgParticipantWithUsername[] | null> {
   try {
     const result = await pool.query(
-      `SELECT a.id, a.username, p.role, p.joined_at, p.last_seen
+      `SELECT p.user_id, a.username, p.role, p.joined_at, p.last_seen
        FROM main.accounts a
        JOIN main.participants p 
        ON p.user_id = a.id 

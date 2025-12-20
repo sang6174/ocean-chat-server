@@ -20,7 +20,6 @@ export async function handleUpgradeWebSocket(
   try {
     // Get auth token
     const token = url.searchParams.get("token");
-    console.log(token);
     if (!token) {
       return new Response(
         JSON.stringify({

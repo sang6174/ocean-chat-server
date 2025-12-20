@@ -1,5 +1,5 @@
 import type { DataWebSocket } from "./types/ws";
-import { requestContextStorage } from "./helpers/logger";
+import { logger, requestContextStorage } from "./helpers/logger";
 import {
   handleRegister,
   handleLogin,
@@ -179,11 +179,11 @@ const server = Bun.serve<DataWebSocket>({
     data: {} as DataWebSocket,
 
     open(ws) {
-      console.log("Upgrade websocket successfully.");
+      logger.info("Upgrade websocket successfully.");
       addWsConnection(ws);
     },
 
-    async message(ws) {},
+    async message(ws) { },
 
     close(ws) {
       removeWsConnection(ws);

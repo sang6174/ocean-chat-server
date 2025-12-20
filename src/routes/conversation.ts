@@ -82,7 +82,6 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     // Sanitize, validate and assert request body according to conversation type
     let cleanBody: CreateConversationDomainInput;
     if (rawBody.conversation.type === ConversationType.Group) {
-      console.log("Be group");
       cleanBody = {
         type: ConversationType.Group,
         metadata: {
@@ -97,7 +96,6 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
       };
       assertCreateGroupConversationDomainInput(cleanBody);
     } else {
-      console.log("be not group");
       return new Response(
         JSON.stringify({
           code: "CONVERSATION_TYPE_INVALID",
