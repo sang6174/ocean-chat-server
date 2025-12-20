@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS main.messages (
     conversation_id UUID REFERENCES main.conversations(id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS main.notifications {
+CREATE TABLE IF NOT EXISTS main.notifications (
     id              UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     type            VARCHAR(100) NOT NULL, 
     created_at      TIMESTAMPTZ DEFAULT NOW(),
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS main.notifications {
     deleted_at      TIMESTAMPTZ,
     sender_id       UUID REFERENCES main.users(id),
     recipient_id    UUID REFERENCES main.users(id)
-};
+);
 
 -- ============================================================
 -- Indexing
