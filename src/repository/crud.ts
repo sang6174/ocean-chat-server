@@ -152,12 +152,8 @@ export async function getProfileUserRepository(
 
 export async function getMessagesRepository(
   input: GetMessagesRepositoryInput
-): Promise<GetMessageRepositoryOutput[] | null> {
+): Promise<GetMessageRepositoryOutput[]> {
   const result = await pgGetMessages(input);
-
-  if (!result) {
-    return null;
-  }
 
   return result.map((message) => {
     return {

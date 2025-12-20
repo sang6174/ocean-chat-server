@@ -494,7 +494,7 @@ export function validateAddParticipantsDomainInput(
   if (!isString(value.creator.username))
     return { valid: false, message: "creator.username must be string" };
 
-  if (!isString(value.accessToken))
+  if (!isString(value.authToken))
     return { valid: false, message: "accessToken must be string" };
 
   if (!isString(value.conversationId))

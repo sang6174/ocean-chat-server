@@ -134,6 +134,7 @@ export interface LoginDomainOutput {
 export interface LogoutDomainInput {
   userId: string;
   authToken: string;
+  refreshToken: string;
 }
 
 export interface RefreshAuthTokenInput {

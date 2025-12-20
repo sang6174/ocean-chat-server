@@ -201,5 +201,8 @@ export function validateHttpNotificationFriendPost(
 export function assertHttpNotificationFriendPost(
   value: any
 ): asserts value is HttpNotificationFriendPost {
-  assertValid(validateHttpAddParticipantPost(value), "HttpAddParticipantPost");
+  assertValid(
+    validateHttpNotificationFriendPost(value),
+    "HttpNotificationFriendPost"
+  );
 }

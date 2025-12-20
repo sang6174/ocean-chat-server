@@ -137,7 +137,7 @@ export async function handleGetMessages(
     const conversationId = url.searchParams.get("conversationId");
     const limit = url.searchParams.get("limit") || 10;
     const offset = url.searchParams.get("offset") || 0;
-    if (!conversationId || isUUIDv4(conversationId)) {
+    if (!conversationId || !isUUIDv4(conversationId)) {
       return new Response(
         JSON.stringify({ message: "Search params is invalid." }),
         {

@@ -59,13 +59,5 @@ export async function getMessagesService(
     offset: input.offset ?? 0,
   });
 
-  if (!result) {
-    throw new DomainError({
-      status: 400,
-      code: "CONVERSATION_ID_INVALID",
-      message: "conversationId is invalid",
-    });
-  }
-
   return result;
 }

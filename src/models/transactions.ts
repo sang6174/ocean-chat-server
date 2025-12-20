@@ -85,7 +85,9 @@ export async function pgCreateConversationTransaction(
 
     let participants: PgParticipant[] = [];
     for (const participantId of input.participantIds) {
-      if (participantId === conversationResult.rows[0].metadata.creator) {
+      if (
+        participantId === conversationResult.rows[0].metadata.creator.userId
+      ) {
         const participant = await client.query(
           `INSERT INTO main.participants (conversation_id, user_id, role)
            VALUES ($1, $2, $3) RETURNING user_id, conversation_id, role, last_seen, joined_at`,

@@ -17,13 +17,18 @@ import {
   handleGetMessages,
   handleUpgradeWebSocket,
 } from "./routes";
-import { blacklistSessions } from "./models";
+import { blacklistAuthToken, blacklistRefreshToken } from "./models";
 import { addWsConnection, removeWsConnection } from "./websocket/gateway";
 
 setInterval(() => {
-  blacklistSessions.clear();
-  console.log("Blacklist of access token cleared");
+  blacklistAuthToken.clear();
+  console.log("Blacklist of auth token cleared");
 }, 60 * 60 * 1000);
+
+setInterval(() => {
+  blacklistRefreshToken.clear();
+  console.log("Blacklist of refresh token cleared");
+}, 5 * 24 * 60 * 60 * 1000);
 
 const PORT = Number(process.env.PORT || 8080);
 
@@ -73,10 +78,31 @@ const server = Bun.serve<DataWebSocket>({
       });
     }
 
-    // POST /auth/logout
-    if (path === "/auth/logout" && method === "POST") {
+    // GET /profile/users
+    if (path === "/profile/users" && method === "GET") {
       return requestContextStorage.run(ctx, () => {
-        return handleLogout(req, corsHeaders);
+        return handleGetAllProfileUsers(req, corsHeaders);
+      });
+    }
+
+    // GET /profile/user
+    if (path === "/profile/user" && method === "GET") {
+      return requestContextStorage.run(ctx, () => {
+        return handleGetProfileUser(req, corsHeaders);
+      });
+    }
+
+    // GET /conversations?userId=...
+    if (path === "/conversations" && method === "GET") {
+      return requestContextStorage.run(ctx, () => {
+        return handleGetConversations(url, req, corsHeaders);
+      });
+    }
+
+    // GET /conversations/messages?conversationId=...&limit=...&offset=...
+    if (path === "/conversations/messages" && method === "GET") {
+      return requestContextStorage.run(ctx, () => {
+        return handleGetMessages(url, req, corsHeaders);
       });
     }
 
@@ -84,6 +110,13 @@ const server = Bun.serve<DataWebSocket>({
     if (path === "/auth/refresh/token" && method === "GET") {
       return requestContextStorage.run(ctx, () => {
         return handleRefreshAuthToken(req, corsHeaders);
+      });
+    }
+
+    // POST /auth/logout
+    if (path === "/auth/logout" && method === "POST") {
+      return requestContextStorage.run(ctx, () => {
+        return handleLogout(url, req, corsHeaders);
       });
     }
 
@@ -126,34 +159,6 @@ const server = Bun.serve<DataWebSocket>({
     if (path === "/notification/friend/deny" && method === "POST") {
       return requestContextStorage.run(ctx, () => {
         return handleNotificationDenyFriend(url, req, corsHeaders);
-      });
-    }
-
-    // GET /profile/users
-    if (path === "/profile/users" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGetAllProfileUsers(req, corsHeaders);
-      });
-    }
-
-    // GET /profile/user
-    if (path === "/profile/user" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGetProfileUser(req, corsHeaders);
-      });
-    }
-
-    // GET /conversations?userId=...
-    if (path === "/conversations" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGetConversations(url, req, corsHeaders);
-      });
-    }
-
-    // GET /conversations/messages?conversationId=...&limit=...&offset=...
-    if (path === "/conversations/messages" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGetMessages(url, req, corsHeaders);
       });
     }
 

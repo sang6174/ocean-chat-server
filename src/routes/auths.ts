@@ -182,10 +182,15 @@ export async function handleLogin(req: Request, corsHeaders: any) {
 // ============================================================
 // GET /auth/logout
 // ============================================================
-export async function handleLogout(req: Request, corsHeaders: any) {
+export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
   try {
     const auth: ResponseDomain | string = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
+    if (
+      typeof auth !== "string" &&
+      "status" in auth &&
+      "code" in auth &&
+      "message" in auth
+    ) {
       return new Response(JSON.stringify({ message: auth.message }), {
         status: auth.status,
         headers: {
@@ -195,11 +200,34 @@ export async function handleLogout(req: Request, corsHeaders: any) {
         },
       });
     }
+    const refreshToken =
+      req.headers
+        .get("cookie")
+        ?.split(";")
+        .map((c) => c.trim())
+        .find((c) => c.startsWith("refresh_token="))
+        ?.slice("refresh_token=".length) ?? null;
+
+    if (!refreshToken) {
+      return new Response(
+        JSON.stringify({ message: "Please send with cookie" }),
+        {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "x-request-id": logger.requestId,
+          },
+        }
+      );
+    }
+    console.log(refreshToken);
 
     const authResult: UserTokenPayload | null = authMiddleware(auth);
-    if (!authResult) {
+    const refreshResult = refreshTokenMiddleware(refreshToken);
+    if (!authResult || !refreshResult) {
       return new Response(
-        JSON.stringify({ message: "Invalid or expired auth token." }),
+        JSON.stringify({ message: "Invalid or expired token." }),
         {
           status: 401,
           headers: {
@@ -214,6 +242,7 @@ export async function handleLogout(req: Request, corsHeaders: any) {
     const input: LogoutDomainInput = {
       userId: authResult.data.userId,
       authToken: auth,
+      refreshToken,
     };
 
     assertLogoutDomainInput(input);
@@ -229,6 +258,7 @@ export async function handleLogout(req: Request, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
+          "Set-Cookie": "refresh_token=; HttpOnly; Path=/; Max-Age=0",
           "x-request-id": logger.requestId,
         },
       }

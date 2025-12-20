@@ -128,7 +128,7 @@ export async function pgGetConversationIds(
 ): Promise<PgGetConversationIdsOutput[] | null> {
   try {
     const result = await pool.query(
-      `SELECT c.id 
+      `SELECT DISTINCT c.id 
        FROM main.participants p 
        JOIN main.conversations c ON p.conversation_id = c.id 
        WHERE p.user_id = $1`,
@@ -228,7 +228,7 @@ export async function pgGetParticipantIds(
 
 export async function pgGetMessages(
   input: PgGetMessagesInput
-): Promise<PgMessageWithUsername[] | null> {
+): Promise<PgMessageWithUsername[]> {
   try {
     const result = await pool.query(
       `SELECT m.id, m.content, m.sender_id, a.username as sender_username, m.conversation_id
@@ -240,9 +240,6 @@ export async function pgGetMessages(
       [input.conversationId, input.limit, input.offset]
     );
 
-    if (result.rowCount === 0) {
-      return null;
-    }
     return result.rows;
   } catch (err: any) {
     throw mapPgError(err);

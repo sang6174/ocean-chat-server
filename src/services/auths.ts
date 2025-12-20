@@ -16,7 +16,7 @@ import {
   findAccountById,
   registerRepository,
 } from "../repository";
-import { blacklistSessions } from "../models";
+import { blacklistAuthToken, blacklistRefreshToken } from "../models";
 import { DomainError } from "../helpers/errors";
 import { logger } from "../helpers/logger";
 
@@ -128,10 +128,16 @@ export async function loginService(
 export async function logoutService(
   input: LogoutDomainInput
 ): Promise<ResponseDomain> {
-  if (blacklistSessions.has(input.userId)) {
-    blacklistSessions.get(input.userId)?.push(input.authToken);
+  if (blacklistAuthToken.has(input.userId)) {
+    blacklistAuthToken.get(input.userId)?.push(input.authToken);
   } else {
-    blacklistSessions.set(input.userId, [input.authToken]);
+    blacklistAuthToken.set(input.userId, [input.authToken]);
+  }
+
+  if (blacklistRefreshToken.has(input.userId)) {
+    blacklistRefreshToken.get(input.userId)?.push(input.refreshToken);
+  } else {
+    blacklistRefreshToken.set(input.userId, [input.refreshToken]);
   }
 
   return {
