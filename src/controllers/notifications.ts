@@ -16,7 +16,7 @@ export async function notificationAddFriendController(input: {
     username: string;
   };
 }) {
-  eventBusServer.emit(WsServerEvent.NOTIFICATION_ADD_FRIEND, { input });
+  eventBusServer.emit(WsServerEvent.NOTIFICATION_ADD_FRIEND, input);
 
   return {
     status: 200,
@@ -48,7 +48,8 @@ export async function notificationAcceptFriendController(input: {
   });
 
   eventBusServer.emit(WsServerEvent.NOTIFICATION_ACCEPTED_FRIEND, {
-    input,
+    ...input,
+    data: resultConversation,
   });
 
   return resultConversation;
@@ -64,7 +65,7 @@ export async function notificationDenyFriendController(input: {
     username: string;
   };
 }) {
-  eventBusServer.emit(WsServerEvent.NOTIFICATION_DENIED_FRIEND, { input });
+  eventBusServer.emit(WsServerEvent.NOTIFICATION_DENIED_FRIEND, input);
 
   return {
     status: 200,

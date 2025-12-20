@@ -36,7 +36,7 @@ export async function sendMessageService(
 
   const inputWsEvent = {
     senderId: input.sender.id,
-    accessToken: input.authToken,
+    authToken: input.authToken,
     conversationId: input.conversationId,
     recipientIds: resultParticipantIds.map((participant) => participant.userId),
     message: input.message,

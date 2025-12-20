@@ -156,7 +156,11 @@ export async function pgGetConversation(
         [input.conversationId]
       ),
       pool.query(
-        `SELECT user_id, role, last_seen, joined_at FROM main.participants WHERE conversation_id = $1`,
+        `SELECT p.user_id, a.username, p.role, p.last_seen, p.joined_at 
+         FROM main.participants p
+         JOIN main.accounts a
+         ON a.id = p.user_id
+         WHERE conversation_id = $1`,
         [input.conversationId]
       ),
       pool.query(
@@ -179,7 +183,7 @@ export async function pgGetConversation(
     return {
       conversation: conversation.rows[0],
       participants: participants.rows,
-      messages: messages.rows,
+      messages: messages.rows.reverse(),
     };
   } catch (err: any) {
     throw mapPgError(err);
@@ -240,7 +244,7 @@ export async function pgGetMessages(
       [input.conversationId, input.limit, input.offset]
     );
 
-    return result.rows;
+    return result.rows.reverse();
   } catch (err: any) {
     throw mapPgError(err);
   }

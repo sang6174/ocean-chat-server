@@ -93,6 +93,9 @@ export type Participant = {
 };
 
 export type ParticipantNoConversationId = Omit<Participant, "conversation_id">;
+export type ParticipantWithUsername = ParticipantNoConversationId & {
+  username: string;
+};
 
 export type Message = {
   id: string;
@@ -262,7 +265,7 @@ export interface GetConversationRepositoryInput {
 
 export interface GetConversationRepositoryOutput {
   conversation: Conversation;
-  participants: ParticipantNoConversationId[];
+  participants: ParticipantWithUsername[];
   messages: Message[];
 }
 

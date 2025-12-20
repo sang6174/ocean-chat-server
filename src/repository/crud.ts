@@ -4,7 +4,7 @@ import type {
   CreateMessageRepositoryOutput,
   FindAccountByUsernameRepositoryInput,
   FindAccountByIdRepositoryInput,
-  ParticipantNoConversationId,
+  ParticipantWithUsername,
   GetConversationRepositoryInput,
   GetConversationRepositoryOutput,
   GetProfileUserRepositoryInput,
@@ -94,10 +94,11 @@ export async function getConversationRepository(
     participants: result.participants.map((participant) => {
       return {
         userId: participant.user_id,
+        username: participant.username,
         role: participant.role,
         lastSeen: participant.last_seen,
         joinedAt: participant.joined_at,
-      } as ParticipantNoConversationId;
+      } as ParticipantWithUsername;
     }),
 
     messages: result.messages.map((message) => {

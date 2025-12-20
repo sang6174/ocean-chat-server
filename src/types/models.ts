@@ -35,6 +35,10 @@ export type PgParticipantNoConversationId = Omit<
   "conversation_id"
 >;
 
+export type PgParticipantWithUsername = PgParticipantNoConversationId & {
+  username: string;
+};
+
 export type PgMessage = {
   id: string;
   sender_id: string;
@@ -117,7 +121,7 @@ export interface PgGetConversationIdsOutput {
 
 export interface PgGetConversationOutput {
   conversation: PgConversation;
-  participants: PgParticipantNoConversationId[];
+  participants: PgParticipantWithUsername[];
   messages: PgMessageWithUsername[];
 }
 
@@ -150,10 +154,6 @@ export interface PgGetParticipantRoleInput {
 
 export interface PgGetParticipantRoleOutput {
   role: string;
-}
-
-export interface PgGetConversationIdentifiersInput {
-  userId: string;
 }
 
 export interface PgGetMessagesInput {

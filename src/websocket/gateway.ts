@@ -238,7 +238,7 @@ eventBusServer.on(
   ) => {
     const notification: WsDataToSendToClient<CreateConversationRepositoryOutput> =
     {
-      type: WsServerEvent.NOTIFICATION_ADD_FRIEND,
+      type: WsServerEvent.NOTIFICATION_ACCEPTED_FRIEND,
       metadata: {
         senderId: input.sender.id,
         toUserId: input.recipient.id,
@@ -255,7 +255,7 @@ eventBusServer.on(
   WsServerEvent.NOTIFICATION_DENIED_FRIEND,
   (input: PublishNotificationDeniedFriend) => {
     const notification: WsDataToSendToClient<string> = {
-      type: WsServerEvent.NOTIFICATION_ADD_FRIEND,
+      type: WsServerEvent.NOTIFICATION_DENIED_FRIEND,
       metadata: {
         senderId: input.sender.id,
         toUserId: input.recipient.id,
