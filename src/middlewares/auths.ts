@@ -30,7 +30,8 @@ export function authMiddleware(token: string): UserTokenPayload {
     assertUserTokenPayload(payload);
 
     return payload;
-  } catch (err) {
+  } catch (err: any) {
+    logger.error("Verify JWT auth token error: ", err?.message);
     throw err;
   }
 }
@@ -54,7 +55,8 @@ export function refreshTokenMiddleware(token: string): RefreshTokenPayload {
     assertRefreshTokenPayload(payload);
 
     return payload;
-  } catch (err) {
+  } catch (err: any) {
+    logger.error("Verify JWT refresh token error: ", err?.message);
     throw err;
   }
 }

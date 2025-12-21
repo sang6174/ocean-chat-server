@@ -111,15 +111,15 @@ export async function handleGetMessages(
       isNaN(limitNum) ||
       limitNum <= 0 ||
       !Number.isInteger(limitNum) ||
-      Number.isFinite(limitNum)
+      !Number.isFinite(limitNum)
     ) {
       throw new ValidateError("Limit must be a positive integer");
     }
     if (
       isNaN(offsetNum) ||
-      offsetNum <= 0 ||
+      offsetNum < 0 ||
       !Number.isInteger(offsetNum) ||
-      Number.isFinite(offsetNum)
+      !Number.isFinite(offsetNum)
     ) {
       throw new ValidateError("Limit must be a non-negative integer");
     }
