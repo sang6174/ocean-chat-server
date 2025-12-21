@@ -2,7 +2,7 @@ import type {
   GetProfileUserDomainInput,
   UserTokenPayload,
 } from "../types/domain";
-import { parseAuthToken, authMiddleware } from "../middlewares";
+import { extractAndParseAuthToken, authMiddleware } from "../middlewares";
 import {
   getProfileUsersController,
   getProfileUserController,
@@ -16,33 +16,10 @@ import { handleError } from "../helpers/errors";
 export async function handleGetAllProfileUsers(req: Request, corsHeaders: any) {
   try {
     // Parse auth token
-    const auth = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+    const auth = extractAndParseAuthToken(req);
 
     // Verify auth token
-    const authResult: UserTokenPayload | null = authMiddleware(auth);
-    if (!authResult) {
-      return new Response(
-        JSON.stringify({ message: "Invalid or expired auth token." }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    authMiddleware(auth);
 
     const result = await getProfileUsersController();
 
@@ -84,33 +61,10 @@ export async function handleGetAllProfileUsers(req: Request, corsHeaders: any) {
 export async function handleGetProfileUser(req: Request, corsHeaders: any) {
   try {
     // Parse auth token
-    const auth = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+    const auth = extractAndParseAuthToken(req);
 
     // Verify auth token
-    const authResult: UserTokenPayload | null = authMiddleware(auth);
-    if (!authResult) {
-      return new Response(
-        JSON.stringify({ message: "Invalid or expired auth token." }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    const authResult = authMiddleware(auth);
 
     // Call get info user controller
     const input: GetProfileUserDomainInput = { userId: authResult.data.userId };

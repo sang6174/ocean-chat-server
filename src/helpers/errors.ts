@@ -17,8 +17,17 @@ export abstract class AppError extends Error {
   }
 }
 
+export class ParseError extends AppError {
+  readonly status = 400;
+  readonly code = "PARSE_ERROR";
+
+  constructor(message: string, cause?: unknown) {
+    super(message, cause);
+  }
+}
+
 export class AuthError extends AppError {
-  readonly status = 500;
+  readonly status = 401;
   readonly code = "AUTH_ERROR";
 
   constructor(message: string, cause?: unknown) {
@@ -173,6 +182,24 @@ export function mapPgError(error: any): DatabaseError {
 }
 
 export function handleError(err: any, corsHeaders: any) {
+  if (err instanceof ParseError) {
+    logger.error(err.message);
+    return new Response(
+      JSON.stringify({
+        code: err.code,
+        message: err.message,
+      }),
+      {
+        status: err.status,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": logger.requestId,
+        },
+      }
+    );
+  }
+
   if (err instanceof AuthError) {
     logger.error(err.message);
     return new Response(

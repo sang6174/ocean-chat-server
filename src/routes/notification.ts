@@ -1,6 +1,6 @@
 import type { UserTokenPayload } from "../types/domain";
 import {
-  parseAuthToken,
+  extractAndParseAuthToken,
   authMiddleware,
   assertHttpNotificationFriendPost,
 } from "../middlewares";
@@ -22,39 +22,14 @@ export async function handleNotificationAddFriend(
 ) {
   try {
     logger.info("Start handle friend request notification");
+
     // Parse auth token
-    const auth = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+    const auth = extractAndParseAuthToken(req);
 
     // Verify auth token
-    const authResult: UserTokenPayload | null = authMiddleware(auth);
-    if (!authResult) {
-      return new Response(
-        JSON.stringify({
-          code: "TOKEN_INVALID",
-          message: "Invalid or expired auth token.",
-        }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    const authResult = authMiddleware(auth);
 
-    // Get recipient id from search params
+    // Sanitize for input of controller
     const httpBody = {
       sender: {
         id: authResult.data.userId,
@@ -119,37 +94,12 @@ export async function handleNotificationAcceptFriend(
 ) {
   try {
     logger.info("Start handle friend request accepted notification");
+
     // Parse auth token
-    const auth = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+    const auth = extractAndParseAuthToken(req);
 
     // Verify auth token
-    const authResult: UserTokenPayload | null = authMiddleware(auth);
-    if (!authResult) {
-      return new Response(
-        JSON.stringify({
-          code: "TOKEN_INVALID",
-          message: "Invalid or expired auth token.",
-        }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    const authResult = authMiddleware(auth);
 
     // Get recipient id from search params
     const httpBody = {
@@ -212,17 +162,7 @@ export async function handleNotificationDenyFriend(
   try {
     logger.info("Start handle friend request denied notification");
     // Parse auth token
-    const auth = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+    const auth = extractAndParseAuthToken(req);
 
     // Verify auth token
     const authResult: UserTokenPayload | null = authMiddleware(auth);
@@ -243,7 +183,7 @@ export async function handleNotificationDenyFriend(
       );
     }
 
-    // Get recipient id from search params
+    // Sanitize for input of controller
     const httpBody = {
       sender: {
         id: authResult.data.userId,

@@ -18,12 +18,14 @@ export async function handleUpgradeWebSocket(
   corsHeaders: any
 ) {
   try {
+    logger.info("Start handle upgrade websocket");
+
     // Get auth token
     const token = url.searchParams.get("token");
     if (!token) {
       return new Response(
         JSON.stringify({
-          code: "AUTH_ERROR",
+          code: "SEARCH_PARAMS_INVALID",
           message: "Please send token via search params",
         }),
         {
@@ -38,25 +40,9 @@ export async function handleUpgradeWebSocket(
     }
 
     // Verify auth token
-    const authResult: UserTokenPayload | null = authMiddleware(token);
-    if (!authResult) {
-      return new Response(
-        JSON.stringify({
-          code: "AUTH_ERROR",
-          message: "Invalid or expired auth token.",
-        }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    const authResult = authMiddleware(token);
 
-    // Call conversation identifiers controller
+    // Call controller
     const input: GetConversationIdsRepositoryInput = {
       userId: authResult.data.userId,
     };
@@ -83,6 +69,7 @@ export async function handleUpgradeWebSocket(
       });
     }
 
+    logger.info("Upgrade websocket successfully");
     return new Response(
       JSON.stringify({ message: "Upgrade websocket successfully" }),
       {

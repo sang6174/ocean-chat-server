@@ -1,9 +1,8 @@
 import type { RefreshTokenPayload, UserTokenPayload } from "../types/domain";
 import { verifyAccessToken, verifyRefreshToken } from "../services";
 import {
-  isDecodedAuthToken,
+  isDecodedToken,
   validateAuthToken,
-  isDecodedRefreshToken,
   validateRefreshToken,
   assertUserTokenPayload,
   assertRefreshTokenPayload,
@@ -13,73 +12,53 @@ import { logger } from "../helpers/logger";
 import { blacklistAuthToken, blacklistRefreshToken } from "../models";
 import { AuthError } from "../helpers/errors";
 
-export function authMiddleware(token: string): UserTokenPayload | null {
+export function authMiddleware(token: string): UserTokenPayload {
   try {
     if (blacklistAuthToken.has(token)) {
       logger.warn("The auth token is on the blacklist");
-      return null;
+      throw new AuthError("Auth token is invalid");
     }
 
     const decoded = verifyAccessToken(token);
-    if (!isDecodedAuthToken(decoded)) {
-      logger.error("Decoded of auth token is invalid");
-      return null;
-    }
+    if (!isDecodedToken(decoded)) throw new AuthError("Auth token is invalid");
 
     const validateResult = validateAuthToken(decoded);
-    if (!validateResult.valid) {
-      logger.error("Decoded of auth token is invalid");
-      return null;
-    }
-
-    assertUserTokenPayload({
-      ...decoded,
-      data: JSON.parse(decoded.data),
-    });
-
-    return {
+    if (!validateResult.valid) throw new AuthError("Auth token has expired");
+    const payload = {
       ...decoded,
       data: JSON.parse(decoded.data),
     };
+
+    assertUserTokenPayload(payload);
+
+    return payload;
   } catch (err) {
-    logger.error("Decoded of auth token is invalid");
     throw err;
   }
 }
 
-export function refreshTokenMiddleware(
-  token: string
-): RefreshTokenPayload | null {
+export function refreshTokenMiddleware(token: string): RefreshTokenPayload {
   try {
     if (blacklistRefreshToken.has(token)) {
-      logger.warn("The refresh token token is on the blacklist");
-      return null;
+      logger.warn("The refresh token is on the blacklist");
+      throw new AuthError("Refresh token is invalid");
     }
 
     const decoded = verifyRefreshToken(token);
-
-    if (!isDecodedRefreshToken(decoded)) {
-      logger.error("Decoded of refresh token is invalid");
-      return null;
-    }
+    if (!isDecodedToken(decoded))
+      throw new AuthError("Refresh token is invalid");
 
     const validateResult = validateRefreshToken(decoded);
-    if (!validateResult.valid) {
-      logger.error("Decoded of refresh token is invalid");
-      return null;
-    }
-
-    assertRefreshTokenPayload({
-      ...decoded,
-      data: JSON.parse(decoded.data),
-    });
-
-    return {
+    if (!validateResult.valid) throw new AuthError("Refresh token has expired");
+    const payload = {
       ...decoded,
       data: JSON.parse(decoded.data),
     };
+
+    assertRefreshTokenPayload(payload);
+
+    return payload;
   } catch (err) {
-    logger.error("Decoded of refresh token is invalid");
-    throw new AuthError("Failed to verify auth token");
+    throw err;
   }
 }

@@ -111,12 +111,7 @@ export function assertLogoutDomainInput(
   assertValid(validateLogoutDomainInput(value), "LogoutDomainInput");
 }
 
-// ============================================================
-// Auth Token
-// ============================================================
-export function isDecodedAuthToken(
-  value: unknown
-): value is StringTokenPayload {
+export function isDecodedToken(value: unknown): value is StringTokenPayload {
   if (!isPlainObject(value)) return false;
 
   if (
@@ -143,10 +138,57 @@ export function isDecodedAuthToken(
   );
 }
 
+// ============================================================
+// Auth Token
+// ============================================================
 export function validateAuthToken(
-  payload: StringTokenPayload
+  value: StringTokenPayload
 ): { valid: true } | { valid: false; message: string } {
-  if (payload.exp <= payload.iat) {
+  if (!isPlainObject(value)) {
+    return {
+      valid: false,
+      message: "payload must be an object",
+    };
+  }
+
+  const v = value as any;
+
+  if (!isNumber(v.iat)) {
+    return {
+      valid: false,
+      message: "payload.iat must be a number",
+    };
+  }
+
+  if (!isNumber(v.exp)) {
+    return {
+      valid: false,
+      message: "payload.exp must be a number",
+    };
+  }
+
+  if (!isPlainObject(v.data)) {
+    return {
+      valid: false,
+      message: "payload.data must be an object",
+    };
+  }
+
+  if (!isUUIDv4(v.data.userId)) {
+    return {
+      valid: false,
+      message: "payload.data.userId must be a string",
+    };
+  }
+
+  if (!isString(v.data.username)) {
+    return {
+      valid: false,
+      message: "payload.data.username must be a string",
+    };
+  }
+
+  if (value.exp <= value.iat) {
     return {
       valid: false,
       message: "Auth token expiration time must be greater than issued time.",
@@ -154,7 +196,7 @@ export function validateAuthToken(
   }
 
   const now = Math.floor(Date.now() / 1000);
-  if (payload.exp <= now) {
+  if (value.exp <= now) {
     return {
       valid: false,
       message: "Auth token has expired.",
@@ -165,83 +207,73 @@ export function validateAuthToken(
 }
 
 export function assertUserTokenPayload(
-  value: unknown
+  value: any
 ): asserts value is UserTokenPayload {
-  if (!isPlainObject(value)) {
-    throw new AuthError("UserTokenPayload must be an object");
-  }
-
-  const v = value as any;
-
-  if (!isNumber(v.iat)) {
-    throw new AuthError("UserTokenPayload.iat must be a number");
-  }
-
-  if (!isNumber(v.exp)) {
-    throw new AuthError("UserTokenPayload.exp must be a number");
-  }
-
-  if (!isPlainObject(v.data)) {
-    throw new AuthError("UserTokenPayload.data must be an object");
-  }
-
-  if (!isUUIDv4(v.data.userId)) {
-    throw new AuthError("UserTokenPayload.data.userId must be a string");
-  }
-
-  if (!isString(v.data.username)) {
-    throw new AuthError("UserTokenPayload.data.username must be a string");
-  }
+  assertValid(validateAuthToken(value), "validateAuthToken");
 }
 
 // ============================================================
 // Refresh Token
 // ============================================================
-export function isDecodedRefreshToken(
-  value: unknown
-): value is StringTokenPayload {
-  if (!isPlainObject(value)) return false;
-
-  if (
-    typeof value.data !== "string" ||
-    typeof value.iat !== "number" ||
-    typeof value.exp !== "number" ||
-    !Number.isFinite(value.iat) ||
-    !Number.isFinite(value.exp)
-  ) {
-    return false;
-  }
-
-  let dataObj: any;
-  try {
-    dataObj = JSON.parse(value.data);
-  } catch {
-    return false;
-  }
-
-  return (
-    isPlainObject(dataObj) &&
-    isUUIDv4(dataObj.userId) &&
-    isString(dataObj.authToken)
-  );
-}
-
 export function validateRefreshToken(
-  payload: StringTokenPayload
+  value: StringTokenPayload
 ): { valid: true } | { valid: false; message: string } {
-  if (payload.exp <= payload.iat) {
+  if (!isPlainObject(value)) {
     return {
       valid: false,
-      message:
-        "Refresh token expiration time must be greater than issued time.",
+      message: "payload must be an object",
+    };
+  }
+
+  const v = value as any;
+
+  if (!isNumber(v.iat)) {
+    return {
+      valid: false,
+      message: "payload.iat must be a number",
+    };
+  }
+
+  if (!isNumber(v.exp)) {
+    return {
+      valid: false,
+      message: "payload.exp must be a number",
+    };
+  }
+
+  if (!isPlainObject(v.data)) {
+    return {
+      valid: false,
+      message: "payload.data must be an object",
+    };
+  }
+
+  if (!isUUIDv4(v.data.userId)) {
+    return {
+      valid: false,
+      message: "payload.data.userId must be a string",
+    };
+  }
+
+  if (!isString(v.data.authToken)) {
+    return {
+      valid: false,
+      message: "payload.data.authToken must be a string",
+    };
+  }
+
+  if (value.exp <= value.iat) {
+    return {
+      valid: false,
+      message: "Auth token expiration time must be greater than issued time.",
     };
   }
 
   const now = Math.floor(Date.now() / 1000);
-  if (payload.exp <= now) {
+  if (value.exp <= now) {
     return {
       valid: false,
-      message: "Refresh token has expired.",
+      message: "Auth token has expired.",
     };
   }
 
@@ -249,35 +281,9 @@ export function validateRefreshToken(
 }
 
 export function assertRefreshTokenPayload(
-  value: unknown
+  value: any
 ): asserts value is RefreshTokenPayload {
-  if (!isPlainObject(value)) {
-    throw new AuthError("RefreshTokenPayload must be an object");
-  }
-
-  const v = value as any;
-
-  if (!isNumber(v.iat)) {
-    throw new AuthError("RefreshTokenPayload.iat must be a number");
-  }
-
-  if (!isNumber(v.exp)) {
-    throw new AuthError("RefreshTokenPayload.exp must be a number");
-  }
-
-  if (!isPlainObject(v.data)) {
-    throw new AuthError("RefreshTokenPayload.data must be an object");
-  }
-
-  if (!isUUIDv4(v.data.userId)) {
-    throw new AuthError("RefreshTokenPayload.data.userId must be a string");
-  }
-
-  if (!isString(v.data.authToken)) {
-    throw new AuthError(
-      "RefreshTokenPayload.data.accessToken must be a string"
-    );
-  }
+  assertValid(validateRefreshToken(value), "validateRefreshToken");
 }
 
 // ============================================================

@@ -1,11 +1,14 @@
-import type { UserTokenPayload } from "../types/domain";
-import { parseAuthToken, authMiddleware, isUUIDv4 } from "../middlewares";
+import {
+  extractAndParseAuthToken,
+  authMiddleware,
+  isUUIDv4,
+} from "../middlewares";
 import {
   getConversationsController,
   getMessagesController,
 } from "../controllers";
 import { logger } from "../helpers/logger";
-import { handleError } from "../helpers/errors";
+import { handleError, ValidateError } from "../helpers/errors";
 
 // ============================================================
 // GET /conversations?userId=...
@@ -17,40 +20,21 @@ export async function handleGetConversations(
 ) {
   try {
     logger.info("Start handle get conversations");
+
     // Parse auth token
-    const auth = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+    const auth = extractAndParseAuthToken(req);
 
     // Verify auth token
-    const authResult: UserTokenPayload | null = authMiddleware(auth);
-    if (!authResult) {
-      return new Response(
-        JSON.stringify({ message: "Invalid or expired auth token." }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    authMiddleware(auth);
 
     // Get userId from search params
     const userId = url.searchParams.get("userId");
     if (!userId || !isUUIDv4(userId)) {
       return new Response(
-        JSON.stringify({ message: "Search params is invalid ..." }),
+        JSON.stringify({
+          code: "SEARCH_PARAMS_INVALID",
+          message: "Search params is invalid ...",
+        }),
         {
           status: 400,
           headers: {
@@ -106,72 +90,38 @@ export async function handleGetMessages(
 ) {
   try {
     logger.info("Start handle get messages");
+
     // Parse auth token
-    const auth = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+    const auth = extractAndParseAuthToken(req);
 
     // Verify auth token
-    const authResult: UserTokenPayload | null = authMiddleware(auth);
-    if (!authResult) {
-      return new Response(
-        JSON.stringify({ message: "Invalid or expired auth token." }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    authMiddleware(auth);
 
     // Get and validate search params
     const conversationId = url.searchParams.get("conversationId");
-    const limit = url.searchParams.get("limit") || 10;
-    const offset = url.searchParams.get("offset") || 0;
+    const limit = url.searchParams.get("limit") ?? 10;
+    const offset = url.searchParams.get("offset") ?? 0;
     if (!conversationId || !isUUIDv4(conversationId)) {
-      return new Response(
-        JSON.stringify({ message: "Search params is invalid." }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
+      throw new ValidateError("Search params is invalid.");
     }
 
     const limitNum = Number(limit);
     const offsetNum = Number(offset);
-    if (isNaN(limitNum) || limitNum <= 0 || isNaN(offsetNum) || offsetNum < 0) {
-      return new Response(
-        JSON.stringify({
-          message:
-            "search params is invalid." +
-            " Limit must be a positive integer." +
-            " Offset must be a non-negative integer.",
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
+    if (
+      isNaN(limitNum) ||
+      limitNum <= 0 ||
+      !Number.isInteger(limitNum) ||
+      Number.isFinite(limitNum)
+    ) {
+      throw new ValidateError("Limit must be a positive integer");
+    }
+    if (
+      isNaN(offsetNum) ||
+      offsetNum <= 0 ||
+      !Number.isInteger(offsetNum) ||
+      Number.isFinite(offsetNum)
+    ) {
+      throw new ValidateError("Limit must be a non-negative integer");
     }
 
     const result = await getMessagesController({

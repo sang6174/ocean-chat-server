@@ -1,29 +1,20 @@
 import type { ResponseDomain } from "../types/domain";
 import { logger } from "../helpers/logger";
 import { isPlainObject } from "./validation/helper";
+import { ParseError } from "../helpers/errors";
 
 export async function safeFormData(req: Request) {
   try {
     return await req.formData();
   } catch (err) {
-    logger.error("Form-data parse error");
-    return null;
+    logger.error("Parse form-data body error");
+    throw new ParseError("Parse form-data body error");
   }
 }
 
 export async function parseBodyFormData(req: Request) {
   const form = await safeFormData(req);
-
-  if (!form) {
-    return {
-      status: 400,
-      code: "PARSE_BODY_ERROR",
-      message:
-        "Invalid request body. Please submit the data using multipart/form-data.",
-    };
-  }
-
-  logger.info("Form-data parse successfully");
+  logger.info("Form-data body parsed successfully");
   return form;
 }
 
@@ -36,29 +27,18 @@ export async function safeJSON(req: Request): Promise<object | null> {
 
     return data;
   } catch (err) {
-    logger.error("JSON parse error");
-    return null;
+    logger.error("Parse JSON body error");
+    throw new ParseError("Parse JSON body error");
   }
 }
 
-export async function parseBodyJSON<T = any>(
-  req: Request
-): Promise<ResponseDomain | T> {
-  const body = (await safeJSON(req)) as T | null;
-
-  if (!body) {
-    return {
-      status: 400,
-      code: "PARSE_BODY_ERROR",
-      message: "Invalid request body. Please send a valid JSON object.",
-    };
-  }
-
-  logger.info("JSON parse successfully");
+export async function parseBodyJSON<T = any>(req: Request): Promise<T> {
+  const body = (await safeJSON(req)) as T;
+  logger.info("JSON body parsed successfully");
   return body;
 }
 
-export function parseAuthToken(req: Request) {
+export function extractAndParseAuthToken(req: Request) {
   const authHeader = req.headers.get("Authorization");
   let token: string | null = null;
 
@@ -70,13 +50,11 @@ export function parseAuthToken(req: Request) {
   }
 
   if (!token) {
-    return {
-      status: 401,
-      code: "AUTHENTICATE_FAILED",
-      message: "Missing or invalid authentication token",
-    };
+    throw new ParseError(
+      "Missing token in authorization header or search params"
+    );
   }
 
-  logger.info("Token parse successfully");
+  logger.info("Successfully extract and parse auth token");
   return token;
 }

@@ -3,15 +3,16 @@ import { ConversationType } from "../../types/domain";
 import { ValidateError } from "../../helpers/errors";
 import { logger } from "../../helpers/logger";
 
-export function assertValid<T>(
+export function assertValid(
   result: { valid: true } | { valid: false; message: string },
   name = "value"
 ): asserts result is { valid: true } {
   if (!result.valid) {
     logger.info(`Validation failed for ${name}: ${result.message}`);
-    throw new ValidateError(`Validation failed for ${name}: ${result.message}`);
+    throw new ValidateError(`Validate failed for ${name}: ${result.message}`);
+  } else {
+    logger.info(`Validate successfully for ${name}}`);
   }
-  logger.info("Validate successfully");
 }
 
 export function isNumber(value: any): value is number {

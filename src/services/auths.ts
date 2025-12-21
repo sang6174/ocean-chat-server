@@ -48,6 +48,7 @@ export function verifyAccessToken(
   token: string,
   secret: string = accessTokenSecret
 ): string | jwt.JwtPayload {
+  logger.debug("Verify auth token error.");
   return jwt.verify(token, secret);
 }
 
@@ -55,6 +56,7 @@ export function verifyRefreshToken(
   token: string,
   secret: string = refreshTokenSecret
 ): string | jwt.JwtPayload {
+  logger.debug("Verify refresh token error.");
   return jwt.verify(token, secret);
 }
 

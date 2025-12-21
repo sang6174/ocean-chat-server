@@ -4,14 +4,12 @@ import type {
   LoginDomainInput,
   LogoutDomainInput,
   RefreshAuthTokenInput,
-  RefreshTokenPayload,
   RegisterDomainInput,
-  UserTokenPayload,
 } from "../types/domain";
 import {
   parseBodyFormData,
   refreshTokenMiddleware,
-  parseAuthToken,
+  extractAndParseAuthToken,
   authMiddleware,
   assertHttpRegisterPost,
   assertHttpLoginPost,
@@ -37,16 +35,6 @@ export async function handleRegister(req: Request, corsHeaders: any) {
 
     // Parse request body
     const form = await parseBodyFormData(req);
-    if ("status" in form && "message" in form) {
-      return new Response(JSON.stringify({ message: form.message }), {
-        status: 400,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
 
     // Sanitize request body
     const rawBody = {
@@ -111,18 +99,9 @@ export async function handleRegister(req: Request, corsHeaders: any) {
 export async function handleLogin(req: Request, corsHeaders: any) {
   try {
     logger.info("Start handle login");
+
     // Parse request body and sanitize fields.
     const form = await parseBodyFormData(req);
-    if ("status" in form && "message" in form) {
-      return new Response(JSON.stringify({ message: form.message }), {
-        status: 400,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
 
     // Sanitize request body
     const rawBody = {
@@ -186,22 +165,9 @@ export async function handleLogin(req: Request, corsHeaders: any) {
 export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
   try {
     logger.info("Start handle logout");
-    const auth: ResponseDomain | string = parseAuthToken(req);
-    if (
-      typeof auth !== "string" &&
-      "status" in auth &&
-      "code" in auth &&
-      "message" in auth
-    ) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+
+    const authToken = extractAndParseAuthToken(req);
+
     const refreshToken =
       req.headers
         .get("cookie")
@@ -224,25 +190,12 @@ export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
       );
     }
 
-    const authResult: UserTokenPayload | null = authMiddleware(auth);
-    const refreshResult = refreshTokenMiddleware(refreshToken);
-    if (!authResult || !refreshResult) {
-      return new Response(
-        JSON.stringify({ message: "Invalid or expired token." }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    const authResult = authMiddleware(authToken);
+    refreshTokenMiddleware(refreshToken);
 
     const input: LogoutDomainInput = {
       userId: authResult.data.userId,
-      authToken: auth,
+      authToken,
       refreshToken,
     };
 
@@ -293,35 +246,14 @@ export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
 export async function handleRefreshAuthToken(req: Request, corsHeaders: any) {
   try {
     logger.info("Start handle refresh auth token");
+
     // Parse refresh token
-    const auth: ResponseDomain | string = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+    const authToken = extractAndParseAuthToken(req);
 
     // Verify refresh token
-    const authResult: RefreshTokenPayload | null = refreshTokenMiddleware(auth);
-    if (!authResult) {
-      return new Response(
-        JSON.stringify({ message: "Invalid or expired auth token." }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    const authResult = refreshTokenMiddleware(authToken);
 
+    // Call controller
     const input: RefreshAuthTokenInput = {
       userId: authResult.data.userId,
     };

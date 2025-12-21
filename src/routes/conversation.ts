@@ -12,7 +12,7 @@ import type {
   AddParticipantsDomainInput,
 } from "../types/domain";
 import {
-  parseAuthToken,
+  extractAndParseAuthToken,
   parseBodyJSON,
   authMiddleware,
   assertHttpCreateConversationPost,
@@ -35,51 +35,20 @@ import { handleError } from "../helpers/errors";
 // ============================================================
 export async function handleCreateConversation(req: Request, corsHeaders: any) {
   try {
-    logger.info("Start handle create a conversation");
+    logger.info("Start handle create a new group conversation");
+
     // Parse refresh token
-    const auth = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+    const authToken = extractAndParseAuthToken(req);
 
     // Verify refresh token
-    const authResult = authMiddleware(auth);
-    if (!authResult) {
-      return new Response(
-        JSON.stringify({ message: "Invalid or expired auth token." }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    const authResult = authMiddleware(authToken);
 
     // Parse request body
     const rawBody = await parseBodyJSON<HttpCreateConversationPost>(req);
-    if ("status" in rawBody && "code" in rawBody && "message" in rawBody) {
-      return new Response(JSON.stringify({ message: rawBody.message }), {
-        status: rawBody.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+
     assertHttpCreateConversationPost(rawBody);
 
-    // Sanitize, validate and assert request body according to conversation type
+    // Sanitize, validate and assert input of controller
     let cleanBody: CreateConversationDomainInput;
     if (rawBody.conversation.type === ConversationType.Group) {
       cleanBody = {
@@ -92,15 +61,15 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
           },
         },
         participants: rawBody.participants,
-        authToken: auth,
+        authToken,
       };
+
       assertCreateGroupConversationDomainInput(cleanBody);
     } else {
       return new Response(
         JSON.stringify({
           code: "CONVERSATION_TYPE_INVALID",
-          message:
-            "Invalid conversation type. Type must is 'myself' or 'group'.",
+          message: "Invalid conversation type. Type must is 'group'.",
         }),
         {
           status: 400,
@@ -116,7 +85,7 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
     // Call create conversation controller
     const result = await createConversationController(cleanBody);
 
-    logger.info("Create a new conversation successfully");
+    logger.info("Create a new group conversation successfully");
     return new Response(JSON.stringify(result), {
       status: 201,
       headers: {
@@ -155,46 +124,14 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
   try {
     logger.info("Start handle send a message");
     // Parse auth token
-    const auth = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+    const auth = extractAndParseAuthToken(req);
 
     // Verify auth token
     const authResult = authMiddleware(auth);
-    if (!authResult) {
-      return new Response(
-        JSON.stringify({ message: "Invalid or expired auth token." }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
 
     // Parse request body
     const rawBody = await parseBodyJSON<HttpSendMessagePost>(req);
-    if ("status" in rawBody && "code" in rawBody && "message" in rawBody) {
-      return new Response(JSON.stringify({ message: rawBody.message }), {
-        status: rawBody.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+
     assertHttpSendMessagePost(rawBody);
 
     // Sanitize validated body
@@ -251,19 +188,10 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
 // ============================================================
 export async function handleAddParticipants(req: Request, corsHeaders: any) {
   try {
-    logger.info("Start handle add participants");
+    logger.info("Start handle add the new participants");
+
     // Parse refresh token
-    const auth: ResponseDomain | string = parseAuthToken(req);
-    if (typeof auth !== "string" && "status" in auth && "message" in auth) {
-      return new Response(JSON.stringify({ message: auth.message }), {
-        status: auth.status,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      });
-    }
+    const auth: ResponseDomain | string = extractAndParseAuthToken(req);
 
     // Verify refresh token
     const authResult: UserTokenPayload | null = authMiddleware(auth);
@@ -283,19 +211,7 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
 
     // Parse request body
     const rawBody = await parseBodyJSON<HttpAddParticipantPost>(req);
-    if ("status" in rawBody && "code" in rawBody && "message" in rawBody) {
-      return new Response(
-        JSON.stringify({ code: rawBody.code, message: rawBody.message }),
-        {
-          status: rawBody.status,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+
     assertHttpAddParticipantPost(rawBody);
 
     const cleanBody: AddParticipantsDomainInput = {
@@ -307,11 +223,12 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
       conversationId: rawBody.conversationId,
       participants: rawBody.participants,
     };
+
     assertAddParticipantsDomainInput(cleanBody);
 
     const result = await addParticipantsController(cleanBody);
 
-    logger.info("Add new participants successfully");
+    logger.info("Add the new participants successfully");
     return new Response(
       JSON.stringify({ code: result.code, message: result.message }),
       {
