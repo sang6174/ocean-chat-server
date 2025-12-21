@@ -66,6 +66,7 @@ export function broadcastToConversation<T>(
       }
       if (conn.readyState === WebSocket.OPEN) {
         try {
+          logger.info(`Broadcast to conversation: sending data to ${recipient.id} via conn ${conn.data.userId}`);
           conn.send(JSON.stringify(data));
         } catch (err: any) {
           logger.error("Broadcast to conversation failed");
@@ -96,6 +97,7 @@ export function sendToOtherConnectionsOfSender<T>(
     ) {
       try {
         conn.send(JSON.stringify(data));
+        logger.info(`Sent to other connection of sender ${recipientId}`);
       } catch (e) {
         console.error(e);
       }
@@ -114,6 +116,7 @@ export function sendToUser<T>(recipientId: string, data: T) {
     if (conn.readyState === WebSocket.OPEN) {
       try {
         conn.send(JSON.stringify(data));
+        logger.info(`Message sent to user ${recipientId}`);
       } catch (e) {
         console.error(e);
       }
@@ -189,7 +192,7 @@ eventBusServer.on(
     const dataToOldParticipants: WsDataToSendToClient<
       ParticipantWithUsername[]
     > = {
-      type: WsServerEvent.MESSAGE_CREATED,
+      type: WsServerEvent.CONVERSATION_ADDED_PARTICIPANTS,
       metadata: {
         senderId: input.sender.id,
         toConversationId: input.conversationId,
@@ -209,7 +212,7 @@ eventBusServer.on(
     // Send the new conversation to new participants
     const dataToNewParticipants: WsDataToSendToClient<GetConversationRepositoryOutput> =
     {
-      type: WsServerEvent.MESSAGE_CREATED,
+      type: WsServerEvent.CONVERSATION_CREATED,
       metadata: {
         senderId: input.sender.id,
         toConversationId: input.conversationId,

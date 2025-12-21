@@ -177,13 +177,15 @@ export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
         ?.slice("refresh_token=".length) ?? null;
 
     if (!refreshToken) {
+      logger.info("No refresh token found during logout, clearing cookie only.");
       return new Response(
-        JSON.stringify({ message: "Please send with cookie" }),
+        JSON.stringify({ message: "Logout successfully, no token to revoke." }),
         {
-          status: 400,
+          status: 200,
           headers: {
             ...corsHeaders,
             "Content-Type": "application/json",
+            "Set-Cookie": "refresh_token=; HttpOnly; Path=/; Max-Age=0",
             "x-request-id": logger.requestId,
           },
         }
