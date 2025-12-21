@@ -109,6 +109,17 @@ export interface PgAddParticipantsTransactionInput {
   participantIds: string[];
 }
 
+export interface PgSendMessageTransactionInput {
+  senderId: string;
+  conversationId: string;
+  content: string;
+}
+
+export interface PgSendMessageTransactionOutput {
+  message: PgMessage;
+  participants: PgParticipantWithUsername[];
+}
+
 export interface PgGetConversationInput {
   conversationId: string;
   limit?: number;

@@ -296,6 +296,11 @@ export interface CreateMessageRepositoryOutput {
   content: string;
 }
 
+export interface CreateMessageTransactionRepositoryOutput {
+  message: CreateMessageRepositoryOutput;
+  participants: ParticipantWithUsername[];
+}
+
 export interface GetParticipantIdsDomainOutput {
   userId: string;
 }

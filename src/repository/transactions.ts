@@ -8,11 +8,14 @@ import type {
   CreateConversationRepositoryOutput,
   AddParticipantsRepositoryInput,
   ParticipantWithUsername,
+  CreateMessageRepositoryInput,
+  CreateMessageTransactionRepositoryOutput,
 } from "../types/domain";
 import {
   pgRegisterTransaction,
   pgCreateConversationTransaction,
   pgAddParticipantsTransaction,
+  pgSendMessageTransaction,
 } from "../models";
 
 export async function registerRepository(
@@ -89,4 +92,30 @@ export async function addParticipantsRepository(
       joinedAt: participant.joined_at,
     };
   });
+}
+
+export async function sendMessageTransactionRepository(
+  input: CreateMessageRepositoryInput
+): Promise<CreateMessageTransactionRepositoryOutput> {
+  const result = await pgSendMessageTransaction(input);
+
+  const participants = result.participants.map((p) => {
+    return {
+      userId: p.user_id,
+      username: p.username,
+      role: p.role,
+      joinedAt: p.joined_at,
+      lastSeen: p.last_seen,
+    } as ParticipantWithUsername;
+  });
+
+  return {
+    message: {
+      id: result.message.id,
+      conversationId: result.message.conversation_id,
+      senderId: result.message.sender_id,
+      content: result.message.content,
+    },
+    participants,
+  };
 }

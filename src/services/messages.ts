@@ -8,7 +8,7 @@ import type {
 import {
   createMessageRepository,
   getMessagesRepository,
-  getParticipantWithUsernameRepository,
+  sendMessageTransactionRepository,
 } from "../repository";
 import { eventBusServer } from "../websocket/events";
 import { DomainError } from "../helpers/errors";
@@ -16,28 +16,21 @@ import { DomainError } from "../helpers/errors";
 export async function sendMessageService(
   input: SendMessageDomainInput
 ): Promise<ResponseDomain> {
-  await createMessageRepository({
+  const result = await sendMessageTransactionRepository({
     senderId: input.sender.id,
     conversationId: input.conversationId,
     content: input.message,
   });
 
-  const resultParticipants = await getParticipantWithUsernameRepository({
-    conversationId: input.conversationId,
-  });
-
-  if (!resultParticipants) {
-    throw new DomainError({
-      status: 400,
-      code: "CONVERSATION_ID_INVALID",
-      message: "conversationId is invalid",
-    });
+  const participantIds = result.participants.map((p) => p.userId);
+  if (participantIds.length === 0) {
+    console.warn(`sendMessageService: No participants found for conversation ${input.conversationId}`);
   }
 
   const inputWsEvent = {
     authToken: input.authToken,
     sender: input.sender,
-    recipients: resultParticipants.map((p) => {
+    recipients: result.participants.map((p) => {
       return { id: p.userId, username: p.username };
     }),
     conversationId: input.conversationId,
