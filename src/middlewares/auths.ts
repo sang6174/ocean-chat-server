@@ -22,8 +22,6 @@ export function authMiddleware(token: string): UserTokenPayload {
     const decoded = verifyAccessToken(token);
     if (!isDecodedToken(decoded)) throw new AuthError("Auth token is invalid");
 
-    const validateResult = validateAuthToken(decoded);
-    if (!validateResult.valid) throw new AuthError("Auth token has expired");
     const payload = {
       ...decoded,
       data: JSON.parse(decoded.data),
@@ -48,8 +46,6 @@ export function refreshTokenMiddleware(token: string): RefreshTokenPayload {
     if (!isDecodedToken(decoded))
       throw new AuthError("Refresh token is invalid");
 
-    const validateResult = validateRefreshToken(decoded);
-    if (!validateResult.valid) throw new AuthError("Refresh token has expired");
     const payload = {
       ...decoded,
       data: JSON.parse(decoded.data),

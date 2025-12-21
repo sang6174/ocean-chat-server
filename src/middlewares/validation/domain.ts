@@ -124,18 +124,7 @@ export function isDecodedToken(value: unknown): value is StringTokenPayload {
     return false;
   }
 
-  let dataObj: any;
-  try {
-    dataObj = JSON.parse(value.data);
-  } catch {
-    return false;
-  }
-
-  return (
-    isPlainObject(dataObj) &&
-    isUUIDv4(dataObj.userId) &&
-    isString(dataObj.username)
-  );
+  return true;
 }
 
 // ============================================================
