@@ -1,57 +1,42 @@
 import { pool } from "../configs/db";
 import type {
-  CreateMessageRepositoryInput,
   FindAccountByUsernameRepositoryInput,
   FindAccountByIdRepositoryInput,
   GetProfileUserRepositoryInput,
   GetParticipantRoleRepositoryInput,
-  GetParticipantIdsRepositoryInput,
+  GetParticipantIdsByConversationIdRepositoryInput,
   GetConversationIdsRepositoryInput,
-  GetConversationRepositoryInput,
+  GetConversationByIdRepositoryInput,
+  SendFriendRequestRepositoryInput,
+  CancelFriendRequestRepositoryInput,
+  GetNotificationRepositoryInput,
+  GetMessagesRepositoryInput,
 } from "../types/domain";
 import type {
   PgAccount,
-  PgMessage,
-  PgMessageWithUsername,
+  PgGetMessagesOutput,
   PgGetProfileUserOutput,
-  PgGetMessagesInput,
-  PgGetParticipantIdsOutput,
-  PgGetParticipantRoleOutput,
+  PgGetConversationByIdOutput,
+  PgSendFriendRequestOutput,
+  PgCancelFriendRequestOutput,
+  PgGetNotificationOutput,
   PgGetConversationIdsOutput,
-  PgGetConversationOutput,
+  PgGetParticipantRoleOutput,
   PgParticipantWithUsername,
+  PgGetParticipantIdsOutput,
 } from "../types/models";
 import { mapPgError } from "../helpers/errors";
 
-// ============================================================
-// Create
-// ============================================================
-export async function pgCreateMessage(
-  input: CreateMessageRepositoryInput
-): Promise<PgMessage> {
-  try {
-    const message = await pool.query(
-      `INSERT INTO main.messages (conversation_id, sender_id, content)
-       VALUES ($1, $2, $3) 
-       RETURNING id, sender_id, conversation_id, content`,
-      [input.conversationId, input.senderId, input.content]
-    );
-
-    return message.rows[0];
-  } catch (err: any) {
-    throw mapPgError(err);
-  }
-}
-
-// ============================================================
-// Read
-// ============================================================
+// Find Account
 export async function pgFindAccountByUsername(
   input: FindAccountByUsernameRepositoryInput
 ): Promise<PgAccount | null> {
   try {
     const result = await pool.query(
-      `SELECT id, username, password FROM main.accounts WHERE username = $1 AND is_deleted = false`,
+      `SELECT id, username, password, user_id 
+       FROM main.accounts 
+       WHERE username = $1 AND is_deleted = false
+      `,
       [input.username]
     );
 
@@ -70,7 +55,10 @@ export async function pgFindAccountById(
 ): Promise<PgAccount | null> {
   try {
     const result = await pool.query(
-      `SELECT id, username, password FROM main.accounts WHERE id = $1 AND is_deleted = false`,
+      `SELECT id, username, password 
+       FROM main.accounts 
+       WHERE id = $1 AND is_deleted = false
+      `,
       [input.id]
     );
 
@@ -80,10 +68,11 @@ export async function pgFindAccountById(
 
     return result.rows[0];
   } catch (err: any) {
-    return err;
+    throw mapPgError(err);
   }
 }
 
+// Get Profile
 export async function pgGetAllProfileUsers(): Promise<
   PgGetProfileUserOutput[] | null
 > {
@@ -91,7 +80,8 @@ export async function pgGetAllProfileUsers(): Promise<
     const result = await pool.query(
       `SELECT u.id, a.username, u.name, u.email 
        FROM main.users u 
-       JOIN main.accounts a ON u.id = a.id
+       JOIN main.accounts a ON u.id = a.user_id
+       WHERE u.is_deleted = false
       `
     );
 
@@ -112,8 +102,8 @@ export async function pgGetProfileUser(
     const result = await pool.query(
       `SELECT u.id, a.username, u.name, u.email 
        FROM main.users u 
-       JOIN main.accounts a ON u.id = a.id
-       WHERE u.id = $1
+       JOIN main.accounts a ON u.id = a.user_id
+       WHERE u.id = $1 AND u.is_deleted = false
       `,
       [input.userId]
     );
@@ -128,15 +118,18 @@ export async function pgGetProfileUser(
   }
 }
 
+// Get conversationIds by user id
 export async function pgGetConversationIds(
   input: GetConversationIdsRepositoryInput
 ): Promise<PgGetConversationIdsOutput[] | null> {
   try {
     const result = await pool.query(
-      `SELECT DISTINCT c.id 
+      `SELECT c.id 
        FROM main.participants p 
        JOIN main.conversations c ON p.conversation_id = c.id 
-       WHERE p.user_id = $1`,
+       WHERE p.user_id = $1 AND is_deleted = false
+       ORDER BY c.last_event DESC
+      `,
       [input.userId]
     );
 
@@ -146,17 +139,22 @@ export async function pgGetConversationIds(
 
     return result.rows;
   } catch (err: any) {
+    console.log(err);
     throw mapPgError(err);
   }
 }
 
-export async function pgGetConversation(
-  input: GetConversationRepositoryInput
-): Promise<PgGetConversationOutput | null> {
+// Get conversations by id
+export async function pgGetConversationById(
+  input: GetConversationByIdRepositoryInput
+): Promise<PgGetConversationByIdOutput> {
   try {
     const [conversation, participants, messages] = await Promise.all([
       pool.query(
-        `SELECT id, type, metadata FROM main.conversations WHERE id = $1`,
+        `SELECT id, type, name, last_event, creator_id
+         FROM main.conversations
+         WHERE id = $1
+        `,
         [input.conversationId]
       ),
       pool.query(
@@ -164,34 +162,32 @@ export async function pgGetConversation(
          FROM main.participants p
          JOIN main.accounts a
          ON a.id = p.user_id
-         WHERE conversation_id = $1`,
+         WHERE conversation_id = $1
+        `,
         [input.conversationId]
       ),
       pool.query(
-        `SELECT m.id, m.content, m.sender_id, a.username as sender_username
-         FROM main.messages m 
-         JOIN main.accounts a ON a.id = m.sender_id
+        `SELECT id, content, sender_id, m.is_deleted
+         FROM main.messages m
          WHERE m.conversation_id = $1
          ORDER BY m.created_at DESC
-         LIMIT $2 OFFSET $3`,
+         LIMIT $2 OFFSET $3
+        `,
         [input.conversationId, input.limit, input.offset]
       ),
     ]);
 
-    if (conversation.rowCount === 0 || participants.rowCount === 0) {
-      return null;
-    }
-
     return {
       conversation: conversation.rows[0],
       participants: participants.rows,
-      messages: messages.rows.reverse(),
+      messages: messages.rows,
     };
   } catch (err: any) {
     throw mapPgError(err);
   }
 }
 
+// Get participant role
 export async function pgGetParticipantRole(
   input: GetParticipantRoleRepositoryInput
 ): Promise<PgGetParticipantRoleOutput | null> {
@@ -199,7 +195,8 @@ export async function pgGetParticipantRole(
     const result = await pool.query(
       `SELECT role
        FROM main.participants
-       WHERE user_id = $1 AND conversation_Id = $2`,
+       WHERE user_id = $1 AND conversation_Id = $2
+      `,
       [input.userId, input.conversationId]
     );
 
@@ -213,7 +210,32 @@ export async function pgGetParticipantRole(
   }
 }
 
-export async function pgGetParticipantWithUsername(input: {
+// Create a Friend Request Notification
+export async function pgCreateFriendRequestNotification(
+  input: SendFriendRequestRepositoryInput
+): Promise<PgSendFriendRequestOutput> {
+  try {
+    const result = await pool.query(
+      `INSERT INTO main.notifications (type, status, content, sender_id, recipient_id)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, type, status, content, sender_id, recipient_id
+      `,
+      [
+        input.type,
+        input.status,
+        input.content,
+        input.sender.id,
+        input.recipient.id,
+      ]
+    );
+
+    return result.rows[0];
+  } catch (err: any) {
+    throw mapPgError(err);
+  }
+}
+
+export async function pgGetParticipantByConversationId(input: {
   conversationId: string;
 }): Promise<PgParticipantWithUsername[] | null> {
   try {
@@ -222,7 +244,8 @@ export async function pgGetParticipantWithUsername(input: {
        FROM main.accounts a
        JOIN main.participants p 
        ON p.user_id = a.id 
-       WHERE conversation_id = $1`,
+       WHERE conversation_id = $1
+      `,
       [input.conversationId]
     );
 
@@ -237,7 +260,7 @@ export async function pgGetParticipantWithUsername(input: {
 }
 
 export async function pgGetParticipantIds(
-  input: GetParticipantIdsRepositoryInput
+  input: GetParticipantIdsByConversationIdRepositoryInput
 ): Promise<PgGetParticipantIdsOutput[] | null> {
   try {
     const result = await pool.query(
@@ -258,11 +281,11 @@ export async function pgGetParticipantIds(
 }
 
 export async function pgGetMessages(
-  input: PgGetMessagesInput
-): Promise<PgMessageWithUsername[]> {
+  input: GetMessagesRepositoryInput
+): Promise<PgGetMessagesOutput[]> {
   try {
     const result = await pool.query(
-      `SELECT m.id, m.content, m.sender_id, a.username as sender_username, m.conversation_id
+      `SELECT m.id, m.content, m.sender_id, a.username as sender_username, m.conversation_id, m.is_deleted
        FROM main.messages m 
        JOIN main.accounts a ON a.id = m.sender_id
        WHERE m.conversation_id = $1
@@ -277,10 +300,58 @@ export async function pgGetMessages(
   }
 }
 
-// ============================================================
-// UPDATE
-// ============================================================
+export async function pgGetNotifications(
+  input: GetNotificationRepositoryInput
+): Promise<PgGetNotificationOutput[]> {
+  try {
+    const result = await pool.query(
+      `SELECT id, type, status, content, sender_id, recipient_id
+       FROM main.notifications
+       WHERE sender_id = $1 OR recipient_id = $1
+       ORDER BY created_at DESC
+      `,
+      [input.userId]
+    );
 
-// ============================================================
-// DELETE
-// ============================================================
+    return result.rows;
+  } catch (err: any) {
+    throw mapPgError(err);
+  }
+}
+
+export async function pgGetNotificationById(
+  id: string
+): Promise<PgGetNotificationOutput | null> {
+  try {
+    const result = await pool.query(
+      `SELECT id, type, status, content, sender_id, recipient_id
+       FROM main.notifications
+       WHERE id = $1
+      `,
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return null;
+    }
+
+    return result.rows[0];
+  } catch (err: any) {
+    throw mapPgError(err);
+  }
+}
+
+export async function pgCancelFriendRequestNotification(
+  input: CancelFriendRequestRepositoryInput
+): Promise<PgCancelFriendRequestOutput> {
+  const result = await pool.query(
+    `UPDATE main.notifications
+     SET status = $1
+     WHERE id = $2
+     RETURNING id, type, status, content, sender_id, recipient_id
+    `,
+    [input.status, input.id]
+  );
+
+  return result.rows[0];
+}

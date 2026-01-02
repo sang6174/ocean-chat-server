@@ -2,9 +2,9 @@ import type {
   PublishConversationCreated,
   PublishMessageCreated,
   PublishParticipantAdded,
-  PublishNotificationAddFriend,
-  PublishNotificationAcceptedFriend,
-  PublishNotificationDeniedFriend,
+  PublishNotificationFriendRequest,
+  PublishNotificationAcceptedFriendRequest,
+  PublishNotificationDeniedFriendRequest,
 } from "../../types/domain";
 
 import type {
@@ -184,7 +184,7 @@ export function validatePublishNotificationAddFriend(
 
 export function assertPublishNotificationAddFriend(
   value: any
-): asserts value is PublishNotificationAddFriend {
+): asserts value is PublishNotificationFriendRequest<any> {
   assertValid(
     validatePublishNotificationAddFriend(value),
     "PublishNotificationAddFriend"
@@ -228,7 +228,7 @@ export function validatePublishNotificationAcceptedFriend<T>(
 
 export function assertPublishNotificationAcceptedFriend<T>(
   value: any
-): asserts value is PublishNotificationAcceptedFriend<T> {
+): asserts value is PublishNotificationAcceptedFriendRequest<T> {
   assertValid(
     validatePublishNotificationAcceptedFriend<T>(value),
     "PublishNotificationAcceptedFriend"
@@ -272,7 +272,7 @@ export function validatePublishNotificationDeniedFriend(
 
 export function assertPublishNotificationDeniedFriend(
   value: any
-): asserts value is PublishNotificationDeniedFriend {
+): asserts value is PublishNotificationDeniedFriendRequest {
   assertValid(
     validatePublishNotificationDeniedFriend(value),
     "PublishNotificationDeniedFriend"

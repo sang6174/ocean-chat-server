@@ -12,24 +12,30 @@ export enum ConversationRoleType {
   MEMBER = "member",
 }
 
+export enum NotificationType {
+  FRIEND_REQUEST = "friend_request",
+  ACCEPTED_FRIEND_REQUEST = "accept_friend_request",
+  DENIED_FRIEND_REQUEST = "denied_friend_request",
+}
+
+export enum NotificationStatusType {
+  PENDING = "pending",
+  ACCEPTED = "accepted",
+  REJECTED = "rejected",
+  CANCELLED = "cancelled",
+}
+
 export enum WsServerEvent {
   CONVERSATION_CREATED = "conversation.created",
   MESSAGE_CREATED = "message.created",
   CONVERSATION_ADDED_PARTICIPANTS = "conversation.added.participants",
-  NOTIFICATION_ADD_FRIEND = "notification.add.friend",
-  NOTIFICATION_ACCEPTED_FRIEND = "notification.accepted.friend",
-  NOTIFICATION_DENIED_FRIEND = "notification.denied.friend",
+  NOTIFICATION_FRIEND_REQUEST = "notification.friend.request",
+  NOTIFICATION_CANCELLED_FRIEND_REQUEST = "notification.cancelled.friend.request",
+  NOTIFICATION_ACCEPTED_FRIEND_REQUEST = "notification.accepted.friend.request",
+  NOTIFICATION_DENIED_FRIEND_REQUEST = "notification.denied.friend.request",
 }
 
 export type EventCallback<T> = (payload: T) => void;
-
-export type ConversationMetadata = {
-  name: string;
-  creator: {
-    id: string;
-    username: string;
-  };
-};
 
 export interface UserTokenPayload {
   data: {
@@ -74,157 +80,60 @@ export type Account = {
   id: string;
   username: string;
   password: string;
+  userId: string;
 };
-
-export type AccountNoPassword = Omit<Account, "password">;
 
 export type Conversation = {
   id: string;
   type: ConversationType;
-  metadata: ConversationMetadata;
+  name: string;
+  lastEvent: Date;
+  creator: {
+    id: string;
+    username: string;
+  };
 };
 
 export type Participant = {
-  userId: string;
-  conversationId: string;
+  user: {
+    id: string;
+    username: string;
+  };
   role: string;
   lastSeen: Date;
   joinedAt: Date;
 };
 
-export type ParticipantNoConversationId = Omit<Participant, "conversation_id">;
-export type ParticipantWithUsername = ParticipantNoConversationId & {
-  username: string;
-};
-
 export type Message = {
   id: string;
+  content: string;
+  senderId: string | null;
+  conversationId: string;
+};
+
+export type Notification = {
+  id: string;
+  type: NotificationType;
+  status: NotificationStatusType;
   sender: {
     id: string;
     username: string;
   };
-  conversationId: string;
-  content: string;
+  recipient: {
+    id: string;
+    username: string;
+  };
 };
 
 // ============================================================
-// DOMAIN INPUT / OUTPUT
+// DOMAIN & REPOSITORY INPUT / OUTPUT
 // ============================================================
+// Auth Service
 export interface RegisterDomainInput {
   name: string;
   email: string;
   username: string;
   password: string;
-}
-
-export interface RegisterDomainOutput {
-  user: User;
-  account: Account;
-}
-
-export interface LoginDomainInput {
-  username: string;
-  password: string;
-}
-
-export interface LoginDomainOutput {
-  userId: string;
-  username: string;
-  authToken: string;
-  refreshToken: string;
-}
-
-export interface LogoutDomainInput {
-  userId: string;
-  authToken: string;
-  refreshToken: string;
-}
-
-export interface RefreshAuthTokenInput {
-  userId: string;
-}
-
-export interface RefreshAuthTokenOutput {
-  userId: string;
-  username: string;
-  authToken: string;
-}
-
-export interface CreateConversationDomainInput {
-  type: ConversationType;
-  metadata: ConversationMetadata;
-  participants: {
-    id: string;
-    username: string;
-  }[];
-  authToken: string;
-}
-
-export interface SendMessageDomainInput {
-  sender: {
-    id: string;
-    username: string;
-  };
-  authToken: string;
-  conversationId: string;
-  message: string;
-}
-
-export interface AddParticipantsDomainInput {
-  authToken: string;
-  creator: {
-    id: string;
-    username: string;
-  };
-  conversationId: string;
-  participants: {
-    id: string;
-    username: string;
-  }[];
-}
-
-export interface GetProfileUserDomainInput {
-  userId: string;
-}
-
-export interface GetProfileUserDomainOutput extends User {
-  username: string;
-}
-
-export interface GetConversationDomainInput {
-  userId: string;
-}
-
-export interface GetConversationDomainOutput {
-  conversation: Conversation;
-  participants: ParticipantNoConversationId[];
-  messages: Message[];
-}
-
-export interface GetMessagesDomainInput {
-  conversationId: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface GetMessagesDomainOutput {
-  id: string;
-  sender: AccountNoPassword;
-  conversationId: string;
-  message: string;
-}
-
-// ============================================================
-// REPOSITORY INPUT / OUTPUT
-// ============================================================
-export interface FindUserByEmailRepositoryInput {
-  email: string;
-}
-export interface FindAccountByUsernameRepositoryInput {
-  username: string;
-}
-export interface FindAccountByIdRepositoryInput {
-  id: string;
 }
 
 export interface RegisterRepositoryInput {
@@ -238,40 +147,114 @@ export interface RegisterRepositoryOutput {
   user: User;
   account: Account;
   conversation: Conversation;
+  participant: Participant;
+  messages: Omit<Message, "conversationId">[];
+}
+
+export interface RegisterDomainOutput {
+  user: User;
+  account: Account;
+}
+
+export interface LoginDomainInput {
+  username: string;
+  password: string;
+}
+
+export interface GenerateAccessTokenInput {
+  userId: string;
+}
+
+export interface GenerateAccessTokenOutput {
+  userId: string;
+  username: string;
+  accessToken: string;
+}
+
+export interface LoginDomainOutput {
+  userId: string;
+  username: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface LogoutDomainInput {
+  userId: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
+// Profile Service
+export interface GetProfileUserDomainInput {
+  userId: string;
+}
+
+export interface GetProfileUserRepositoryInput {
+  userId: string;
+}
+
+export interface GetProfileUserRepositoryOutput extends User {
+  username: string;
+}
+
+export interface GetProfileUserDomainOutput extends User {
+  username: string;
+}
+
+// Conversation Service
+export interface CreateGroupConversationDomainInput {
+  type: ConversationType;
+  name: string;
+  creator: {
+    id: string;
+    username: string;
+  };
+  participantIds: string[];
 }
 
 export interface CreateConversationRepositoryInput {
   type: ConversationType;
-  metadata: ConversationMetadata;
-  participants: {
+  name: string;
+  creator: {
     id: string;
     username: string;
-  }[];
+  };
+  participantIds: string[];
 }
 
 export interface CreateConversationRepositoryOutput {
   conversation: Conversation;
-  participants: ParticipantWithUsername[];
+  participants: Participant[];
+  messages: Omit<Message, "conversationId">[];
 }
 
-export interface GetConversationIdsRepositoryInput {
-  userId: string;
-}
-
-export interface GetConversationIdsRepositoryOutput {
-  ids: string[];
-}
-
-export interface GetConversationRepositoryInput {
+export interface SendMessageDomainInput {
   conversationId: string;
-  limit: number;
-  offset: number;
+  sender: {
+    id: string;
+    username: string;
+  };
+  message: string;
 }
 
-export interface GetConversationRepositoryOutput {
-  conversation: Conversation;
-  participants: ParticipantWithUsername[];
-  messages: Message[];
+export interface CreateMessageRepositoryInput {
+  senderId: string;
+  conversationId: string;
+  content: string;
+}
+
+export interface CreateMessageRepositoryOutput {
+  message: Message;
+  participants: Participant[];
+}
+
+export interface AddParticipantsDomainInput {
+  creator: {
+    id: string;
+    username: string;
+  };
+  conversationId: string;
+  participantIds: string[];
 }
 
 export interface GetParticipantRoleRepositoryInput {
@@ -283,26 +266,78 @@ export interface GetParticipantRoleRepositoryOutput {
   role: string;
 }
 
-export interface CreateMessageRepositoryInput {
-  senderId: string;
-  conversationId: string;
-  content: string;
-}
-
-export interface CreateMessageRepositoryOutput {
-  id: string;
-  conversationId: string;
-  senderId: string;
-  content: string;
-}
-
-export interface CreateMessageTransactionRepositoryOutput {
-  message: CreateMessageRepositoryOutput;
-  participants: ParticipantWithUsername[];
-}
-
 export interface GetParticipantIdsDomainOutput {
   userId: string;
+}
+
+export interface AddParticipantsRepositoryInput {
+  conversationId: string;
+  creator: {
+    id: string;
+    username: string;
+  };
+  participantIds: string[];
+}
+
+export interface FindUserByEmailRepositoryInput {
+  email: string;
+}
+
+export interface FindAccountByUsernameRepositoryInput {
+  username: string;
+}
+
+export interface FindAccountByIdRepositoryInput {
+  id: string;
+}
+
+export interface GetParticipantsByConversationIdRepositoryInput {
+  conversationId: string;
+}
+
+export interface GetParticipantIdsByConversationIdRepositoryInput {
+  conversationId: string;
+}
+
+export interface AddParticipantsRepositoryOutput {
+  participants: Participant[];
+  messages: Message[];
+}
+
+export interface GetConversationsByUserIdDomainInput {
+  userId: string;
+}
+
+export interface GetConversationIdsRepositoryInput {
+  userId: string;
+}
+
+export interface GetConversationIdsRepositoryOutput {
+  ids: string[];
+}
+
+export interface GetConversationByIdRepositoryInput {
+  conversationId: string;
+  limit: number;
+  offset: number;
+}
+
+export interface GetConversationByIdRepositoryOutput {
+  conversation: Conversation;
+  participants: Participant[];
+  messages: Omit<Message, "conversationId">[];
+}
+
+export interface GetConversationsByUserIdDomainOutput {
+  conversation: Conversation;
+  participants: Participant[];
+  messages: Omit<Message, "conversationId">[];
+}
+
+export interface GetMessagesByConversationIdDomainInput {
+  conversationId: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface GetMessagesRepositoryInput {
@@ -313,38 +348,166 @@ export interface GetMessagesRepositoryInput {
 
 export interface GetMessageRepositoryOutput {
   id: string;
-  sender: AccountNoPassword;
+  sender: {
+    id: string;
+    username: string;
+  };
+  conversationId: string;
+  message: string;
+  isDeleted: boolean;
+}
+
+export interface GetMessagesByConversationIdDomainOutput {
+  id: string;
+  sender: {
+    id: string;
+    username: string;
+  };
   conversationId: string;
   message: string;
 }
 
-export interface AddParticipantsRepositoryInput {
-  conversationId: string;
-  participantIds: string[];
+// Notification Service
+export interface FriendRequestDomainInput {
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipient: {
+    id: string;
+    username: string;
+  };
 }
 
-export interface GetProfileUserRepositoryInput {
+export interface FriendRequestWithNotificationIdDomainInput {
+  notificationId: string;
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipient: {
+    id: string;
+    username: string;
+  };
+}
+
+export interface SendFriendRequestRepositoryInput {
+  type: NotificationType;
+  status: NotificationStatusType;
+  content: string;
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipient: {
+    id: string;
+    username: string;
+  };
+}
+
+export interface SendFriendRequestRepositoryOutput {
+  id: string;
+  type: NotificationType;
+  status: NotificationStatusType;
+  content: string;
+  senderId: string;
+  recipientId: string;
+}
+
+export interface GetNotificationRepositoryInput {
   userId: string;
 }
 
-export interface GetProfileUserRepositoryOutput extends User {
-  username: string;
+export interface GetNotificationRepositoryOutput {
+  id: string;
+  type: NotificationType;
+  status: NotificationStatusType;
+  content: string;
+  senderId: string;
+  recipientId: string;
 }
 
-export interface GetParticipantIdsRepositoryInput {
-  conversationId: string;
+export interface CancelFriendRequestRepositoryInput {
+  id: string;
+  status: NotificationStatusType;
 }
 
-export interface GetParticipantIdsRepositoryOutput {
-  userId: string;
+export interface CancelFriendRequestRepositoryOutput {
+  id: string;
+  type: NotificationType;
+  status: NotificationStatusType;
+  content: string;
+  senderId: string;
+  recipientId: string;
+}
+
+export interface AcceptFriendRequestRepositoryInput {
+  FriendRequest: {
+    id: string;
+    status: NotificationStatusType;
+  };
+  AcceptedFriendRequest: {
+    type: NotificationType;
+    status: NotificationStatusType;
+    content: string;
+    sender: {
+      id: string;
+      username: string;
+    };
+    recipient: {
+      id: string;
+      username: string;
+    };
+  };
+}
+
+export interface AcceptFriendRequestRepositoryOutput {
+  conversation: Omit<Conversation, "creator">;
+  participants: Participant[];
+  messages: Omit<Message, "conversationId">[];
+  notification: {
+    id: string;
+    type: NotificationType;
+    status: NotificationStatusType;
+    content: string;
+    senderId: string;
+    recipientId: string;
+  };
+}
+
+export interface DenyFriendRequestRepositoryInput {
+  FriendRequest: {
+    id: string;
+    status: NotificationStatusType;
+  };
+  RejectedFriendRequest: {
+    type: NotificationType;
+    status: NotificationStatusType;
+    content: string;
+    sender: {
+      id: string;
+      username: string;
+    };
+    recipient: {
+      id: string;
+      username: string;
+    };
+  };
+}
+
+export interface DenyFriendRequestRepositoryOutput {
+  id: string;
+  type: NotificationType;
+  status: NotificationStatusType;
+  content: string;
+  senderId: string;
+  recipientId: string;
 }
 
 // ============================================================
 // PUBLISHER TYPE
 // ============================================================
-
 export interface PublishConversationCreated {
-  authToken: string;
   sender: {
     id: string;
     username: string;
@@ -357,7 +520,6 @@ export interface PublishConversationCreated {
 }
 
 export interface PublishMessageCreated {
-  authToken: string;
   sender: {
     id: string;
     username: string;
@@ -366,8 +528,7 @@ export interface PublishMessageCreated {
     id: string;
     username: string;
   }[];
-  conversationId: string;
-  message: string;
+  message: Message;
 }
 
 export interface PublishParticipantAdded {
@@ -375,25 +536,12 @@ export interface PublishParticipantAdded {
     id: string;
     username: string;
   };
-  authToken: string;
-  oldParticipants: ParticipantWithUsername[];
-  newParticipants: ParticipantWithUsername[];
-  conversationId: string;
-  conversation: GetConversationRepositoryOutput;
+  oldParticipants: Participant[];
+  newParticipants: Participant[];
+  conversation: GetConversationByIdRepositoryOutput;
 }
 
-export interface PublishNotificationAddFriend {
-  sender: {
-    id: string;
-    username: string;
-  };
-  recipient: {
-    id: string;
-    username: string;
-  };
-}
-
-export interface PublishNotificationAcceptedFriend<T> {
+export interface PublishNotificationFriendRequest<T> {
   sender: {
     id: string;
     username: string;
@@ -405,7 +553,7 @@ export interface PublishNotificationAcceptedFriend<T> {
   data: T;
 }
 
-export interface PublishNotificationDeniedFriend {
+export interface PublishNotificationAcceptedFriendRequest<T> {
   sender: {
     id: string;
     username: string;
@@ -414,4 +562,17 @@ export interface PublishNotificationDeniedFriend {
     id: string;
     username: string;
   };
+  data: T;
+}
+
+export interface PublishNotificationDeniedFriendRequest<T> {
+  sender: {
+    id: string;
+    username: string;
+  };
+  recipient: {
+    id: string;
+    username: string;
+  };
+  data: T;
 }

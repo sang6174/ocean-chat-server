@@ -1,21 +1,17 @@
-import { Pool } from "pg";
+import { Client } from "pg";
 
-console.log(process.env.DATABASE_URL);
-
-export const pool = new Pool({
+const client = new Client({
   connectionString: process.env.DATABASE_URL,
 });
 
+client.connect();
+
 try {
-  const result = await pool.query(
-    `SELECT p.user_id, a.username, p.role, p.last_seen, p.joined_at 
-         FROM main.participants p
-         JOIN main.accounts a
-         ON a.id = p.user_id
-         WHERE conversation_id = $1`,
-    ["db28455a-5687-4510-8b08-3518fe39c6e9"]
-  );
+  const result = await client.query('SELECT * FROM main.conversations');
   console.log(result.rows);
-} catch (err: unknown) {
+} catch (err) {
   console.log(err);
 }
+
+client.end();
+

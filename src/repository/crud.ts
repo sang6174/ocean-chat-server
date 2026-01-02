@@ -1,117 +1,76 @@
 import type {
   Account,
-  CreateMessageRepositoryInput,
-  CreateMessageRepositoryOutput,
   FindAccountByUsernameRepositoryInput,
   FindAccountByIdRepositoryInput,
-  ParticipantWithUsername,
-  GetConversationRepositoryInput,
-  GetConversationRepositoryOutput,
+  GetConversationByIdRepositoryInput,
+  GetConversationByIdRepositoryOutput,
   GetProfileUserRepositoryInput,
   GetProfileUserRepositoryOutput,
   GetMessagesRepositoryInput,
   GetMessageRepositoryOutput,
   GetParticipantRoleRepositoryInput,
   GetParticipantRoleRepositoryOutput,
-  GetParticipantIdsRepositoryInput,
-  GetParticipantIdsRepositoryOutput,
+  GetParticipantIdsByConversationIdRepositoryInput,
   ConversationType,
-  ConversationMetadata,
   GetConversationIdsRepositoryInput,
   GetConversationIdsRepositoryOutput,
+  SendFriendRequestRepositoryInput,
+  SendFriendRequestRepositoryOutput,
+  CancelFriendRequestRepositoryInput,
+  CancelFriendRequestRepositoryOutput,
+  NotificationType,
+  NotificationStatusType,
+  GetNotificationRepositoryInput,
+  GetNotificationRepositoryOutput,
+  GetParticipantsByConversationIdRepositoryInput,
+  Participant,
 } from "../types/domain";
 import {
   pgFindAccountByUsername,
   pgFindAccountById,
-  pgGetConversation,
-  pgCreateMessage,
+  pgGetConversationById,
   pgGetMessages,
   pgGetParticipantRole,
   pgGetParticipantIds,
   pgGetAllProfileUsers,
   pgGetProfileUser,
   pgGetConversationIds,
-  pgGetParticipantWithUsername,
+  pgGetParticipantByConversationId,
+  pgCreateFriendRequestNotification,
+  pgCancelFriendRequestNotification,
+  pgGetNotifications,
+  pgGetNotificationById,
 } from "../models";
 
-// ============================================================
-// CREATE
-// ============================================================
-export async function createMessageRepository(
-  input: CreateMessageRepositoryInput
-): Promise<CreateMessageRepositoryOutput> {
-  const result = await pgCreateMessage(input);
-  return {
-    id: result.id,
-    senderId: result.sender_id,
-    conversationId: result.conversation_id,
-    content: result.content,
-  };
-}
-
-// ============================================================
-// READ
-// ============================================================
 export async function findAccountByUsername(
   input: FindAccountByUsernameRepositoryInput
 ): Promise<Account | null> {
-  return (await pgFindAccountByUsername(input)) ?? null;
+  const result = await pgFindAccountByUsername(input);
+  if (!result) {
+    return null;
+  }
+
+  return {
+    id: result.id,
+    username: result.username,
+    password: result.password,
+    userId: result.user_id,
+  };
 }
 
 export async function findAccountById(
   input: FindAccountByIdRepositoryInput
 ): Promise<Account | null> {
-  return (await pgFindAccountById(input)) ?? null;
-}
-
-export async function getConversationIdsRepository(
-  input: GetConversationIdsRepositoryInput
-): Promise<GetConversationIdsRepositoryOutput | null> {
-  const result = await pgGetConversationIds(input);
-
-  if (!result) {
-    return null;
-  }
-
-  const ids = result.map((obj) => obj.id);
-  return { ids };
-}
-
-export async function getConversationRepository(
-  input: GetConversationRepositoryInput
-): Promise<GetConversationRepositoryOutput | null> {
-  const result = await pgGetConversation(input);
-
+  const result = await pgFindAccountById(input);
   if (!result) {
     return null;
   }
 
   return {
-    conversation: {
-      id: result.conversation.id,
-      type: result.conversation.type as ConversationType,
-      metadata: result.conversation.metadata as ConversationMetadata,
-    },
-    participants: result.participants.map((participant) => {
-      return {
-        userId: participant.user_id,
-        username: participant.username,
-        role: participant.role,
-        lastSeen: participant.last_seen,
-        joinedAt: participant.joined_at,
-      } as ParticipantWithUsername;
-    }),
-    messages: result.messages.map((message) => {
-      return {
-        id: message.id,
-        sender: {
-          id: message.sender_id,
-          username: message.sender_username,
-        },
-        conversationId: result.conversation.id,
-        content: message.content,
-      };
-    }),
+    id: result.id,
+    username: result.username,
+    password: result.password,
+    userId: result.user_id,
   };
 }
 
@@ -151,6 +110,75 @@ export async function getProfileUserRepository(
   };
 }
 
+export async function createFriendRequestRepository(
+  input: SendFriendRequestRepositoryInput
+): Promise<SendFriendRequestRepositoryOutput> {
+  const result = await pgCreateFriendRequestNotification(input);
+
+  return {
+    id: result.id,
+    type: result.type as NotificationType.FRIEND_REQUEST,
+    status: result.status as NotificationStatusType.PENDING,
+    content: result.content,
+    senderId: result.sender_id,
+    recipientId: result.recipient_id,
+  };
+}
+
+export async function getConversationIdsRepository(
+  input: GetConversationIdsRepositoryInput
+): Promise<GetConversationIdsRepositoryOutput | null> {
+  const result = await pgGetConversationIds(input);
+
+  if (!result) {
+    return null;
+  }
+
+  const ids = result.map((obj) => obj.id);
+  return { ids };
+}
+
+export async function getConversationByIdRepository(
+  input: GetConversationByIdRepositoryInput
+): Promise<GetConversationByIdRepositoryOutput> {
+  const result = await pgGetConversationById(input);
+
+  const creatorUsername = result.participants.find(
+    (p) => p.user_id === result.conversation.creator_id
+  )?.username;
+
+  return {
+    conversation: {
+      id: result.conversation.id,
+      type: result.conversation.type as ConversationType,
+      name: result.conversation.name,
+      lastEvent: result.conversation.last_event,
+      creator: {
+        id: result.conversation.creator_id,
+        username: creatorUsername ?? "",
+      },
+    },
+    participants: result.participants.map((participant) => {
+      return {
+        user: {
+          id: participant.user_id,
+          username: participant.username,
+        },
+        role: participant.role,
+        lastSeen: participant.last_seen,
+        joinedAt: participant.joined_at,
+      };
+    }),
+    messages: result.messages.map((message) => {
+      return {
+        id: message.id,
+        content: message.content,
+        senderId: message.sender_id,
+      };
+    }),
+  };
+}
+
 export async function getMessagesRepository(
   input: GetMessagesRepositoryInput
 ): Promise<GetMessageRepositoryOutput[]> {
@@ -163,8 +191,9 @@ export async function getMessagesRepository(
         id: message.sender_id,
         username: message.sender_username,
       },
-      conversationId: message.id,
+      conversationId: message.conversation_id,
       message: message.content,
+      isDeleted: message.is_deleted,
     };
   });
 }
@@ -181,10 +210,10 @@ export async function getParticipantRoleRepository(
   return result;
 }
 
-export async function getParticipantWithUsernameRepository(input: {
-  conversationId: string;
-}): Promise<ParticipantWithUsername[] | null> {
-  const pgResult = await pgGetParticipantWithUsername(input);
+export async function getParticipantsByConversationIdRepository(
+  input: GetParticipantsByConversationIdRepositoryInput
+): Promise<Participant[] | null> {
+  const pgResult = await pgGetParticipantByConversationId(input);
 
   if (!pgResult) {
     return null;
@@ -192,20 +221,22 @@ export async function getParticipantWithUsernameRepository(input: {
 
   const result = pgResult.map((p) => {
     return {
-      userId: p.user_id,
-      username: p.username,
+      user: {
+        id: p.user_id,
+        username: p.username,
+      },
       role: p.role,
       joinedAt: p.joined_at,
       lastSeen: p.last_seen,
-    } as ParticipantWithUsername;
+    };
   });
 
   return result;
 }
 
 export async function getParticipantIdsRepository(
-  input: GetParticipantIdsRepositoryInput
-): Promise<GetParticipantIdsRepositoryOutput[] | null> {
+  input: GetParticipantIdsByConversationIdRepositoryInput
+): Promise<string[] | null> {
   const result = await pgGetParticipantIds(input);
 
   if (!result) {
@@ -213,16 +244,57 @@ export async function getParticipantIdsRepository(
   }
 
   return result.map((obj) => {
+    return obj.user_id;
+  });
+}
+
+export async function getNotificationsRepository(
+  input: GetNotificationRepositoryInput
+): Promise<GetNotificationRepositoryOutput[]> {
+  const result = await pgGetNotifications(input);
+
+  return result.map((notification) => {
     return {
-      userId: obj.user_id,
+      id: notification.id,
+      type: notification.type as NotificationType,
+      status: notification.status as NotificationStatusType,
+      content: notification.content,
+      senderId: notification.sender_id,
+      recipientId: notification.recipient_id,
     };
   });
 }
 
-// ============================================================
-// UPDATE
-// ============================================================
+export async function getNotificationByIdRepository(
+  id: string
+): Promise<GetNotificationRepositoryOutput | null> {
+  const result = await pgGetNotificationById(id);
 
-// ============================================================
-// DELETE
-// ============================================================
+  if (!result) {
+    return null;
+  }
+
+  return {
+    id: result.id,
+    type: result.type as NotificationType,
+    status: result.status as NotificationStatusType,
+    content: result.content,
+    senderId: result.sender_id,
+    recipientId: result.recipient_id,
+  };
+}
+
+export async function cancelFriendRequestRepository(
+  input: CancelFriendRequestRepositoryInput
+): Promise<CancelFriendRequestRepositoryOutput> {
+  const result = await pgCancelFriendRequestNotification(input);
+
+  return {
+    id: result.id,
+    type: result.type as NotificationType,
+    status: result.status as NotificationStatusType,
+    content: result.content,
+    senderId: result.sender_id,
+    recipientId: result.recipient_id,
+  };
+}

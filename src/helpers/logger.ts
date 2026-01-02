@@ -1,67 +1,50 @@
-import { AsyncLocalStorage } from "node:async_hooks";
+import { getRequestContext } from "./contexts";
 
-export interface RequestContext {
-  requestId: string;
-  method: string;
-  path: string;
-  startTime: number;
-  userId?: string;
-}
-
-export const requestContextStorage = new AsyncLocalStorage<RequestContext>();
-
-export function getRequestContext(): RequestContext | undefined {
-  return requestContextStorage.getStore();
-}
-
-export type LogLevel = "info" | "warn" | "error" | "debug";
+export type LogLevel = "debug" | "info" | "warn" | "error";
 
 type LogMeta = Record<string, unknown>;
 
 class Logger {
-  private shouldLog(level: LogLevel) {
-    const envLevel = process.env.LOG_LEVEL ?? "info";
-    const order = ["debug", "info", "warn", "error"];
-    return order.indexOf(level) >= order.indexOf(envLevel);
+  private shouldLog(level: LogLevel): boolean {
+    const envLevel = process.env.LOG_LEVEL!;
+    const order: LogLevel[] = ["debug", "info", "warn", "error"];
+    return order.indexOf(level) >= order.indexOf(envLevel as LogLevel);
   }
 
-  log(level: LogLevel, message: string, meta?: LogMeta) {
+  private baseLog(level: LogLevel, message: string, meta?: LogMeta) {
     if (!this.shouldLog(level)) return;
 
     const ctx = getRequestContext();
 
-    const logEvent = {
+    const logEntry = {
       timestamp: new Date().toISOString(),
       level,
       message,
       requestId: ctx?.requestId,
+      userId: ctx?.userId,
+      tabId: ctx?.tabId,
       method: ctx?.method,
       path: ctx?.path,
-      userId: ctx?.userId,
       ...meta,
     };
 
-    console.log(JSON.stringify(logEvent));
-  }
-
-  get requestId(): string | undefined {
-    return getRequestContext()?.requestId;
+    console.log(JSON.stringify(logEntry));
   }
 
   debug(msg: string, meta?: LogMeta) {
-    this.log("debug", msg, meta);
+    this.baseLog("debug", msg, meta);
   }
 
   info(msg: string, meta?: LogMeta) {
-    this.log("info", msg, meta);
+    this.baseLog("info", msg, meta);
   }
 
   warn(msg: string, meta?: LogMeta) {
-    this.log("warn", msg, meta);
+    this.baseLog("warn", msg, meta);
   }
 
   error(msg: string, meta?: LogMeta) {
-    this.log("error", msg, meta);
+    this.baseLog("error", msg, meta);
   }
 }
 

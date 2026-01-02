@@ -1,7 +1,6 @@
 // ============================================================
 // PostgreSQL Tables
 // ============================================================
-
 export type PgUser = {
   id: string;
   name: string;
@@ -12,175 +11,160 @@ export type PgAccount = {
   id: string;
   username: string;
   password: string;
+  user_id: string;
 };
-
-export type PgAccountNoPassword = Omit<PgAccount, "password">;
 
 export type PgConversation = {
   id: string;
   type: string;
-  metadata: Record<string, any>;
+  name: string;
+  last_event: Date;
+  creator_id: string;
 };
 
 export type PgParticipant = {
-  user_id: string;
   conversation_id: string;
+  user_id: string;
   role: string;
   last_seen: Date;
   joined_at: Date;
 };
 
-export type PgParticipantNoConversationId = Omit<
-  PgParticipant,
-  "conversation_id"
->;
-
-export type PgParticipantWithUsername = PgParticipantNoConversationId & {
-  username: string;
-};
-
 export type PgMessage = {
   id: string;
-  sender_id: string;
-  conversation_id: string;
   content: string;
+  sender_id: string | null;
+  conversation_id: string;
 };
 
-export type PgMessageWithUsername = Omit<PgMessage, "conversation_id"> & {
-  sender_username: string;
+export type PgNotification = {
+  id: string;
+  type: string;
+  status: string;
+  content: string;
+  sender_id: string;
+  recipient_id: string;
 };
 
-// ============================================================
-// Database Error
-// ============================================================
-export const DB_ERROR_CODE = {
-  SYNTAX: "syntax",
-  PROGRAM_LIMIT_EXCEEDED: "program_limit_exceeded",
-  FOREIGN_KEY: "FOREIGN_KEY",
-  NOT_NULL: "NOT_NULL",
-  INVALID_INPUT: "INVALID_INPUT",
-  CHECK_CONSTRAINT: "CHECK_CONSTRAINT",
-  PERMISSION: "PERMISSION",
-  CONNECTION: "CONNECTION",
-  UNKNOWN: "UNKNOWN",
-} as const;
-
-export type DbErrorCode = (typeof DB_ERROR_CODE)[keyof typeof DB_ERROR_CODE];
-
-export interface DbErrorResponse {
-  type: DbErrorCode;
-  response: {
-    status: number;
-    message: string;
-  };
-}
-
-// ============================================================
-// Transaction Input/Output
-// ============================================================
-
-export interface PgRegisterTransactionInput {
-  name: string;
-  email: string;
-  username: string;
-  password: string;
-}
-
-export interface PgRegisterTransactionOutput {
+export interface PgRegisterOutput {
   user: PgUser;
   account: PgAccount;
   conversation: PgConversation;
+  participant: PgParticipant;
+  messages: (PgMessage & { sender_username: string })[];
 }
 
-//
-export interface PgCreateConversationTransactionInput {
-  type: string;
-  metadata: Record<string, any>;
-  participantIds: string[];
-}
-
-export interface PgCreateConversationTransactionOutput {
+export interface PgCreateConversationOutput {
   conversation: PgConversation;
-  participants: PgParticipantNoConversationId[];
+  participants: (Omit<PgParticipant, "conversation_id"> & {
+    username: string;
+  })[];
+  messages: Omit<PgMessage, "conversation_id">[];
 }
 
-export interface PgAddParticipantsTransactionInput {
-  conversationId: string;
-  participantIds: string[];
+export interface PgAddParticipantsOutput {
+  participants: (Omit<PgParticipant, "conversation_id"> & {
+    username: string;
+  })[];
+  messages: PgMessage[];
 }
 
-export interface PgSendMessageTransactionInput {
-  senderId: string;
-  conversationId: string;
-  content: string;
-}
+export type PgGetProfileUserOutput = PgUser & { username: string };
 
-export interface PgSendMessageTransactionOutput {
+export interface PgCreateMessageOutput {
   message: PgMessage;
-  participants: PgParticipantWithUsername[];
+  participants: (Omit<PgParticipant, "conversation_id"> & {
+    username: string;
+  })[];
 }
 
-export interface PgGetConversationInput {
-  conversationId: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface PgGetConversationIdsOutput {
-  id: string;
-}
-
-export interface PgGetConversationOutput {
+export interface PgGetConversationByIdOutput {
   conversation: PgConversation;
-  participants: PgParticipantWithUsername[];
-  messages: PgMessageWithUsername[];
+  participants: (Omit<PgParticipant, "conversation_id"> & {
+    username: string;
+  })[];
+  messages: (Omit<PgMessage, "conversation_id"> & {
+    isDeleted: boolean;
+  })[];
 }
 
-// ============================================================
-// CRUD Input/Output
-// ============================================================
-
-export interface PgCreateMessageInput {
-  conversationId: string;
-  senderId: string;
-  content: string;
-}
-
-export interface PgFindUserByEmailInput {
-  email: string;
-}
-
-export interface PgFindAccountByUsernameInput {
-  username: string;
-}
-
-export interface PgFindAccountById {
+export interface PgGetMessagesOutput {
   id: string;
+  content: string;
+  sender_id: string;
+  sender_username: string;
+  conversation_id: string;
+  is_deleted: boolean;
 }
 
-export interface PgGetParticipantRoleInput {
-  userId: string;
-  conversationId: string;
+export interface PgSendFriendRequestOutput {
+  id: string;
+  type: string;
+  status: string;
+  content: string;
+  sender_id: string;
+  recipient_id: string;
 }
 
-export interface PgGetParticipantRoleOutput {
-  role: string;
+export interface PgGetNotificationOutput {
+  id: string;
+  type: string;
+  status: string;
+  content: string;
+  sender_id: string;
+  recipient_id: string;
 }
 
-export interface PgGetMessagesInput {
-  conversationId: string;
-  limit: number;
-  offset: number;
+export interface PgCancelFriendRequestOutput {
+  id: string;
+  type: string;
+  status: string;
+  content: string;
+  sender_id: string;
+  recipient_id: string;
+}
+
+export interface PgAcceptFriendRequestOutput {
+  conversation: PgConversation;
+  participants: (Omit<PgParticipant, "conversation_id"> & {
+    username: string;
+  })[];
+  messages: Omit<PgMessage, "conversation_id">[];
+  notification: {
+    id: string;
+    type: string;
+    status: string;
+    content: string;
+    sender_id: string;
+    recipient_id: string;
+  };
+}
+
+export interface PgDenyFriendRequestOutput {
+  id: string;
+  type: string;
+  status: string;
+  content: string;
+  sender_id: string;
+  recipient_id: string;
 }
 
 export interface PgGetParticipantIdsOutput {
   user_id: string;
 }
 
-export interface PgGetProfileUserInput {
-  userId: string;
+export interface PgGetConversationIdsOutput {
+  id: string;
 }
 
-export interface PgGetProfileUserOutput extends PgUser {
+export interface PgGetParticipantRoleOutput {
+  role: string;
+}
+
+export interface PgParticipantWithUsername {
+  user_id: string;
   username: string;
+  role: string;
+  joined_at: Date;
+  last_seen: Date;
 }

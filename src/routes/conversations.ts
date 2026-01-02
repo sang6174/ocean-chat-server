@@ -1,6 +1,6 @@
 import {
-  extractAndParseAuthToken,
-  authMiddleware,
+  extractAndParseAccessToken,
+  checkAccessTokenMiddleware,
   isUUIDv4,
 } from "../middlewares";
 import {
@@ -9,9 +9,10 @@ import {
 } from "../controllers";
 import { logger } from "../helpers/logger";
 import { handleError, ValidateError } from "../helpers/errors";
+import { RequestContextAccessor } from "../helpers/contexts";
 
 // ============================================================
-// GET /conversations?userId=...
+// GET /v1/conversations
 // ============================================================
 export async function handleGetConversations(
   url: URL,
@@ -19,42 +20,24 @@ export async function handleGetConversations(
   corsHeaders: any
 ) {
   try {
-    logger.info("Start handle get conversations");
+    logger.debug("Start handle get conversations by user id");
 
     // Parse auth token
-    const auth = extractAndParseAuthToken(req);
+    const auth = extractAndParseAccessToken(req);
 
     // Verify auth token
-    authMiddleware(auth);
+    const authResult = checkAccessTokenMiddleware(auth);
 
-    // Get userId from search params
-    const userId = url.searchParams.get("userId");
-    if (!userId || !isUUIDv4(userId)) {
-      return new Response(
-        JSON.stringify({
-          code: "SEARCH_PARAMS_INVALID",
-          message: "Search params is invalid ...",
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
+    const result = await getConversationsController({ userId: authResult.data.userId });
 
-    const result = await getConversationsController({ userId });
-
-    logger.info("Get the conversations successfully");
+    logger.debug("Get the conversations by user id successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        "x-request-id": logger.requestId,
+        "x-request-id": RequestContextAccessor.getRequestId(),
+        "x-tab-id": RequestContextAccessor.getTabId(),
       },
     });
   } catch (err) {
@@ -73,7 +56,8 @@ export async function handleGetConversations(
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -81,7 +65,7 @@ export async function handleGetConversations(
 }
 
 // ============================================================
-// GET /conversations/messages?conversationId=...&limit=...&offset=...
+// GET /v1/conversation/messages?conversationId=...&limit=...&offset=...
 // ============================================================
 export async function handleGetMessages(
   url: URL,
@@ -89,13 +73,13 @@ export async function handleGetMessages(
   corsHeaders: any
 ) {
   try {
-    logger.info("Start handle get messages");
+    logger.debug("Start handle get messages of a conversation");
 
     // Parse auth token
-    const auth = extractAndParseAuthToken(req);
+    const auth = extractAndParseAccessToken(req);
 
     // Verify auth token
-    authMiddleware(auth);
+    checkAccessTokenMiddleware(auth);
 
     // Get and validate search params
     const conversationId = url.searchParams.get("conversationId");
@@ -130,13 +114,14 @@ export async function handleGetMessages(
       offset: offsetNum,
     });
 
-    logger.info("Get the messages successfully");
+    logger.debug("Get the messages of a conversation successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        "x-request-id": logger.requestId,
+        "x-request-id": RequestContextAccessor.getRequestId(),
+        "x-tab-id": RequestContextAccessor.getTabId(),
       },
     });
   } catch (err) {
@@ -155,7 +140,8 @@ export async function handleGetMessages(
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );

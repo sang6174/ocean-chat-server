@@ -38,7 +38,7 @@ export async function parseBodyJSON<T = any>(req: Request): Promise<T> {
   return body;
 }
 
-export function extractAndParseAuthToken(req: Request) {
+export function extractAndParseAccessToken(req: Request) {
   const authHeader = req.headers.get("Authorization");
   let token: string | null = null;
 

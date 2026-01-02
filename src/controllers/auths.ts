@@ -3,21 +3,21 @@ import type {
   ResponseDomain,
   LoginDomainInput,
   LoginDomainOutput,
-  RefreshAuthTokenInput,
-  RefreshAuthTokenOutput,
+  GenerateAccessTokenInput,
+  GenerateAccessTokenOutput,
   LogoutDomainInput,
 } from "../types/domain";
 import {
   registerService,
   loginService,
-  refreshAuthTokenService,
+  generateAccessTokenService,
   logoutService,
 } from "../services";
 
 export async function registerController(
   input: RegisterDomainInput
 ): Promise<ResponseDomain> {
-  const result = await registerService(input);
+  await registerService(input);
 
   return {
     status: 201,
@@ -33,16 +33,16 @@ export async function loginController(
   return result;
 }
 
+export async function generateAccessTokenController(
+  input: GenerateAccessTokenInput
+): Promise<GenerateAccessTokenOutput> {
+  const result = await generateAccessTokenService(input);
+  return result;
+}
+
 export async function logoutController(
   input: LogoutDomainInput
 ): Promise<ResponseDomain> {
   const result = logoutService(input);
-  return result;
-}
-
-export async function refreshAuthTokenController(
-  input: RefreshAuthTokenInput
-): Promise<RefreshAuthTokenOutput> {
-  const result = await refreshAuthTokenService(input);
   return result;
 }

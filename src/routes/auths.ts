@@ -3,14 +3,14 @@ import type {
   ResponseDomain,
   LoginDomainInput,
   LogoutDomainInput,
-  RefreshAuthTokenInput,
+  GenerateAccessTokenInput,
   RegisterDomainInput,
 } from "../types/domain";
 import {
   parseBodyFormData,
-  refreshTokenMiddleware,
-  extractAndParseAuthToken,
-  authMiddleware,
+  checkRefreshTokenMiddleware,
+  extractAndParseAccessToken,
+  checkAccessTokenMiddleware,
   assertHttpRegisterPost,
   assertHttpLoginPost,
   assertLogoutDomainInput,
@@ -18,20 +18,21 @@ import {
 import {
   registerController,
   loginController,
-  refreshAuthTokenController,
+  generateAccessTokenController,
   logoutController,
 } from "../controllers";
 import { logger } from "../helpers/logger";
 import { handleError } from "../helpers/errors";
+import { RequestContextAccessor } from "../helpers/contexts";
 
 const refreshTokenMaxAge = process.env.REFRESH_TOKEN_MAX_AGE!;
 
 // ============================================================
-// POST /auth/register
+// POST /v1/auth/register
 // ============================================================
 export async function handleRegister(req: Request, corsHeaders: any) {
   try {
-    logger.info("Start handle register");
+    logger.debug("Start handle register");
 
     // Parse request body
     const form = await parseBodyFormData(req);
@@ -58,7 +59,7 @@ export async function handleRegister(req: Request, corsHeaders: any) {
     // Call register controller
     const result: ResponseDomain = await registerController(cleanBody);
 
-    logger.info("Register successfully");
+    logger.debug("Register successfully");
     return new Response(
       JSON.stringify({ code: result.code, message: result.message }),
       {
@@ -66,7 +67,8 @@ export async function handleRegister(req: Request, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -86,7 +88,8 @@ export async function handleRegister(req: Request, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -94,11 +97,11 @@ export async function handleRegister(req: Request, corsHeaders: any) {
 }
 
 // ============================================================
-// POST /auth/login
+// POST /v1/auth/login
 // ============================================================
 export async function handleLogin(req: Request, corsHeaders: any) {
   try {
-    logger.info("Start handle login");
+    logger.debug("Start handle login");
 
     // Parse request body and sanitize fields.
     const form = await parseBodyFormData(req);
@@ -123,16 +126,18 @@ export async function handleLogin(req: Request, corsHeaders: any) {
     const response: HttpLoginPostResponse = {
       userId: result.userId,
       username: result.username,
-      authToken: result.authToken,
+      email: result.email,
+      accessToken: result.accessToken,
     };
 
-    logger.info("Login successfully");
+    logger.debug("Login successfully");
     return new Response(JSON.stringify(response), {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        "x-request-id": logger.requestId,
+        "x-request-id": RequestContextAccessor.getRequestId(),
+        "x-tab-id": RequestContextAccessor.getTabId(),
         "Set-Cookie": `refresh_token=${result.refreshToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${refreshTokenMaxAge}`,
       },
     });
@@ -152,7 +157,8 @@ export async function handleLogin(req: Request, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -160,13 +166,71 @@ export async function handleLogin(req: Request, corsHeaders: any) {
 }
 
 // ============================================================
-// GET /auth/logout
+// GET /v1/auth/access-token
+// ============================================================
+export async function handleGenerateAccessToken(
+  req: Request,
+  corsHeaders: any
+) {
+  try {
+    logger.debug("Start handle generate access token");
+
+    // Parse refresh token
+    const authToken = extractAndParseAccessToken(req);
+
+    // Verify refresh token
+    const authResult = checkRefreshTokenMiddleware(authToken);
+
+    // Call controller
+    const input: GenerateAccessTokenInput = {
+      userId: authResult.data.userId,
+    };
+
+    const result = await generateAccessTokenController(input);
+
+    logger.debug("Generate access token successfully");
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "x-request-id": RequestContextAccessor.getRequestId(),
+        "x-tab-id": RequestContextAccessor.getTabId(),
+      },
+    });
+  } catch (err: any) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
+    return new Response(
+      JSON.stringify({
+        code: "INTERNAL_ERROR",
+        message: "Refresh token error. Please try again later.",
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
+        },
+      }
+    );
+  }
+}
+
+// ============================================================
+// POST /v1/auth/logout
 // ============================================================
 export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
   try {
-    logger.info("Start handle logout");
+    logger.debug("Start handle logout");
 
-    const authToken = extractAndParseAuthToken(req);
+    // Parse Auth Token
+    const accessToken = extractAndParseAccessToken(req);
 
     const refreshToken =
       req.headers
@@ -177,34 +241,40 @@ export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
         ?.slice("refresh_token=".length) ?? null;
 
     if (!refreshToken) {
-      logger.info("No refresh token found during logout, clearing cookie only.");
+      logger.debug(
+        "No refresh token found during logout, clearing cookie only."
+      );
       return new Response(
-        JSON.stringify({ message: "Logout successfully, no token to revoke." }),
+        JSON.stringify({
+          code: "LOGOUT_SUCCESS",
+          message: "Logout successfully, no token to revoke.",
+        }),
         {
           status: 200,
           headers: {
             ...corsHeaders,
             "Content-Type": "application/json",
             "Set-Cookie": "refresh_token=; HttpOnly; Path=/; Max-Age=0",
-            "x-request-id": logger.requestId,
+            "x-request-id": RequestContextAccessor.getRequestId(),
+            "x-tab-id": RequestContextAccessor.getTabId(),
           },
         }
       );
     }
 
-    const authResult = authMiddleware(authToken);
-    refreshTokenMiddleware(refreshToken);
+    const authResult = checkAccessTokenMiddleware(accessToken);
+    checkRefreshTokenMiddleware(refreshToken);
 
     const input: LogoutDomainInput = {
       userId: authResult.data.userId,
-      authToken,
+      accessToken,
       refreshToken,
     };
 
     assertLogoutDomainInput(input);
     const result = await logoutController(input);
 
-    logger.info("Logout successfully");
+    logger.debug("Logout successfully");
     return new Response(
       JSON.stringify({
         message: result.message,
@@ -214,8 +284,9 @@ export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
           "Set-Cookie": "refresh_token=; HttpOnly; Path=/; Max-Age=0",
-          "x-request-id": logger.requestId,
         },
       }
     );
@@ -235,58 +306,8 @@ export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      }
-    );
-  }
-}
-
-// ============================================================
-// POST /auth/refresh/token
-// ============================================================
-export async function handleRefreshAuthToken(req: Request, corsHeaders: any) {
-  try {
-    logger.info("Start handle refresh auth token");
-
-    // Parse refresh token
-    const authToken = extractAndParseAuthToken(req);
-
-    // Verify refresh token
-    const authResult = refreshTokenMiddleware(authToken);
-
-    // Call controller
-    const input: RefreshAuthTokenInput = {
-      userId: authResult.data.userId,
-    };
-    const result = await refreshAuthTokenController(input);
-
-    logger.info("Refresh auth token successfully");
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-        "x-request-id": logger.requestId,
-      },
-    });
-  } catch (err: any) {
-    const errorResponse = handleError(err, corsHeaders);
-    if (errorResponse) {
-      return errorResponse;
-    }
-
-    return new Response(
-      JSON.stringify({
-        code: "INTERNAL_ERROR",
-        message: "Refresh token error. Please try again later.",
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );

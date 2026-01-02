@@ -1,19 +1,21 @@
 import type {
-  CreateConversationDomainInput,
-  GetConversationDomainOutput,
+  CreateGroupConversationDomainInput,
+  GetConversationsByUserIdDomainOutput,
   GetConversationIdsRepositoryOutput,
+  CreateConversationRepositoryOutput,
 } from "../types/domain";
 import { getConversationIdsRepository } from "../repository";
 import {
   createConversationService,
-  getConversationsService,
+  getConversationsByUserIdService,
 } from "../services";
 import { DomainError } from "../helpers/errors";
 
-export async function createConversationController(
-  input: CreateConversationDomainInput
-) {
+export async function createGroupConversationController(
+  input: CreateGroupConversationDomainInput
+): Promise<CreateConversationRepositoryOutput> {
   const result = await createConversationService(input);
+
   return result;
 }
 
@@ -35,7 +37,8 @@ export async function getConversationIdsController(input: {
 
 export async function getConversationsController(input: {
   userId: string;
-}): Promise<GetConversationDomainOutput[]> {
-  const conversations = await getConversationsService(input);
+}): Promise<GetConversationsByUserIdDomainOutput[]> {
+  const conversations = await getConversationsByUserIdService(input);
+
   return conversations;
 }

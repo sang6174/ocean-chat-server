@@ -1,75 +1,51 @@
-import { createConversationRepository } from "../repository";
-import {
-  ConversationType,
-  WsServerEvent,
-  type CreateConversationRepositoryOutput,
+import type {
+  FriendRequestDomainInput,
+  FriendRequestWithNotificationIdDomainInput,
 } from "../types/domain";
-import { eventBusServer } from "../websocket/events";
+import {
+  sendFriendRequestService,
+  getNotificationsService,
+  cancelFriendRequestService,
+  acceptFriendRequestService,
+  denyFriendRequestService,
+} from "../services/notifications";
 
-export async function notificationAddFriendController(input: {
-  sender: {
-    id: string;
-    username: string;
-  };
-  recipient: {
-    id: string;
-    username: string;
-  };
-}) {
-  eventBusServer.emit(WsServerEvent.NOTIFICATION_ADD_FRIEND, input);
+export async function sendFriendRequestController(
+  input: FriendRequestDomainInput
+) {
+  const result = await sendFriendRequestService(input);
 
-  return {
-    status: 200,
-    code: "ADDED_FRIEND",
-    message: "Send add friend invitation is successful.",
-  };
+  return result;
 }
 
-export async function notificationAcceptFriendController(input: {
-  sender: {
-    id: string;
-    username: string;
-  };
-  recipient: {
-    id: string;
-    username: string;
-  };
-}): Promise<CreateConversationRepositoryOutput> {
-  const resultConversation = await createConversationRepository({
-    type: ConversationType.Direct,
-    metadata: {
-      name: "",
-      creator: {
-        id: "",
-        username: "",
-      },
-    },
-    participants: [input.recipient, input.sender],
-  });
+export async function getNotificationsController(
+  input: FriendRequestWithNotificationIdDomainInput
+) {
+  const result = await getNotificationsService(input);
 
-  eventBusServer.emit(WsServerEvent.NOTIFICATION_ACCEPTED_FRIEND, {
-    ...input,
-    data: resultConversation,
-  });
-
-  return resultConversation;
+  return result;
 }
 
-export async function notificationDenyFriendController(input: {
-  sender: {
-    id: string;
-    username: string;
-  };
-  recipient: {
-    id: string;
-    username: string;
-  };
-}) {
-  eventBusServer.emit(WsServerEvent.NOTIFICATION_DENIED_FRIEND, input);
+export async function cancelFriendRequestController(
+  input: FriendRequestWithNotificationIdDomainInput
+) {
+  const result = await cancelFriendRequestService(input);
 
-  return {
-    status: 200,
-    code: "DENIED",
-    message: "Send denied notification is successful.",
-  };
+  return result;
+}
+
+export async function acceptFriendRequestController(
+  input: FriendRequestWithNotificationIdDomainInput
+) {
+  const result = await acceptFriendRequestService(input);
+
+  return result;
+}
+
+export async function denyFriendRequestController(
+  input: FriendRequestWithNotificationIdDomainInput
+) {
+  const result = await denyFriendRequestService(input);
+
+  return result;
 }

@@ -1,97 +1,81 @@
 import type {
-  HttpCreateConversationPost,
+  HttpCreateGroupConversationPost,
   HttpSendMessagePost,
-  HttpAddParticipantPost,
+  HttpAddParticipantsPost,
 } from "../types/http";
 import { ConversationType } from "../types/domain";
 import type {
   ResponseDomain,
   UserTokenPayload,
-  CreateConversationDomainInput,
+  CreateGroupConversationDomainInput,
   SendMessageDomainInput,
   AddParticipantsDomainInput,
 } from "../types/domain";
 import {
-  extractAndParseAuthToken,
+  extractAndParseAccessToken,
   parseBodyJSON,
-  authMiddleware,
-  assertHttpCreateConversationPost,
+  checkAccessTokenMiddleware,
+  assertHttpCreateGroupConversationPost,
   assertHttpSendMessagePost,
-  assertHttpAddParticipantPost,
+  assertHttpAddParticipantsPost,
   assertCreateGroupConversationDomainInput,
   assertSendMessageDomainInput,
   assertAddParticipantsDomainInput,
 } from "../middlewares";
 import {
-  createConversationController,
+  createGroupConversationController,
   sendMessageController,
   addParticipantsController,
 } from "../controllers";
 import { logger } from "../helpers/logger";
 import { handleError } from "../helpers/errors";
+import { RequestContextAccessor } from "../helpers/contexts";
 
 // ============================================================
-// POST /conversation
+// POST /v1/conversation/group
 // ============================================================
-export async function handleCreateConversation(req: Request, corsHeaders: any) {
+export async function handleCreateGroupConversation(
+  req: Request,
+  corsHeaders: any
+) {
   try {
-    logger.info("Start handle create a new group conversation");
+    logger.debug("Start handle create a new group conversation");
 
     // Parse refresh token
-    const authToken = extractAndParseAuthToken(req);
+    const accessToken = extractAndParseAccessToken(req);
 
     // Verify refresh token
-    const authResult = authMiddleware(authToken);
+    const authResult = checkAccessTokenMiddleware(accessToken);
 
     // Parse request body
-    const rawBody = await parseBodyJSON<HttpCreateConversationPost>(req);
+    const rawBody = await parseBodyJSON<HttpCreateGroupConversationPost>(req);
 
-    assertHttpCreateConversationPost(rawBody);
+    assertHttpCreateGroupConversationPost(rawBody);
 
     // Sanitize, validate and assert input of controller
-    let cleanBody: CreateConversationDomainInput;
-    if (rawBody.conversation.type === ConversationType.Group) {
-      cleanBody = {
-        type: ConversationType.Group,
-        metadata: {
-          name: rawBody.conversation.metadata.name,
-          creator: {
-            id: authResult.data.userId,
-            username: authResult.data.username,
-          },
-        },
-        participants: rawBody.participants,
-        authToken,
-      };
+    let cleanBody: CreateGroupConversationDomainInput;
+    cleanBody = {
+      type: ConversationType.Group,
+      name: rawBody.conversation.name,
+      creator: {
+        id: authResult.data.userId,
+        username: authResult.data.username,
+      },
+      participantIds: rawBody.participantIds,
+    };
 
-      assertCreateGroupConversationDomainInput(cleanBody);
-    } else {
-      return new Response(
-        JSON.stringify({
-          code: "CONVERSATION_TYPE_INVALID",
-          message: "Invalid conversation type. Type must is 'group'.",
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
-          },
-        }
-      );
-    }
-
+    assertCreateGroupConversationDomainInput(cleanBody);
     // Call create conversation controller
-    const result = await createConversationController(cleanBody);
+    const result = await createGroupConversationController(cleanBody);
 
-    logger.info("Create a new group conversation successfully");
+    logger.debug("Create a new group conversation successfully");
     return new Response(JSON.stringify(result), {
       status: 201,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        "x-request-id": logger.requestId,
+        "x-request-id": RequestContextAccessor.getRequestId(),
+        "x-tab-id": RequestContextAccessor.getTabId(),
       },
     });
   } catch (err) {
@@ -110,7 +94,8 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -118,16 +103,17 @@ export async function handleCreateConversation(req: Request, corsHeaders: any) {
 }
 
 // ============================================================
-// POST /conversation/message
+// POST /v1/conversation/message
 // ============================================================
 export async function handleSendMessage(req: Request, corsHeaders: any) {
   try {
-    logger.info("Start handle send a message");
+    logger.debug("Start handle send a message");
+
     // Parse auth token
-    const auth = extractAndParseAuthToken(req);
+    const auth = extractAndParseAccessToken(req);
 
     // Verify auth token
-    const authResult = authMiddleware(auth);
+    const authResult = checkAccessTokenMiddleware(auth);
 
     // Parse request body
     const rawBody = await parseBodyJSON<HttpSendMessagePost>(req);
@@ -140,7 +126,6 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
         id: authResult.data.userId,
         username: authResult.data.username,
       },
-      authToken: auth,
       conversationId: rawBody.conversationId,
       message: rawBody.message,
     };
@@ -148,15 +133,15 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
     assertSendMessageDomainInput(cleanBody);
     const result = await sendMessageController(cleanBody);
 
-    logger.info("Send the message successfully");
+    logger.debug("Send the message successfully");
     return new Response(
       JSON.stringify({ code: result.code, message: result.message }),
       {
         status: result.status,
         headers: {
           ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -176,7 +161,8 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -184,17 +170,18 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
 }
 
 // ============================================================
-// POST /conversation/participants
+// POST /v1/conversation/participants
 // ============================================================
 export async function handleAddParticipants(req: Request, corsHeaders: any) {
   try {
-    logger.info("Start handle add the new participants");
+    logger.debug("Start handle add new participants");
 
     // Parse refresh token
-    const auth: ResponseDomain | string = extractAndParseAuthToken(req);
+    const auth: ResponseDomain | string = extractAndParseAccessToken(req);
 
     // Verify refresh token
-    const authResult: UserTokenPayload | null = authMiddleware(auth);
+    const authResult: UserTokenPayload | null =
+      checkAccessTokenMiddleware(auth);
     if (!authResult) {
       return new Response(
         JSON.stringify({ message: "Invalid or expired auth token." }),
@@ -203,32 +190,32 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
           headers: {
             ...corsHeaders,
             "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
+            "x-request-id": RequestContextAccessor.getRequestId(),
+            "x-tab-id": RequestContextAccessor.getTabId(),
           },
         }
       );
     }
 
     // Parse request body
-    const rawBody = await parseBodyJSON<HttpAddParticipantPost>(req);
+    const rawBody = await parseBodyJSON<HttpAddParticipantsPost>(req);
 
-    assertHttpAddParticipantPost(rawBody);
+    assertHttpAddParticipantsPost(rawBody);
 
     const cleanBody: AddParticipantsDomainInput = {
-      authToken: auth,
       creator: {
         id: authResult.data.userId,
         username: authResult.data.username,
       },
       conversationId: rawBody.conversationId,
-      participants: rawBody.participants,
+      participantIds: rawBody.participantIds,
     };
 
     assertAddParticipantsDomainInput(cleanBody);
 
     const result = await addParticipantsController(cleanBody);
 
-    logger.info("Add the new participants successfully");
+    logger.debug("Add the new participants successfully");
     return new Response(
       JSON.stringify({ code: result.code, message: result.message }),
       {
@@ -236,7 +223,8 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -256,7 +244,8 @@ export async function handleAddParticipants(req: Request, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );

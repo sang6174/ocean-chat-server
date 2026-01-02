@@ -7,16 +7,17 @@ import type {
   LoginDomainInput,
   LoginDomainOutput,
   LogoutDomainInput,
-  RefreshAuthTokenInput,
-  RefreshAuthTokenOutput,
+  GenerateAccessTokenInput,
+  GenerateAccessTokenOutput,
   RegisterRepositoryInput,
 } from "../types/domain";
 import {
   findAccountByUsername,
   findAccountById,
   registerRepository,
+  getProfileUserRepository,
 } from "../repository";
-import { blacklistAuthToken, blacklistRefreshToken } from "../models";
+import { blacklistAccessToken, blacklistRefreshToken } from "../models";
 import { DomainError } from "../helpers/errors";
 import { logger } from "../helpers/logger";
 
@@ -82,6 +83,8 @@ export async function loginService(
     username: input.username,
   });
 
+  console.log(existingAccount);
+
   if (!existingAccount) {
     throw new DomainError({
       status: 400,
@@ -103,9 +106,9 @@ export async function loginService(
     });
   }
 
-  const authToken: string = createAccessToken(
+  const accessToken: string = createAccessToken(
     JSON.stringify({
-      userId: existingAccount.id,
+      userId: existingAccount.userId,
       username: existingAccount.username,
     })
   );
@@ -113,41 +116,27 @@ export async function loginService(
 
   const refreshToken: string = createRefreshToken(
     JSON.stringify({
-      userId: existingAccount.id,
-      authToken,
+      userId: existingAccount.userId,
+      accessToken: accessToken,
     })
   );
   logger.warn("Generate a new refresh token successfully");
 
+  const userProfile = await getProfileUserRepository({
+    userId: existingAccount.userId,
+  });
+
   return {
-    userId: existingAccount.id,
+    userId: existingAccount.userId,
     username: existingAccount.username,
-    authToken: authToken,
+    accessToken,
     refreshToken,
   };
 }
 
-export async function logoutService(
-  input: LogoutDomainInput
-): Promise<ResponseDomain> {
-  if (!blacklistAuthToken.has(input.authToken)) {
-    blacklistAuthToken.add(input.authToken);
-  }
-
-  if (!blacklistRefreshToken.has(input.authToken)) {
-    blacklistRefreshToken.add(input.authToken);
-  }
-
-  return {
-    status: 200,
-    code: "LOGOUT_SUCCESS",
-    message: "Logout is successful.",
-  };
-}
-
-export async function refreshAuthTokenService(
-  input: RefreshAuthTokenInput
-): Promise<RefreshAuthTokenOutput> {
+export async function generateAccessTokenService(
+  input: GenerateAccessTokenInput
+): Promise<GenerateAccessTokenOutput> {
   const existingAccount = await findAccountById({
     id: input.userId,
   });
@@ -160,17 +149,36 @@ export async function refreshAuthTokenService(
     });
   }
 
-  const authToken: string = createAccessToken(
+  const accessToken: string = createAccessToken(
     JSON.stringify({
       userId: existingAccount.id,
       username: existingAccount.username,
     })
   );
+
   logger.warn("Generate a new auth token successfully");
 
   return {
     userId: existingAccount.id,
     username: existingAccount.username,
-    authToken: authToken,
+    accessToken,
+  };
+}
+
+export async function logoutService(
+  input: LogoutDomainInput
+): Promise<ResponseDomain> {
+  if (!blacklistAccessToken.has(input.accessToken)) {
+    blacklistAccessToken.add(input.accessToken);
+  }
+
+  if (!blacklistRefreshToken.has(input.refreshToken)) {
+    blacklistRefreshToken.add(input.refreshToken);
+  }
+
+  return {
+    status: 200,
+    code: "LOGOUT_SUCCESS",
+    message: "Logout is successful.",
   };
 }

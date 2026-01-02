@@ -1,10 +1,11 @@
 import type {
   HttpRegisterPost,
   HttpLoginPost,
-  HttpCreateConversationPost,
+  HttpCreateGroupConversationPost,
   HttpSendMessagePost,
-  HttpAddParticipantPost,
-  HttpNotificationFriendPost,
+  HttpAddParticipantsPost,
+  HttpFriendRequest,
+  HttpFriendRequestWithNotificationId,
 } from "../../types/http";
 import {
   isName,
@@ -13,7 +14,6 @@ import {
   isPlainObject,
   isUsername,
   isString,
-  isStringArray,
   assertValid,
   isUUIDv4,
 } from "./helper";
@@ -69,7 +69,7 @@ export function assertHttpLoginPost(
   assertValid(validateHttpLoginPost(value), "HttpLoginPost");
 }
 
-export function validateHttpCreateConversationPost(
+export function validateHttpCreateGroupConversationPost(
   value: any
 ): { valid: true } | { valid: false; message: string } {
   if (!isPlainObject(value))
@@ -79,37 +79,24 @@ export function validateHttpCreateConversationPost(
   if (typeof con !== "object" || con === null)
     return { valid: false, message: "conversation must be object" };
 
-  if (!isString(con.type))
-    return { valid: false, message: "conversation.type must be string" };
-
-  if (typeof con.metadata !== "object" || con.metadata === null)
-    return { valid: false, message: "conversation.metadata must be object" };
-
-  if (!isString(con.metadata.name))
+  if (!isString(con.name))
     return {
       valid: false,
-      message: "conversation.metadata.name must be string",
+      message: "conversation.name must be string",
     };
 
-  if (!Array.isArray(value.participants)) {
+  if (!Array.isArray(value.participantIds)) {
     return {
       valid: false,
-      message: "participants must be array",
+      message: "participantIds must be array",
     };
   }
 
-  for (const p of value.participants) {
-    if (!isUUIDv4(p.id)) {
+  for (const p of value.participantIds) {
+    if (!isUUIDv4(p)) {
       return {
         valid: false,
-        message: "participants[i].id must be uuidv4",
-      };
-    }
-
-    if (!isString(p.username)) {
-      return {
-        valid: false,
-        message: "participants[i].username must be string",
+        message: "participantIds[i] must be uuidv4",
       };
     }
   }
@@ -117,12 +104,12 @@ export function validateHttpCreateConversationPost(
   return { valid: true };
 }
 
-export function assertHttpCreateConversationPost(
+export function assertHttpCreateGroupConversationPost(
   value: any
-): asserts value is HttpCreateConversationPost {
+): asserts value is HttpCreateGroupConversationPost {
   assertValid(
-    validateHttpCreateConversationPost(value),
-    "HttpCreateConversationPost"
+    validateHttpCreateGroupConversationPost(value),
+    "HttpCreateGroupConversationPost"
   );
 }
 
@@ -133,16 +120,7 @@ export function validateHttpSendMessagePost(
     return { valid: false, message: "Must be an object" };
 
   if (!isUUIDv4(value.conversationId))
-    return { valid: false, message: "conversationId must be string" };
-
-  if (!isPlainObject(value.sender))
-    return { valid: false, message: "sender must be object" };
-
-  if (!isUUIDv4(value.sender.id))
-    return { valid: false, message: "sender.id must be string" };
-
-  if (!isString(value.sender.username))
-    return { valid: false, message: "sender.username must be string" };
+    return { valid: false, message: "conversationId must be uuidv4" };
 
   if (!isString(value.message))
     return { valid: false, message: "message must be string" };
@@ -156,64 +134,41 @@ export function assertHttpSendMessagePost(
   assertValid(validateHttpSendMessagePost(value), "HttpSendMessagePost");
 }
 
-export function validateHttpAddParticipantPost(
+export function validateHttpAddParticipantsPost(
   value: any
 ): { valid: true } | { valid: false; message: string } {
   if (!isPlainObject(value))
     return { valid: false, message: "Must be an object" };
 
-  if (!isPlainObject(value.creator))
-    return { valid: false, message: "creator must be object" };
-
-  if (!isUUIDv4(value.creator.id))
-    return { valid: false, message: "creator.id must be string" };
-
-  if (!isString(value.creator.username))
-    return { valid: false, message: "creator.username must be string" };
-
   if (!isUUIDv4(value.conversationId))
-    return { valid: false, message: "conversationId must be string" };
+    return { valid: false, message: "conversationId must be uuidv4" };
 
-  if (!Array.isArray(value.participants))
-    return { valid: false, message: "participants must be string" };
+  if (!Array.isArray(value.participantIds))
+    return { valid: false, message: "participantIds must be array" };
 
-  for (const i of value.participants) {
-    if (!isUUIDv4(i.id)) {
-      return { valid: false, message: "participants[i].id must be uuidv4[]" };
-    }
-
-    if (!isString(i.username)) {
-      return {
-        valid: false,
-        message: "participants[i].username must be string",
-      };
+  for (const i of value.participantIds) {
+    if (!isUUIDv4(i)) {
+      return { valid: false, message: "participantIds[i] must be uuidv4[]" };
     }
   }
 
   return { valid: true };
 }
 
-export function assertHttpAddParticipantPost(
+export function assertHttpAddParticipantsPost(
   value: any
-): asserts value is HttpAddParticipantPost {
-  assertValid(validateHttpAddParticipantPost(value), "HttpAddParticipantPost");
+): asserts value is HttpAddParticipantsPost {
+  assertValid(
+    validateHttpAddParticipantsPost(value),
+    "HttpAddParticipantsPost"
+  );
 }
 
-export function validateHttpNotificationFriendPost(
+export function validateHttpFriendRequest(
   value: any
 ): { valid: true } | { valid: false; message: string } {
   if (!isPlainObject(value))
     return { valid: false, message: "Must be an object" };
-
-  if (!isPlainObject(value.sender))
-    return { valid: false, message: "sender must be object" };
-
-  if (!isUUIDv4(value.sender.id))
-    return { valid: false, message: "sender.id must be uuidv4" };
-
-  if (!isString(value.sender.username)) {
-    return { valid: false, message: "sender.username must be string" };
-  }
 
   if (!isPlainObject(value.recipient))
     return { valid: false, message: "recipient must be object" };
@@ -228,11 +183,40 @@ export function validateHttpNotificationFriendPost(
   return { valid: true };
 }
 
-export function assertHttpNotificationFriendPost(
+export function assertHttpFriendRequest(
   value: any
-): asserts value is HttpNotificationFriendPost {
+): asserts value is HttpFriendRequest {
+  assertValid(validateHttpFriendRequest(value), "HttpFriedRequest");
+}
+
+export function validateHttpFriendRequestWithNotificationId(
+  value: any
+): { valid: true } | { valid: false; message: string } {
+  if (!isPlainObject(value))
+    return { valid: false, message: "Must be an object" };
+
+  if (!isPlainObject(value.recipient))
+    return { valid: false, message: "recipient must be object" };
+
+  if (!isUUIDv4(value.recipient.id))
+    return { valid: false, message: "recipient.id must be uuidv4" };
+
+  if (!isString(value.recipient.username)) {
+    return { valid: false, message: "recipient.username must be string" };
+  }
+
+  if (!isUUIDv4(value.notificationId)) {
+    return { valid: false, message: "notificationId must be uuidv4" };
+  }
+
+  return { valid: true };
+}
+
+export function assertHttpFriendRequestWithNotificationId(
+  value: any
+): asserts value is HttpFriendRequestWithNotificationId {
   assertValid(
-    validateHttpNotificationFriendPost(value),
-    "HttpNotificationFriendPost"
+    validateHttpFriendRequest(value),
+    "HttpFriendRequestWithNotificationId"
   );
 }

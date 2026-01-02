@@ -2,21 +2,19 @@ import type { RefreshTokenPayload, UserTokenPayload } from "../types/domain";
 import { verifyAccessToken, verifyRefreshToken } from "../services";
 import {
   isDecodedToken,
-  validateAuthToken,
-  validateRefreshToken,
   assertUserTokenPayload,
   assertRefreshTokenPayload,
 } from "./validation/domain";
 import { logger } from "../helpers/logger";
 
-import { blacklistAuthToken, blacklistRefreshToken } from "../models";
+import { blacklistAccessToken, blacklistRefreshToken } from "../models";
 import { AuthError } from "../helpers/errors";
 
-export function authMiddleware(token: string): UserTokenPayload {
+export function checkAccessTokenMiddleware(token: string): UserTokenPayload {
   try {
-    if (blacklistAuthToken.has(token)) {
-      logger.warn("The auth token is on the blacklist");
-      throw new AuthError("Auth token is invalid");
+    if (blacklistAccessToken.has(token)) {
+      logger.warn("The access token is on the blacklist");
+      throw new AuthError("Access token is invalid");
     }
 
     const decoded = verifyAccessToken(token);
@@ -31,12 +29,14 @@ export function authMiddleware(token: string): UserTokenPayload {
 
     return payload;
   } catch (err: any) {
-    logger.error("Verify JWT auth token error: ", err?.message);
+    logger.error("Verify JWT access token error: ", err?.message);
     throw err;
   }
 }
 
-export function refreshTokenMiddleware(token: string): RefreshTokenPayload {
+export function checkRefreshTokenMiddleware(
+  token: string
+): RefreshTokenPayload {
   try {
     if (blacklistRefreshToken.has(token)) {
       logger.warn("The refresh token is on the blacklist");

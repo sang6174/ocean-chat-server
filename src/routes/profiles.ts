@@ -2,34 +2,43 @@ import type {
   GetProfileUserDomainInput,
   UserTokenPayload,
 } from "../types/domain";
-import { extractAndParseAuthToken, authMiddleware } from "../middlewares";
+import {
+  extractAndParseAccessToken,
+  checkAccessTokenMiddleware,
+} from "../middlewares";
 import {
   getProfileUsersController,
   getProfileUserController,
 } from "../controllers";
 import { logger } from "../helpers/logger";
 import { handleError } from "../helpers/errors";
+import { RequestContextAccessor } from "../helpers/contexts";
 
 // ============================================================
-// Get All Profile User
+// GET /v1/profile/users
 // ============================================================
-export async function handleGetAllProfileUsers(req: Request, corsHeaders: any) {
+export async function handleGetProfileUser(req: Request, corsHeaders: any) {
   try {
+    logger.debug("Start handle get user's profile");
+
     // Parse auth token
-    const auth = extractAndParseAuthToken(req);
+    const auth = extractAndParseAccessToken(req);
 
     // Verify auth token
-    authMiddleware(auth);
+    const authResult = checkAccessTokenMiddleware(auth);
 
-    const result = await getProfileUsersController();
+    // Call get info user controller
+    const input: GetProfileUserDomainInput = { userId: authResult.data.userId };
+    const result = await getProfileUserController(input);
 
-    logger.info("Get all users' profile successfully");
+    logger.debug("Get user's profile successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        "x-request-id": logger.requestId,
+        "x-request-id": RequestContextAccessor.getRequestId(),
+        "x-tab-id": RequestContextAccessor.getTabId(),
       },
     });
   } catch (err) {
@@ -48,7 +57,8 @@ export async function handleGetAllProfileUsers(req: Request, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -56,27 +66,28 @@ export async function handleGetAllProfileUsers(req: Request, corsHeaders: any) {
 }
 
 // ============================================================
-// Get Profile User
+// GET /v1/profile/user
 // ============================================================
-export async function handleGetProfileUser(req: Request, corsHeaders: any) {
+export async function handleGetAllProfileUsers(req: Request, corsHeaders: any) {
   try {
+    logger.debug("Start get all users' profile");
+
     // Parse auth token
-    const auth = extractAndParseAuthToken(req);
+    const auth = extractAndParseAccessToken(req);
 
     // Verify auth token
-    const authResult = authMiddleware(auth);
+    checkAccessTokenMiddleware(auth);
 
-    // Call get info user controller
-    const input: GetProfileUserDomainInput = { userId: authResult.data.userId };
-    const result = await getProfileUserController(input);
+    const result = await getProfileUsersController();
 
-    logger.info("Get user's profile successfully");
+    logger.debug("Get all users' profile successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
-        "x-request-id": logger.requestId,
+        "x-request-id": RequestContextAccessor.getRequestId(),
+        "x-tab-id": RequestContextAccessor.getTabId(),
       },
     });
   } catch (err) {
@@ -95,7 +106,8 @@ export async function handleGetProfileUser(req: Request, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );

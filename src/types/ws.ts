@@ -7,12 +7,14 @@ export interface DataWebSocket {
 
 export type WsToUser = {
   senderId: string;
-  toUserId: string;
+  senderTabId: string;
+  recipientId: string;
 };
 
 export type WsToConversation = {
   senderId: string;
-  toConversationId: string;
+  senderTabId: string;
+  conversationId: string;
 };
 
 export interface WsDataToSendToClient<T> {

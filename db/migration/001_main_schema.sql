@@ -14,6 +14,23 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'chat_role_type') THEN
         CREATE TYPE chat_role_type AS ENUM ('admin', 'member');
     END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'notification_type') THEN 
+        CREATE TYPE notification_type AS ENUM (
+            'friend_request', 
+            'accept_friend_request', 
+            'deny_friend_request'
+        );
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'notification_status') THEN 
+        CREATE TYPE notification_status AS ENUM (
+            'pending', 
+            'accepted',
+            'rejected',
+            'cancelled'
+        );
+    END IF;
 END
 $$;
 
@@ -31,25 +48,26 @@ CREATE TABLE IF NOT EXISTS main.users (
 );
 
 CREATE TABLE IF NOT EXISTS main.accounts (
-    id              UUID NOT NULL REFERENCES main.users(id) ON DELETE CASCADE,
+    id              UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     username        TEXT UNIQUE NOT NULL,
     password        TEXT NOT NULL,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ,
     is_deleted      BOOLEAN DEFAULT FALSE,
     deleted_at      TIMESTAMPTZ,
-    PRIMARY KEY (id)
+    user_id         UUID NOT NULL REFERENCES main.users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS main.conversations (
     id              UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     type            conversation_type NOT NULL,
-    metadata        JSONB DEFAULT '{}'::JSONB,
+    name            VARCHAR(100),
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ,
     is_deleted      BOOLEAN DEFAULT FALSE,
     deleted_at      TIMESTAMPTZ,
-    last_message_created_at    TIMESTAMPTZ DEFAULT NOW()
+    last_event      TIMESTAMPTZ DEFAULT NOW(),
+    creator_id      UUID REFERENCES main.users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS main.participants (
@@ -60,7 +78,6 @@ CREATE TABLE IF NOT EXISTS main.participants (
     joined_at       TIMESTAMPTZ DEFAULT NOW(),
     PRIMARY KEY (conversation_id, user_id)
 );
-
 
 CREATE TABLE IF NOT EXISTS main.messages (
     id              BIGSERIAL PRIMARY KEY,
@@ -75,17 +92,23 @@ CREATE TABLE IF NOT EXISTS main.messages (
 
 CREATE TABLE IF NOT EXISTS main.notifications (
     id              UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    type            VARCHAR(100) NOT NULL, 
+    type            notification_type NOT NULL, 
+    status          notification_status NOT NULL,
+    content         TEXT,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ,
     is_deleted      BOOLEAN DEFAULT FALSE,
     deleted_at      TIMESTAMPTZ,
-    sender_id       UUID REFERENCES main.users(id),
-    recipient_id    UUID REFERENCES main.users(id)
+    sender_id       UUID NOT NULL REFERENCES main.users(id),
+    recipient_id    UUID NOT NULL REFERENCES main.users(id)
 );
 
 -- ============================================================
 -- Indexing
 -- ============================================================
-CREATE INDEX idx_messages_conversation_id ON main.messages(conversation_id, created_at);
-CREATE INDEX idx_conversations_last_message_created_at ON main.conversations(last_message_created_at);
+CREATE INDEX idx_accounts_user_id ON main.accounts(user_id);
+CREATE INDEX idx_participants_user_id ON main.participants(user_id);
+CREATE INDEX idx_conversations_last_event ON main.conversations(last_event DESC);
+CREATE INDEX idx_messages_conversation_id ON main.messages(conversation_id, created_at DESC);
+CREATE INDEX idx_participants_conversation_id ON main.participants(conversation_id);
+CREATE INDEX idx_notifications_recipient_id ON main.notifications(recipient_id);

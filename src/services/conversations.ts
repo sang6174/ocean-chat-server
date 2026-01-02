@@ -1,47 +1,44 @@
 import { ConversationType, WsServerEvent } from "../types/domain";
 import type {
-  GetConversationRepositoryOutput,
-  GetConversationDomainInput,
-  GetConversationDomainOutput,
+  GetConversationByIdRepositoryOutput,
+  GetConversationsByUserIdDomainInput,
+  GetConversationsByUserIdDomainOutput,
   PublishConversationCreated,
-  CreateConversationDomainInput,
+  CreateGroupConversationDomainInput,
   CreateConversationRepositoryOutput,
 } from "../types/domain";
 import {
   createConversationRepository,
-  getConversationRepository,
+  getConversationByIdRepository,
   getConversationIdsRepository,
 } from "../repository";
 import { eventBusServer } from "../websocket/events";
 import { DomainError } from "../helpers/errors";
+import { assertCreateConversationRepositoryOutput } from "../middlewares";
 
 export async function createConversationService(
-  input: CreateConversationDomainInput
+  input: CreateGroupConversationDomainInput
 ): Promise<CreateConversationRepositoryOutput> {
-  const resultCreateConversation = await createConversationRepository({
-    type: input.type,
-    metadata: input.metadata,
-    participants: input.participants,
-  });
+  const resultCreateConversation = await createConversationRepository(input);
 
   if (input.type === ConversationType.Group) {
     eventBusServer.emit<PublishConversationCreated>(
       WsServerEvent.CONVERSATION_CREATED,
       {
-        authToken: input.authToken,
-        sender: input.metadata.creator,
-        recipients: input.participants,
+        sender: input.creator,
+        recipients: resultCreateConversation.participants.map((p) => p.user),
         conversation: resultCreateConversation,
       }
     );
   }
 
+  assertCreateConversationRepositoryOutput(resultCreateConversation);
   return resultCreateConversation;
 }
 
-export async function getConversationsService(
-  input: GetConversationDomainInput
-): Promise<GetConversationDomainOutput[]> {
+export async function getConversationsByUserIdService(
+  input: GetConversationsByUserIdDomainInput
+): Promise<GetConversationsByUserIdDomainOutput[]> {
   const conversation = await getConversationIdsRepository(input);
   if (!conversation) {
     throw new DomainError({
@@ -51,29 +48,20 @@ export async function getConversationsService(
     });
   }
 
-  let result: GetConversationRepositoryOutput[] = [];
+  let result: GetConversationByIdRepositoryOutput[] = [];
   for (const conId of conversation.ids) {
-    const resultConversation = await getConversationRepository({
+    const resultConversation = await getConversationByIdRepository({
       conversationId: conId,
-      limit: 10,
+      limit: 20,
       offset: 0,
     });
 
-    if (!resultConversation) {
-      throw new DomainError({
-        status: 500,
-        code: "CONVERSATION_ID_INVALID",
-        message: "conversationId is invalid",
-      });
-    }
-
-    const conversation: GetConversationRepositoryOutput = {
+    const conversation: GetConversationByIdRepositoryOutput = {
       conversation: resultConversation.conversation,
       participants: resultConversation.participants,
       messages: resultConversation.messages,
     };
     result.push(conversation);
   }
-
   return result;
 }

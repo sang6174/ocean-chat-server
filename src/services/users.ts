@@ -8,6 +8,22 @@ import {
 } from "../repository";
 import { DomainError } from "../helpers/errors";
 
+export async function getProfileUserService(
+  input: GetProfileUserDomainInput
+): Promise<GetProfileUserDomainOutput> {
+  const result = await getProfileUserRepository(input);
+
+  if (!result) {
+    throw new DomainError({
+      status: 400,
+      code: "USER_ID_INVALID",
+      message: "Get the user profile error",
+    });
+  }
+
+  return result;
+}
+
 export async function getProfileUsersService(): Promise<
   GetProfileUserDomainOutput[]
 > {
@@ -17,20 +33,6 @@ export async function getProfileUsersService(): Promise<
       status: 500,
       code: "GET_OTHER_USER_PROFILE_ERROR",
       message: "Get other user profile error",
-    });
-  }
-  return result;
-}
-
-export async function getProfileUserService(
-  input: GetProfileUserDomainInput
-): Promise<GetProfileUserDomainOutput> {
-  const result = await getProfileUserRepository(input);
-  if (!result) {
-    throw new DomainError({
-      status: 400,
-      code: "USER_ID_INVALID",
-      message: "Get the user profile error",
     });
   }
   return result;

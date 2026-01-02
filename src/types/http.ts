@@ -7,6 +7,7 @@ export interface HttpRegisterPost {
   username: string;
   password: string;
 }
+
 export interface HttpLoginPost {
   username: string;
   password: string;
@@ -15,50 +16,38 @@ export interface HttpLoginPost {
 export interface HttpLoginPostResponse {
   userId: string;
   username: string;
-  authToken: string;
+  email: string;
+  accessToken: string;
 }
 
-export interface HttpCreateConversationPost {
+export interface HttpCreateGroupConversationPost {
   conversation: {
-    type: string;
-    metadata: {
-      name: string;
-    };
+    name: string;
   };
-  participants: {
-    id: string;
-    username: string;
-  }[];
+  participantIds: string[];
 }
 
 export interface HttpSendMessagePost {
   conversationId: string;
-  sender: {
-    id: string;
-    username: string;
-  };
   message: string;
 }
 
-export interface HttpAddParticipantPost {
+export interface HttpAddParticipantsPost {
   conversationId: string;
-  creator: {
-    id: string;
-    username: string;
-  };
-  participants: {
-    id: string;
-    username: string;
-  }[];
+  participantIds: string[];
 }
 
-export interface HttpNotificationFriendPost {
-  sender: {
-    id: string;
-    username: string;
-  };
+export interface HttpFriendRequest {
   recipient: {
     id: string;
     username: string;
   };
+}
+
+export interface HttpFriendRequestWithNotificationId {
+  recipient: {
+    id: string;
+    username: string;
+  };
+  notificationId: string;
 }

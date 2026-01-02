@@ -23,10 +23,6 @@ export function isString(value: any): value is string {
   return typeof value === "string";
 }
 
-export function isStringArray(value: any): value is string[] {
-  return Array.isArray(value) && value.every(isString);
-}
-
 export function isPlainObject(value: any): value is Record<string, any> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -82,25 +78,4 @@ export function isPassword(
 
 export function isTypeConversationEnum(value: any): value is ConversationType {
   return Object.values(ConversationType).includes(value);
-}
-
-export function validateConversationMetadata(
-  value: any
-): { valid: true } | { valid: false; message: string } {
-  if (!isPlainObject(value))
-    return { valid: false, message: "metadata must be object" };
-
-  if (!isString(value.name))
-    return { valid: false, message: "metadata.name must be string" };
-
-  if (!isPlainObject(value.creator))
-    return { valid: false, message: "metadata.creator must be an object" };
-
-  if (!isUUIDv4(value.creator.id))
-    return { valid: false, message: "metadata.creator.id must be uuidv4" };
-
-  if (!isString(value.creator.username))
-    return { valid: false, message: "metadata.creator.userId must be string" };
-
-  return { valid: true };
 }

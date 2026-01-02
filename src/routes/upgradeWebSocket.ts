@@ -3,10 +3,11 @@ import type {
   GetConversationIdsRepositoryInput,
 } from "../types/domain";
 import type { DataWebSocket } from "../types/ws";
-import { authMiddleware } from "../middlewares";
+import { checkAccessTokenMiddleware } from "../middlewares";
 import { getConversationIdsController } from "../controllers";
 import { handleError } from "../helpers/errors";
 import { logger } from "../helpers/logger";
+import { RequestContextAccessor } from "../helpers/contexts";
 
 // ============================================================
 // Upgrade WebSocket
@@ -20,7 +21,7 @@ export async function handleUpgradeWebSocket(
   try {
     logger.info("Start handle upgrade websocket");
 
-    // Get auth token
+    // Get auth token from search params
     const token = url.searchParams.get("token");
     if (!token) {
       return new Response(
@@ -33,14 +34,15 @@ export async function handleUpgradeWebSocket(
           headers: {
             ...corsHeaders,
             "Content-Type": "application/json",
-            "x-request-id": logger.requestId,
+            "x-request-id": RequestContextAccessor.getRequestId(),
+            "x-tab-id": RequestContextAccessor.getTabId(),
           },
         }
       );
     }
 
     // Verify auth token
-    const authResult = authMiddleware(token);
+    const authResult = checkAccessTokenMiddleware(token);
 
     // Call controller
     const input: GetConversationIdsRepositoryInput = {
@@ -64,23 +66,14 @@ export async function handleUpgradeWebSocket(
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       });
     }
 
     logger.info("Upgrade websocket successfully");
-    return new Response(
-      JSON.stringify({ message: "Upgrade websocket successfully" }),
-      {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
-        },
-      }
-    );
+    return;
   } catch (err) {
     const errorResponse = handleError(err, corsHeaders);
     if (errorResponse) {
@@ -97,7 +90,8 @@ export async function handleUpgradeWebSocket(
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );

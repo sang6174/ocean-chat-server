@@ -7,8 +7,8 @@ import { eventBusServer } from "../websocket/events";
 import {
   getParticipantRoleRepository,
   addParticipantsRepository,
-  getConversationRepository,
-  getParticipantWithUsernameRepository,
+  getConversationByIdRepository,
+  getParticipantsByConversationIdRepository,
 } from "../repository";
 import { DomainError } from "../helpers/errors";
 
@@ -28,7 +28,7 @@ export async function addParticipantsService(
     });
   }
 
-  let resultOldParticipants = await getParticipantWithUsernameRepository({
+  let resultOldParticipants = await getParticipantsByConversationIdRepository({
     conversationId: input.conversationId,
   });
 
@@ -38,10 +38,11 @@ export async function addParticipantsService(
 
   const resultParticipants = await addParticipantsRepository({
     conversationId: input.conversationId,
-    participantIds: input.participants.map((p) => p.id),
+    creator: input.creator,
+    participantIds: input.participantIds,
   });
 
-  const resultConversation = await getConversationRepository({
+  const resultConversation = await getConversationByIdRepository({
     conversationId: input.conversationId,
     limit: 10,
     offset: 0,
@@ -50,10 +51,8 @@ export async function addParticipantsService(
   // Broadcast/Send to participants
   eventBusServer.emit(WsServerEvent.CONVERSATION_ADDED_PARTICIPANTS, {
     sender: input.creator,
-    authToken: input.authToken,
     oldParticipants: resultOldParticipants,
     newParticipants: resultParticipants,
-    conversationId: resultConversation?.conversation.id,
     conversation: resultConversation,
   });
 

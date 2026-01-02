@@ -1,3 +1,4 @@
+import { RequestContextAccessor } from "./contexts";
 import { logger } from "./logger";
 
 export abstract class AppError extends Error {
@@ -194,7 +195,8 @@ export function handleError(err: any, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -212,7 +214,8 @@ export function handleError(err: any, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -230,7 +233,8 @@ export function handleError(err: any, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -248,7 +252,8 @@ export function handleError(err: any, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );
@@ -266,7 +271,8 @@ export function handleError(err: any, corsHeaders: any) {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "x-request-id": logger.requestId,
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
         },
       }
     );

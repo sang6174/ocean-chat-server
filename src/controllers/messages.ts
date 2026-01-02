@@ -1,8 +1,8 @@
 import type {
   SendMessageDomainInput,
   ResponseDomain,
-  GetMessagesDomainInput,
-  GetMessagesDomainOutput,
+  GetMessagesByConversationIdDomainInput,
+  GetMessagesByConversationIdDomainOutput,
 } from "../types/domain";
 import { sendMessageService, getMessagesService } from "../services";
 
@@ -14,8 +14,9 @@ export async function sendMessageController(
 }
 
 export async function getMessagesController(
-  input: GetMessagesDomainInput
-): Promise<GetMessagesDomainOutput[]> {
-  const result = getMessagesService(input);
+  input: GetMessagesByConversationIdDomainInput
+): Promise<GetMessagesByConversationIdDomainOutput[]> {
+  const result = await getMessagesService(input);
+
   return result;
 }

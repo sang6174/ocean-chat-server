@@ -1,27 +1,30 @@
 import type { DataWebSocket } from "./types/ws";
-import { logger, requestContextStorage } from "./helpers/logger";
+import { requestContextStorage } from "./helpers/contexts";
+import { logger } from "./helpers/logger";
 import {
   handleRegister,
   handleLogin,
   handleLogout,
-  handleRefreshAuthToken,
-  handleCreateConversation,
+  handleGenerateAccessToken,
+  handleCreateGroupConversation,
   handleSendMessage,
   handleAddParticipants,
-  handleNotificationAddFriend,
-  handleNotificationAcceptFriend,
-  handleNotificationDenyFriend,
+  handleSendFriendRequest,
+  handleAcceptFriendRequest,
+  handleDenyFriendRequest,
   handleGetAllProfileUsers,
   handleGetProfileUser,
   handleGetConversations,
   handleGetMessages,
   handleUpgradeWebSocket,
+  handleGetNotifications,
+  handleCancelFriendRequest,
 } from "./routes";
-import { blacklistAuthToken, blacklistRefreshToken } from "./models";
-import { addWsConnection, removeWsConnection } from "./websocket/gateway";
+import { blacklistAccessToken, blacklistRefreshToken } from "./models";
+import { addWsConnection, removeWsConnection } from "./websocket/main";
 
 setInterval(() => {
-  blacklistAuthToken.clear();
+  blacklistAccessToken.clear();
   console.log("Blacklist of auth token cleared");
 }, 60 * 60 * 1000);
 
@@ -41,17 +44,21 @@ const server = Bun.serve<DataWebSocket>({
     const path = url.pathname;
     const method = req.method;
 
+    const headers = req.headers;
+    let tabId: string = headers.get("X-Tab-Id") ?? crypto.randomUUID();
     const ctx = {
+      tabId,
       requestId: crypto.randomUUID(),
       method,
       path,
       startTime: Date.now(),
     };
 
+    const origin = req.headers.get("Origin") || "https://ocean-chat-web.vercel.app";
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "https://ocean-chat-web.vercel.app",
+      "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Tab-Id",
       "Access-Control-Allow-Credentials": "true",
       "Access-Control-Expose-Headers": "x-request-id",
     };
@@ -64,101 +71,121 @@ const server = Bun.serve<DataWebSocket>({
       });
     }
 
-    // POST /auth/register
-    if (path === "/auth/register" && method === "POST") {
+    // POST /v1/auth/register
+    if (path === "/v1/auth/register" && method === "POST") {
       return requestContextStorage.run(ctx, () => {
         return handleRegister(req, corsHeaders);
       });
     }
 
-    // POST /auth/login
-    if (path === "/auth/login" && method === "POST") {
+    // POST /v1/auth/login
+    if (path === "/v1/auth/login" && method === "POST") {
       return requestContextStorage.run(ctx, () => {
         return handleLogin(req, corsHeaders);
       });
     }
 
-    // GET /profile/users
-    if (path === "/profile/users" && method === "GET") {
+    // GET /v1/auth/access-token
+    if (path === "/v1/auth/access-token" && method === "GET") {
       return requestContextStorage.run(ctx, () => {
-        return handleGetAllProfileUsers(req, corsHeaders);
+        return handleGenerateAccessToken(req, corsHeaders);
       });
     }
 
-    // GET /profile/user
-    if (path === "/profile/user" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGetProfileUser(req, corsHeaders);
-      });
-    }
-
-    // GET /conversations?userId=...
-    if (path === "/conversations" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGetConversations(url, req, corsHeaders);
-      });
-    }
-
-    // GET /conversations/messages?conversationId=...&limit=...&offset=...
-    if (path === "/conversations/messages" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGetMessages(url, req, corsHeaders);
-      });
-    }
-
-    // GET /auth/refresh/token
-    if (path === "/auth/refresh/token" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleRefreshAuthToken(req, corsHeaders);
-      });
-    }
-
-    // POST /auth/logout
-    if (path === "/auth/logout" && method === "POST") {
+    // POST /v1/auth/logout
+    if (path === "/v1/auth/logout" && method === "POST") {
       return requestContextStorage.run(ctx, () => {
         return handleLogout(url, req, corsHeaders);
       });
     }
 
-    // POST /conversation
-    if (path === "/conversation" && method === "POST") {
+    // GET /v1/profile/user
+    if (path === "/v1/profile/user" && method === "GET") {
       return requestContextStorage.run(ctx, () => {
-        return handleCreateConversation(req, corsHeaders);
+        return handleGetProfileUser(req, corsHeaders);
       });
     }
 
-    // POST /conversation/message
-    if (path === "/conversation/message" && method === "POST") {
+    // GET /v1/profile/users
+    if (path === "/v1/profile/users" && method === "GET") {
+      return requestContextStorage.run(ctx, () => {
+        return handleGetAllProfileUsers(req, corsHeaders);
+      });
+    }
+
+    // POST /v1/conversation/group
+    if (path === "/v1/conversation/group" && method === "POST") {
+      return requestContextStorage.run(ctx, () => {
+        return handleCreateGroupConversation(req, corsHeaders);
+      });
+    }
+
+    // POST /v1/conversation/message
+    if (path === "/v1/conversation/message" && method === "POST") {
       return requestContextStorage.run(ctx, () => {
         return handleSendMessage(req, corsHeaders);
       });
     }
 
-    // POST /conversation/participants
-    if (path === "/conversation/participants" && method === "POST") {
+    // POST /v1/conversation/participants
+    if (path === "/v1/conversation/participants" && method === "POST") {
       return requestContextStorage.run(ctx, () => {
         return handleAddParticipants(req, corsHeaders);
       });
     }
 
-    // POST /notification/friend
-    if (path === "/notification/friend") {
+    // GET /v1/conversations
+    if (path === "/v1/conversations" && method === "GET") {
       return requestContextStorage.run(ctx, () => {
-        return handleNotificationAddFriend(url, req, corsHeaders);
+        return handleGetConversations(url, req, corsHeaders);
       });
     }
 
-    // POST /notification/friend/accept
-    if (path === "/notification/friend/accept" && method === "POST") {
+    // GET /v1/conversation/messages?conversationId=...&limit=...&offset=...
+    if (path === "/v1/conversation/messages" && method === "GET") {
       return requestContextStorage.run(ctx, () => {
-        return handleNotificationAcceptFriend(url, req, corsHeaders);
+        return handleGetMessages(url, req, corsHeaders);
       });
     }
 
-    // POST /notification/friend/deny
-    if (path === "/notification/friend/deny" && method === "POST") {
+    // POST /v1/notification/friend-request
+    if (path === "/v1/notification/friend-request" && method === "POST") {
       return requestContextStorage.run(ctx, () => {
-        return handleNotificationDenyFriend(url, req, corsHeaders);
+        return handleSendFriendRequest(url, req, corsHeaders);
+      });
+    }
+
+    // GET /v1/notifications
+    if (path === "/v1/notifications" && method === "GET") {
+      return requestContextStorage.run(ctx, () => {
+        return handleGetNotifications(url, req, corsHeaders);
+      });
+    }
+
+    // POST /v1/notification/friend-request/cancel
+    if (
+      path === "/v1/notification/friend-request/cancel" &&
+      method === "POST"
+    ) {
+      return requestContextStorage.run(ctx, () => {
+        return handleCancelFriendRequest(url, req, corsHeaders);
+      });
+    }
+
+    // POST /v1/notification/friend-request/accept
+    if (
+      path === "/v1/notification/friend-request/accept" &&
+      method === "POST"
+    ) {
+      return requestContextStorage.run(ctx, () => {
+        return handleAcceptFriendRequest(url, req, corsHeaders);
+      });
+    }
+
+    // POST /v1/notification/friend-request/deny
+    if (path === "/v1/notification/friend-request/deny" && method === "POST") {
+      return requestContextStorage.run(ctx, () => {
+        return handleDenyFriendRequest(url, req, corsHeaders);
       });
     }
 
@@ -183,7 +210,7 @@ const server = Bun.serve<DataWebSocket>({
       addWsConnection(ws);
     },
 
-    async message(ws) {},
+    async message(ws) { },
 
     close(ws) {
       removeWsConnection(ws);
