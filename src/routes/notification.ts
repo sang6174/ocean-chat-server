@@ -108,21 +108,7 @@ export async function handleGetNotifications(
     // Verify auth token
     const authResult = checkAccessTokenMiddleware(auth);
 
-    // Parse Body
-    const rawBody = await parseBodyJSON<HttpFriendRequestWithNotificationId>(
-      req
-    );
-    assertHttpFriendRequestWithNotificationId(rawBody);
-
-    // Sanitize for input of controller
-    const cleanBody: FriendRequestWithNotificationIdDomainInput = {
-      sender: {
-        id: authResult.data.userId,
-        username: authResult.data.username,
-      },
-      recipient: rawBody.recipient,
-      notificationId: rawBody.notificationId,
-    };
+    const cleanBody = { userId: authResult.data.userId };
 
     const result = await getNotificationsController(cleanBody);
 

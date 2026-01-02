@@ -15,7 +15,7 @@ import {
   cancelFriendRequestRepository,
   acceptFriendRequestRepository,
   denyFriendRequestRepository,
-  findAccountById,
+  findAccountByUserId,
   getNotificationByIdRepository,
 } from "../repository";
 import { eventBusServer } from "../websocket/events";
@@ -39,11 +39,11 @@ export async function sendFriendRequestService(
   return result;
 }
 
-export async function getNotificationsService(
-  input: FriendRequestWithNotificationIdDomainInput
-): Promise<GetNotificationRepositoryOutput[]> {
+export async function getNotificationsService(input: {
+  userId: string;
+}): Promise<GetNotificationRepositoryOutput[]> {
   const result = await getNotificationsRepository({
-    userId: input.notificationId,
+    userId: input.userId,
   });
 
   return result;
@@ -92,7 +92,9 @@ export async function acceptFriendRequestService(
     });
   }
 
-  const senderAccount = await findAccountById({ id: notification.senderId });
+  const senderAccount = await findAccountByUserId({
+    userId: notification.senderId,
+  });
   if (!senderAccount) {
     throw new DomainError({
       status: 404,
@@ -102,7 +104,7 @@ export async function acceptFriendRequestService(
   }
 
   const sender = {
-    id: senderAccount.id,
+    id: senderAccount.userId,
     username: senderAccount.username,
   };
 
@@ -110,6 +112,8 @@ export async function acceptFriendRequestService(
     id: input.sender.id,
     username: input.sender.username,
   };
+
+  console.log(recipient);
 
   const result = await acceptFriendRequestRepository({
     FriendRequest: {
@@ -157,7 +161,9 @@ export async function denyFriendRequestService(
     });
   }
 
-  const senderAccount = await findAccountById({ id: notification.senderId });
+  const senderAccount = await findAccountByUserId({
+    userId: notification.senderId,
+  });
   if (!senderAccount) {
     throw new DomainError({
       status: 404,
@@ -167,7 +173,7 @@ export async function denyFriendRequestService(
   }
 
   const sender = {
-    id: senderAccount.id,
+    id: senderAccount.userId,
     username: senderAccount.username,
   };
 

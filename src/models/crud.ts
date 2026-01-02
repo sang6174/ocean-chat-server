@@ -1,7 +1,7 @@
 import { pool } from "../configs/db";
 import type {
   FindAccountByUsernameRepositoryInput,
-  FindAccountByIdRepositoryInput,
+  FindAccountByUserIdRepositoryInput,
   GetProfileUserRepositoryInput,
   GetParticipantRoleRepositoryInput,
   GetParticipantIdsByConversationIdRepositoryInput,
@@ -50,16 +50,16 @@ export async function pgFindAccountByUsername(
   }
 }
 
-export async function pgFindAccountById(
-  input: FindAccountByIdRepositoryInput
+export async function pgFindAccountByUserId(
+  input: FindAccountByUserIdRepositoryInput
 ): Promise<PgAccount | null> {
   try {
     const result = await pool.query(
-      `SELECT id, username, password 
+      `SELECT id, username, password, user_id
        FROM main.accounts 
-       WHERE id = $1 AND is_deleted = false
+       WHERE user_id = $1 AND is_deleted = false
       `,
-      [input.id]
+      [input.userId]
     );
 
     if (result.rowCount === 0) {
@@ -344,14 +344,19 @@ export async function pgGetNotificationById(
 export async function pgCancelFriendRequestNotification(
   input: CancelFriendRequestRepositoryInput
 ): Promise<PgCancelFriendRequestOutput> {
-  const result = await pool.query(
-    `UPDATE main.notifications
-     SET status = $1
-     WHERE id = $2
-     RETURNING id, type, status, content, sender_id, recipient_id
-    `,
-    [input.status, input.id]
-  );
+  try {
+    const result = await pool.query(
+      `UPDATE main.notifications
+       SET status = $1
+       WHERE id = $2
+       RETURNING id, type, status, content, sender_id, recipient_id
+      `,
+      [input.status, input.id]
+    );
 
-  return result.rows[0];
+    return result.rows[0];
+  } catch (err) {
+    console.log(err);
+    throw mapPgError(err);
+  }
 }

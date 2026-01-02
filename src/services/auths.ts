@@ -13,7 +13,7 @@ import type {
 } from "../types/domain";
 import {
   findAccountByUsername,
-  findAccountById,
+  findAccountByUserId,
   registerRepository,
   getProfileUserRepository,
 } from "../repository";
@@ -83,8 +83,6 @@ export async function loginService(
     username: input.username,
   });
 
-  console.log(existingAccount);
-
   if (!existingAccount) {
     throw new DomainError({
       status: 400,
@@ -137,8 +135,8 @@ export async function loginService(
 export async function generateAccessTokenService(
   input: GenerateAccessTokenInput
 ): Promise<GenerateAccessTokenOutput> {
-  const existingAccount = await findAccountById({
-    id: input.userId,
+  const existingAccount = await findAccountByUserId({
+    userId: input.userId,
   });
 
   if (!existingAccount) {

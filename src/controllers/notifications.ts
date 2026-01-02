@@ -18,9 +18,7 @@ export async function sendFriendRequestController(
   return result;
 }
 
-export async function getNotificationsController(
-  input: FriendRequestWithNotificationIdDomainInput
-) {
+export async function getNotificationsController(input: { userId: string }) {
   const result = await getNotificationsService(input);
 
   return result;

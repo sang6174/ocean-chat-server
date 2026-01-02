@@ -1,7 +1,7 @@
 import type {
   Account,
   FindAccountByUsernameRepositoryInput,
-  FindAccountByIdRepositoryInput,
+  FindAccountByUserIdRepositoryInput,
   GetConversationByIdRepositoryInput,
   GetConversationByIdRepositoryOutput,
   GetProfileUserRepositoryInput,
@@ -27,7 +27,7 @@ import type {
 } from "../types/domain";
 import {
   pgFindAccountByUsername,
-  pgFindAccountById,
+  pgFindAccountByUserId,
   pgGetConversationById,
   pgGetMessages,
   pgGetParticipantRole,
@@ -58,10 +58,10 @@ export async function findAccountByUsername(
   };
 }
 
-export async function findAccountById(
-  input: FindAccountByIdRepositoryInput
+export async function findAccountByUserId(
+  input: FindAccountByUserIdRepositoryInput
 ): Promise<Account | null> {
-  const result = await pgFindAccountById(input);
+  const result = await pgFindAccountByUserId(input);
   if (!result) {
     return null;
   }

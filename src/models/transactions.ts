@@ -313,7 +313,7 @@ export async function pgAcceptFriendRequestTransaction(
 
     const conversationResult = await client.query(
       `INSERT INTO main.conversations (type, name, creator_id)
-       VALUES ($1, $2) 
+       VALUES ($1, $2, $3) 
        RETURNING id, type, name, creator_id, last_event
       `,
       ["direct", null, null]
@@ -335,9 +335,9 @@ export async function pgAcceptFriendRequestTransaction(
         VALUES ${values}
         RETURNING user_id, role, joined_at, last_seen
       )
-      SELECT i.user_id, u.username, i.role, i.joined_at, i.last_seen
+      SELECT i.user_id, a.username, i.role, i.joined_at, i.last_seen
       FROM inserted i
-      JOIN main.users u ON u.id = i.user_id
+      JOIN main.accounts a ON a.user_id = i.user_id
       `,
       [conversationResult.rows[0].id, ...participantIds]
     );

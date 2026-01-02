@@ -15,7 +15,7 @@ export enum ConversationRoleType {
 export enum NotificationType {
   FRIEND_REQUEST = "friend_request",
   ACCEPTED_FRIEND_REQUEST = "accept_friend_request",
-  DENIED_FRIEND_REQUEST = "denied_friend_request",
+  DENIED_FRIEND_REQUEST = "deny_friend_request",
 }
 
 export enum NotificationStatusType {
@@ -287,8 +287,8 @@ export interface FindAccountByUsernameRepositoryInput {
   username: string;
 }
 
-export interface FindAccountByIdRepositoryInput {
-  id: string;
+export interface FindAccountByUserIdRepositoryInput {
+  userId: string;
 }
 
 export interface GetParticipantsByConversationIdRepositoryInput {
