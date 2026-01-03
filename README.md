@@ -21,23 +21,23 @@ The project follows a **Layered Architecture** pattern to separate concerns and 
 - **Data Access Layer (Repositories)**: Abstracts database interactions.
 - **Data Persistence (Models)**: Direct database queries and interactions using `pg`.
 
-The application uses **Bun** as the JavaScript runtime for performance and built-in tooling (test runner, bundler). **WebSocket** communication is handled natively by Bun's `Bun.serve` for real-time features.
+The application uses **Bun** as the JavaScript runtime for performance and built-in tooling (test runner, bundler). \*\*WebSocket\*\* communication is handled natively by Bun's `Bun.serve` for real-time features.
 
 ## Project Structure
 
 ```bash
 src/
-├── configs/        # Configuration files (Database)
-├── controllers/    # Request handlers (API endpoints)
-├── helpers/        # Utility functions (Error handling, Logger, etc.)
-├── middlewares/    # Custom middlewares (Validation, Authentication)
-├── models/         # Database models and raw SQL queries
-├── repository/     # Repository pattern implementation
-├── routes/         # Route definitions
-├── services/       # Business logic implementation
-├── types/          # TypeScript type definitions (Domain entities, DTOs)
-├── websocket/      # WebSocket event handlers and logic
-└── index.ts        # Application entry point
+├── configs/
+├── controllers/
+├── helpers/
+├── middlewares/
+├── models/
+├── repository/
+├── routes/
+├── services/
+├── types/
+├── websocket/
+└── index.ts
 ```
 
 ## Setup & Installation
@@ -74,489 +74,37 @@ REFRESH_TOKEN_MAX_AGE
 
 ## API Endpoints
 
-### **`POST /v1/auth/register`**: Used to register a new user/account
+### POST /v1/auth/register - Register a new account/user
 
-**Request**
+### POST /v1/auth/login - Log in by a account
 
-```Bash
-POST /v1/auth/register
-Content-Type: application/json
+### GET /v1/auth/access-token - Generate a new access token due to old access token is expired
 
-{
-  "name": "Nguyễn Văn An",
-  "email": "vanan1234@gmail.com",
-  "username": "vanan1234",
-  "password": "vanan2004"
-}
-```
+### POST /v1/auth/logout - Log out of a account
 
-**Successful Response**
+### GET /v1/profile/user - Get profile of the user by user id via access token
 
-```Bash
-POST /v1/auth/register
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
+### GET /v1/profile/users - Get all profile of all users in database
 
-{
-  "status": 201,
-  "code": "REGISTER_SUCCESS",
-  "message": "Register successfully"
-}
-```
+### POST /v1/conversation/group - Create a new group conversation
 
-**Error Response**
+### POST /v1/conversation/message - Send a message to the conversation
 
-**Validation Rules**
+### GET /v1/conversations - Get all conversation of a user
 
-- body must be FormData
-- name must be string, length is more than 1, less than 33
-- email must be valid email. (/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
-- username must be string, length is more than 7, less than 33.
-- password must be string, length is more than 7, less than 33.
+### GET /v1/conversation/messages?conversationId=...&limit=...&offset=... - Get messages for a conversation
 
-**Notes**
+### POST /v1/notification/friend-request - Send a friend request to a user
 
-- Hashed password, create a new user/account.
-- Use transaction for create a user, account and private chat.
+### GET /v1/notifications - Get all notifications of a user
 
-### **`POST /v1/auth/login`**: Used to log in ocean chat
+### PUT /v1/notification/read - Update when the user read user's notifications
 
-**Request**
+### POST /v1/notification/friend-request/cancel - The sender cancel the friend request they had sent to the recipient.
 
-```Bash
-POST /v1/auth/login
-Content-Type: application/json
+### POST /v1/notification/friend-request/accept - The person who received the friend request accepted the friend request.
 
-{
-  "username": "vanan1234",
-  "password": "vanan2004"
-}
-```
-
-**Successful Response**
-
-```Bash
-POST /v1/auth/login
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-
-{
-  "userId": "123e4567-e89b-12d3-a456-426614174000",
-  "username": "vanan1234",
-  "accessToken": "ey...",
-  "refreshToken": "ey..."
-}
-```
-
-**Error Response**
-
-**Validation Rules**
-
-**Notes**
-
-- Get account by username and verify password
-- Generate access token and refresh token
-
-### **`GET /v1/auth/access-token`**: Used to generate a new access token
-
-**Request**
-
-```Bash
-GET /v1/auth/access-token
-Content-Type: application/json
-Authorization: Bearer refresh_token
-
-```
-
-**Successful Response**
-
-```Bash
-GET /v1/auth/access-token
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-
-{
-  "userId": "123e4567-e89b-12d3-a456-426614174000",
-  "username": "vanan1234",
-  "accessToken": "ey..."
-}
-```
-
-**Error Response**
-
-**Validation Rules**
-
-**Notes**
-
-- Verify refresh token
-- Get account by id. This id in payload of refresh token
-- Generate new access token
-
-### **`POST /v1/auth/logout`**: Used to log out ocean chat
-
-**Request**
-
-```Bash
-POST /v1/auth/logout
-Content-Type: application/json
-Authorization: Bearer access_token
-
-```
-
-**Successful Response**
-
-```Bash
-POST /v1/auth/logout
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-{
-    "status": 200,
-    "code": "LOGOUT_SUCCESS",
-    "message": "Logout successfully"
-}
-"Set-Cookie": "refresh_token=; HttpOnly; Path=/; Max-Age=0",
-
-```
-
-**Error Response**
-
-**Validation Rules**
-
-**Notes**
-
-- Add access token in access token blacklist
-- Add refresh token in refresh token blacklist
-- After a period equal to the token's expires in, the blacklist will be cleared.
-
-### **`Upgrade WebSocket`**:
-
-**Request**
-
-```Bash
-Upgrade: WebSocket
-url: /v1?token=...
-
-```
-
-**Successful Response**
-
-```Bash
-BunJS handle
-```
-
-**Error Response**
-
-```Bash
-POST /v1
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-```
-
-**Validation Rules**
-
-**Notes**
-
-- Access token sended via search params
-- Get conversation id of the user and add into contextual data of websocket
-- Upgrade websocket by upgrade method of server in BunJS
-- In upgrade websocket handler, BunJS help me handshake and switch http to websocket
-
-### **`GET /v1/profile/user`**:
-
-**Request**
-
-```Bash
-GET /v1/profile/user
-Content-Type: application/json
-Authorization: Bearer access_token
-```
-
-**Successful Response**
-
-```Bash
-GET /v1/profile/user
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-
-```
-
-**Error Response**
-
-**Validation Rules**
-
-### **`GET /v1/profile/users`**:
-
-**Request**
-
-```Bash
-GET /v1/profile/users
-Content-Type: application/json
-Authorization: Bearer access_token
-
-```
-
-**Successful Response**
-
-```Bash
-GET /v1/profile/users
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-
-```
-
-**Error Response**
-
-**Validation Rules**
-
-### **`GET /v1/conversations/group`**: Retrieve all of the user's conversations, limit 10 messages
-
-**Request**
-
-```Bash
-GET /v1/conversations
-Content-Type: application/json
-Authorization: Bearer access_token
-{
-  "conversation": {
-    "type": "group",
-    "name": "vanan, vanba, vanbon",
-  },
-  "participants": {
-    "id": uuidv4,
-    "username": van
-  }
-}
-```
-
-**Successful Response**
-
-```Bash
-GET /v1/conversations
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-
-```
-
-**Error Response**
-
-**Validation Rules**
-
-**Notes**
-
-- Retrieve all conversation id of the user
-- Retrieve all of the user's conversations sequentially, taking only the 10 most recent messages from each conversation.
-
-### **`GET /v1/conversation/messages?id=uuidv4&limit=...&offset=...`**:
-
-**Request**
-
-```Bash
-GET /v1/conversation/messages?id=uuidv4&limit=...&offset=...
-Content-Type: application/json
-
-```
-
-**Successful Response**
-
-```Bash
-GET /v1/conversation/messages?id=uuidv4&limit=...&offset=...
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-
-```
-
-**Error Response**
-
-**Validation Rules**
-
-**Notes**
-
-- Retrieve batch messages along to limit and offset (Pagination with limit and offset)
-
-### **`POST /v1/conversation`**: Create a new group conversation
-
-**Request**
-
-```Bash
-POST /v1/conversation
-Content-Type: application/json
-
-```
-
-**Successful Response**
-
-```Bash
-POST /v1/conversation
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-
-```
-
-**Error Response**
-
-**Validation Rules**
-
-**Notes**
-
-- Create a new conversation
-- Publish the new conversation to the online client via websocket
-
-### **`POST /v1/conversation/message`**:
-
-**Request**
-
-```Bash
-POST /v1/conversation/message
-Content-Type: application/json
-
-```
-
-**Successful Response**
-
-```Bash
-POST /v1/conversation/message
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-
-```
-
-**Error Response**
-
-**Validation Rules**
-
-**Notes**
-
-- Create a new message and get all participants in a transaction
-- Publish a new message to the online client via websocket
-
-### **`POST /v1/conversation/participants`**:
-
-**Request**
-
-```Bash
-POST /v1/conversation/participants
-Content-Type: application/json
-
-```
-
-**Successful Response**
-
-```Bash
-POST /v1/conversation/participants
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-
-```
-
-**Error Response**
-
-**Validation Rules**
-
-**Notes**
-
-- Add participants into participants table and get the conversation in a transaction
-- Publish the conversation to new participants via websocket
-- Publish new participant to old participants via websocket
-
-### **`POST /v1/notification/friend-request`**:
-
-**Request**
-
-```Bash
-POST /v1/notification/friend-request
-Content-Type: application/json
-
-```
-
-**Successful Response**
-
-```Bash
-POST /v1/notification/friend-request
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-
-```
-
-**Error Response**
-
-**Validation Rules**
-
-**Notes**
-
-- Create a new notification with `status is pending`
-- Publish the notification to the recipient
-
-### **`POST /v1/notification/friend-request/deny`**:
-
-**Request**
-
-```Bash
-POST /v1/notification/friend-request/deny
-Content-Type: application/json
-
-```
-
-**Successful Response**
-
-```Bash
-POST /v1/notification/friend-request/deny
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-
-```
-
-**Error Response**
-
-**Validation Rules**
-
-**Notes**
-
-- Update status of old notification to deny
-- Allow user who sended friend request send new friend request
-
-### **`POST /v1/notification/friend-request/accept`**:
-
-**Request**
-
-```Bash
-POST /v1/notification/friend-request/accept
-Content-Type: application/json
-
-```
-
-**Successful Response**
-
-```Bash
-POST /v1/notification/friend-request/accept
-Content-Type: application/json
-X-request-id: uuidv4
-X-tab-Id: uuidv4
-
-```
-
-**Error Response**
-
-**Validation Rules**
-
-**Notes**
-
-- Update status of notification to accepted
-- Create a new conversation with type is direct
-- Publish the new conversation to recipient whom sended friend request
+### POST /v1/notification/friend-request/deny - The person who received the friend request declined the friend request.
 
 ## Database Schema
 
