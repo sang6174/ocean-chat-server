@@ -23,7 +23,7 @@ export async function pgRegisterTransaction(
   input: RegisterRepositoryInput
 ): Promise<PgRegisterOutput> {
   const client = await pool.connect();
-  logger.info("Register transaction is started");
+  logger.debug("Register transaction is started");
   try {
     await client.query(`BEGIN`);
 
@@ -73,7 +73,7 @@ export async function pgRegisterTransaction(
     message.rows[0].sender_username = account.rows[0].username;
 
     await client.query(`COMMIT`);
-
+    logger.debug("Register transaction successfully");
     return {
       user: user.rows[0],
       account: account.rows[0],
@@ -199,9 +199,15 @@ export async function pgAddParticipantsTransaction(
       .join(", ");
 
     const participantsResult = await client.query(
-      `INSERT INTO main.participants (conversation_id, user_id, role)
-       VALUES ${valuesParticipant}
-       RETURNING user_id, role, joined_at, last_seen
+      `
+      WITH inserted AS (
+        INSERT INTO main.participants (conversation_id, user_id, role)
+        VALUES ${valuesParticipant}
+        RETURNING user_id, role, joined_at, last_seen
+      )
+      SELECT i.user_id, a.username, i.role, i.joined_at, i.last_seen
+      FROM inserted i
+      JOIN main.accounts a ON a.user_id = i.user_id
       `,
       [input.conversationId, ...input.participantIds]
     );
@@ -209,7 +215,7 @@ export async function pgAddParticipantsTransaction(
     const valuesMessage = participantsResult.rows
       .map((_, i) => `($1, $2, $${i + 3})`)
       .join(", ");
-
+    console.log(participantsResult.rows);
     const messages = participantsResult.rows.map(
       (p) => `${p.username} is added to the group by ${input.creator.username}`
     );
@@ -219,7 +225,7 @@ export async function pgAddParticipantsTransaction(
        VALUES ${valuesMessage}
        RETURNING id, content, sender_id, conversation_id, created_at
       `,
-      [input.conversationId, input.creator.id, ...messages]
+      [input.conversationId, null, ...messages]
     );
 
     await client.query(

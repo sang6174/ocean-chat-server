@@ -13,6 +13,7 @@ import type {
   CancelFriendRequestRepositoryOutput,
   AcceptFriendRequestRepositoryOutput,
   DenyFriendRequestRepositoryOutput,
+  AddParticipantsRepositoryOutput,
 } from "../types/domain";
 import type { DataWebSocket, WsDataToSendToClient } from "../types/ws";
 import { eventBusServer } from "./events";
@@ -109,15 +110,15 @@ eventBusServer.on(
   (input: PublishConversationCreated) => {
     for (const recipient of input.recipients) {
       const dataToRecipient: WsDataToSendToClient<CreateConversationRepositoryOutput> =
-        {
-          type: WsServerEvent.CONVERSATION_CREATED,
-          metadata: {
-            senderId: input.sender.id,
-            senderTabId: RequestContextAccessor.getTabId() ?? "",
-            recipientId: recipient.id,
-          },
-          data: input.conversation,
-        };
+      {
+        type: WsServerEvent.CONVERSATION_CREATED,
+        metadata: {
+          senderId: input.sender.id,
+          senderTabId: RequestContextAccessor.getTabId() ?? "",
+          recipientId: recipient.id,
+        },
+        data: input.conversation,
+      };
       sendToUser(recipient.id, dataToRecipient);
     }
     logger.info(
@@ -147,8 +148,16 @@ eventBusServer.on(
 eventBusServer.on(
   WsServerEvent.CONVERSATION_ADDED_PARTICIPANTS,
   (input: PublishParticipantAdded) => {
-    // Broadcast participant ids to old participants
-    const dataToOldParticipants: WsDataToSendToClient<Participant[]> = {
+    // 1. Combine old and new participants to get the full list of recipients
+    const allRecipients = [
+      ...input.oldParticipants.map(p => ({ id: p.user.id, username: p.user.username })),
+      ...input.newParticipants.participants.map(p => ({ id: p.user.id, username: p.user.username }))
+    ];
+
+    // 2. Broadcast the 'added participants' event to ALL members
+    // This helps existing members update their participant list UI
+    const dataToAllParticipants: WsDataToSendToClient<AddParticipantsRepositoryOutput> =
+    {
       type: WsServerEvent.CONVERSATION_ADDED_PARTICIPANTS,
       metadata: {
         senderId: input.sender.id,
@@ -158,31 +167,41 @@ eventBusServer.on(
       data: input.newParticipants,
     };
 
-    const recipients = input.newParticipants.map((p) => {
-      return {
-        id: p.user.id,
-        username: p.user.username,
-      };
-    });
+    broadcast(allRecipients, dataToAllParticipants);
 
-    broadcast(recipients, dataToOldParticipants);
-
-    // Send the new conversation to new participants
-    const dataToNewParticipants: WsDataToSendToClient<GetConversationByIdRepositoryOutput> =
-      {
-        type: WsServerEvent.CONVERSATION_CREATED,
+    // 3. Broadcast individual MESSAGE_CREATED events for each system message
+    // This ensures real-time system messages appear in the chat window for everyone
+    for (const message of input.newParticipants.messages) {
+      const messageData: WsDataToSendToClient<string> = {
+        type: WsServerEvent.MESSAGE_CREATED,
         metadata: {
-          senderId: input.sender.id,
+          senderId: "", // System message indicator
           senderTabId: RequestContextAccessor.getTabId() ?? "",
           conversationId: input.conversation.conversation.id,
         },
-        data: input.conversation,
+        data: message.content,
       };
+      broadcast(allRecipients, messageData);
+    }
 
-    for (const recipient of input.newParticipants) {
+    // 4. Send the full conversation object ONLY to new participants
+    // This ensures they get the chat added to their sidebar
+    const dataToNewParticipants: WsDataToSendToClient<GetConversationByIdRepositoryOutput> =
+    {
+      type: WsServerEvent.CONVERSATION_CREATED,
+      metadata: {
+        senderId: input.sender.id,
+        senderTabId: RequestContextAccessor.getTabId() ?? "",
+        conversationId: input.conversation.conversation.id,
+      },
+      data: input.conversation,
+    };
+
+    for (const recipient of input.newParticipants.participants) {
       sendToUser(recipient.user.id, dataToNewParticipants);
     }
-    logger.info("Publish conversation added participants successfully");
+
+    logger.info("Publish conversation added participants and system messages successfully");
   }
 );
 
@@ -191,14 +210,14 @@ eventBusServer.on(
   (
     input: PublishNotificationFriendRequest<SendFriendRequestRepositoryOutput>
   ) => {
-    const notification: WsDataToSendToClient<string> = {
+    const notification: WsDataToSendToClient<SendFriendRequestRepositoryOutput> = {
       type: WsServerEvent.NOTIFICATION_FRIEND_REQUEST,
       metadata: {
         senderId: input.sender.id,
         senderTabId: RequestContextAccessor.getTabId() ?? "",
         recipientId: input.recipient.id,
       },
-      data: input.data.content,
+      data: input.data,
     };
 
     sendToUser(input.recipient.id, notification);
@@ -212,15 +231,15 @@ eventBusServer.on(
     input: PublishNotificationFriendRequest<CancelFriendRequestRepositoryOutput>
   ) => {
     const notification: WsDataToSendToClient<CancelFriendRequestRepositoryOutput> =
-      {
-        type: WsServerEvent.NOTIFICATION_CANCELLED_FRIEND_REQUEST,
-        metadata: {
-          senderId: input.sender.id,
-          senderTabId: RequestContextAccessor.getTabId() ?? "",
-          recipientId: input.recipient.id,
-        },
-        data: input.data,
-      };
+    {
+      type: WsServerEvent.NOTIFICATION_CANCELLED_FRIEND_REQUEST,
+      metadata: {
+        senderId: input.sender.id,
+        senderTabId: RequestContextAccessor.getTabId() ?? "",
+        recipientId: input.recipient.id,
+      },
+      data: input.data,
+    };
 
     sendToUser(input.recipient.id, notification);
     logger.info("Publish notification cancelled friend request successfully");
@@ -233,15 +252,15 @@ eventBusServer.on(
     input: PublishNotificationAcceptedFriendRequest<AcceptFriendRequestRepositoryOutput>
   ) => {
     const notification: WsDataToSendToClient<AcceptFriendRequestRepositoryOutput> =
-      {
-        type: WsServerEvent.NOTIFICATION_ACCEPTED_FRIEND_REQUEST,
-        metadata: {
-          senderId: input.sender.id,
-          senderTabId: RequestContextAccessor.getTabId() ?? "",
-          recipientId: input.recipient.id,
-        },
-        data: input.data,
-      };
+    {
+      type: WsServerEvent.NOTIFICATION_ACCEPTED_FRIEND_REQUEST,
+      metadata: {
+        senderId: input.sender.id,
+        senderTabId: RequestContextAccessor.getTabId() ?? "",
+        recipientId: input.recipient.id,
+      },
+      data: input.data,
+    };
 
     sendToUser(input.recipient.id, notification);
     logger.info("Publish notification accepted friend request successfully");
@@ -254,15 +273,15 @@ eventBusServer.on(
     input: PublishNotificationDeniedFriendRequest<DenyFriendRequestRepositoryOutput>
   ) => {
     const notification: WsDataToSendToClient<DenyFriendRequestRepositoryOutput> =
-      {
-        type: WsServerEvent.NOTIFICATION_DENIED_FRIEND_REQUEST,
-        metadata: {
-          senderId: input.sender.id,
-          senderTabId: RequestContextAccessor.getTabId() ?? "",
-          recipientId: input.recipient.id,
-        },
-        data: input.data,
-      };
+    {
+      type: WsServerEvent.NOTIFICATION_DENIED_FRIEND_REQUEST,
+      metadata: {
+        senderId: input.sender.id,
+        senderTabId: RequestContextAccessor.getTabId() ?? "",
+        recipientId: input.recipient.id,
+      },
+      data: input.data,
+    };
 
     sendToUser(input.recipient.id, notification);
     logger.info("Publish notification denied friend request successfully");

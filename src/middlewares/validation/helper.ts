@@ -1,17 +1,35 @@
 import { ConversationType } from "../../types/domain";
 
-import { ValidateError } from "../../helpers/errors";
+import { DomainError, ValidateError } from "../../helpers/errors";
 import { logger } from "../../helpers/logger";
 
-export function assertValid(
+export function assertValidInput(
   result: { valid: true } | { valid: false; message: string },
   name = "value"
 ): asserts result is { valid: true } {
   if (!result.valid) {
-    logger.info(`Validation failed for ${name}: ${result.message}`);
-    throw new ValidateError(`Validate failed for ${name}: ${result.message}`);
+    logger.info(`Input validation failed for ${name}: ${result.message}`);
+    throw new ValidateError(
+      `Input validation failed for ${name}: ${result.message}`
+    );
   } else {
-    logger.info(`Validate successfully for ${name}}`);
+    logger.info(`Input validation is successful for ${name}}`);
+  }
+}
+
+export function assertValidOutput(
+  result: { valid: true } | { valid: false; message: string },
+  name = "value"
+): asserts result is { valid: true } {
+  if (!result.valid) {
+    logger.info(`Output validation failed for ${name}: ${result.message}`);
+    throw new DomainError({
+      status: 500,
+      code: "VALIDATE_OUTPUT_FAIL",
+      message: `Output validation failed for ${name}: ${result.message}`,
+    });
+  } else {
+    logger.info(`Output validation is successful for ${name}}`);
   }
 }
 

@@ -17,6 +17,7 @@ import {
   denyFriendRequestRepository,
   findAccountByUserId,
   getNotificationByIdRepository,
+  markNotificationsAsReadRepository,
 } from "../repository";
 import { eventBusServer } from "../websocket/events";
 import { DomainError } from "../helpers/errors";
@@ -27,11 +28,11 @@ export async function sendFriendRequestService(
   const result = await createFriendRequestRepository({
     type: NotificationType.FRIEND_REQUEST,
     status: NotificationStatusType.PENDING,
-    content: `${input.sender.username} is sended to you a friend request`,
+    content: `${input.sender.username} sent you a friend request`,
     ...input,
   });
 
-  eventBusServer.emit(WsServerEvent.NOTIFICATION_ACCEPTED_FRIEND_REQUEST, {
+  eventBusServer.emit(WsServerEvent.NOTIFICATION_FRIEND_REQUEST, {
     ...input,
     data: result,
   });
@@ -95,6 +96,7 @@ export async function acceptFriendRequestService(
   const senderAccount = await findAccountByUserId({
     userId: notification.senderId,
   });
+
   if (!senderAccount) {
     throw new DomainError({
       status: 404,
@@ -113,8 +115,6 @@ export async function acceptFriendRequestService(
     username: input.sender.username,
   };
 
-  console.log(recipient);
-
   const result = await acceptFriendRequestRepository({
     FriendRequest: {
       id: notification.id,
@@ -128,6 +128,8 @@ export async function acceptFriendRequestService(
       recipient: sender,
     },
   });
+
+  console.log(result);
 
   eventBusServer.emit(WsServerEvent.NOTIFICATION_ACCEPTED_FRIEND_REQUEST, {
     sender: recipient,
@@ -206,5 +208,17 @@ export async function denyFriendRequestService(
     status: 201,
     code: "SEND_NOTIFICATION_SUCCESS",
     message: "Deny friend request is successful",
+  };
+}
+
+export async function markNotificationsAsReadService(input: {
+  userId: string;
+}): Promise<ResponseDomain> {
+  await markNotificationsAsReadRepository(input);
+
+  return {
+    status: 200,
+    code: "MARK_READ_SUCCESS",
+    message: "Notifications marked as read successfully",
   };
 }

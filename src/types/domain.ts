@@ -351,7 +351,7 @@ export interface GetMessageRepositoryOutput {
   sender: {
     id: string;
     username: string;
-  };
+  } | null;
   conversationId: string;
   message: string;
   isDeleted: boolean;
@@ -362,7 +362,7 @@ export interface GetMessagesByConversationIdDomainOutput {
   sender: {
     id: string;
     username: string;
-  };
+  } | null;
   conversationId: string;
   message: string;
 }
@@ -409,6 +409,7 @@ export interface SendFriendRequestRepositoryOutput {
   id: string;
   type: NotificationType;
   status: NotificationStatusType;
+  isRead: boolean;
   content: string;
   senderId: string;
   recipientId: string;
@@ -422,9 +423,14 @@ export interface GetNotificationRepositoryOutput {
   id: string;
   type: NotificationType;
   status: NotificationStatusType;
+  isRead: boolean;
   content: string;
   senderId: string;
   recipientId: string;
+}
+
+export interface MarkNotificationsAsReadRepositoryInput {
+  userId: string;
 }
 
 export interface CancelFriendRequestRepositoryInput {
@@ -436,6 +442,7 @@ export interface CancelFriendRequestRepositoryOutput {
   id: string;
   type: NotificationType;
   status: NotificationStatusType;
+  isRead: boolean;
   content: string;
   senderId: string;
   recipientId: string;
@@ -537,7 +544,7 @@ export interface PublishParticipantAdded {
     username: string;
   };
   oldParticipants: Participant[];
-  newParticipants: Participant[];
+  newParticipants: AddParticipantsRepositoryOutput;
   conversation: GetConversationByIdRepositoryOutput;
 }
 

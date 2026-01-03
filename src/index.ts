@@ -19,6 +19,7 @@ import {
   handleUpgradeWebSocket,
   handleGetNotifications,
   handleCancelFriendRequest,
+  handleMarkNotificationsAsRead,
 } from "./routes";
 import { blacklistAccessToken, blacklistRefreshToken } from "./models";
 import { addWsConnection, removeWsConnection } from "./websocket/main";
@@ -54,7 +55,8 @@ const server = Bun.serve<DataWebSocket>({
       startTime: Date.now(),
     };
 
-    const origin = req.headers.get("Origin") || "https://ocean-chat-web.vercel.app";
+    const origin =
+      req.headers.get("Origin") || "https://ocean-chat-web.vercel.app";
     const corsHeaders = {
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -158,7 +160,14 @@ const server = Bun.serve<DataWebSocket>({
     // GET /v1/notifications
     if (path === "/v1/notifications" && method === "GET") {
       return requestContextStorage.run(ctx, () => {
-        return handleGetNotifications(url, req, corsHeaders);
+        return handleGetNotifications(req, corsHeaders);
+      });
+    }
+
+    // PUT /v1/notifications/read
+    if (path === "/v1/notifications/read" && method === "PUT") {
+      return requestContextStorage.run(ctx, () => {
+        return handleMarkNotificationsAsRead(url, req, corsHeaders);
       });
     }
 
@@ -210,7 +219,7 @@ const server = Bun.serve<DataWebSocket>({
       addWsConnection(ws);
     },
 
-    async message(ws) { },
+    async message(ws) {},
 
     close(ws) {
       removeWsConnection(ws);

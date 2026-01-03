@@ -28,7 +28,9 @@ export async function handleGetConversations(
     // Verify auth token
     const authResult = checkAccessTokenMiddleware(auth);
 
-    const result = await getConversationsController({ userId: authResult.data.userId });
+    const result = await getConversationsController({
+      userId: authResult.data.userId,
+    });
 
     logger.debug("Get the conversations by user id successfully");
     return new Response(JSON.stringify(result), {
@@ -83,7 +85,7 @@ export async function handleGetMessages(
 
     // Get and validate search params
     const conversationId = url.searchParams.get("conversationId");
-    const limit = url.searchParams.get("limit") ?? 10;
+    const limit = url.searchParams.get("limit") ?? 20;
     const offset = url.searchParams.get("offset") ?? 0;
     if (!conversationId || !isUUIDv4(conversationId)) {
       throw new ValidateError("Search params is invalid.");

@@ -40,6 +40,7 @@ import {
   pgCancelFriendRequestNotification,
   pgGetNotifications,
   pgGetNotificationById,
+  pgMarkNotificationsAsRead,
 } from "../models";
 
 export async function findAccountByUsername(
@@ -117,8 +118,9 @@ export async function createFriendRequestRepository(
 
   return {
     id: result.id,
-    type: result.type as NotificationType.FRIEND_REQUEST,
-    status: result.status as NotificationStatusType.PENDING,
+    type: result.type as NotificationType,
+    status: result.status as NotificationStatusType,
+    isRead: result.is_read,
     content: result.content,
     senderId: result.sender_id,
     recipientId: result.recipient_id,
@@ -187,10 +189,12 @@ export async function getMessagesRepository(
   return result.map((message) => {
     return {
       id: message.id,
-      sender: {
-        id: message.sender_id,
-        username: message.sender_username,
-      },
+      sender: message.sender_id
+        ? {
+          id: message.sender_id,
+          username: message.sender_username,
+        }
+        : null,
       conversationId: message.conversation_id,
       message: message.content,
       isDeleted: message.is_deleted,
@@ -258,6 +262,7 @@ export async function getNotificationsRepository(
       id: notification.id,
       type: notification.type as NotificationType,
       status: notification.status as NotificationStatusType,
+      isRead: notification.is_read,
       content: notification.content,
       senderId: notification.sender_id,
       recipientId: notification.recipient_id,
@@ -278,6 +283,7 @@ export async function getNotificationByIdRepository(
     id: result.id,
     type: result.type as NotificationType,
     status: result.status as NotificationStatusType,
+    isRead: result.is_read,
     content: result.content,
     senderId: result.sender_id,
     recipientId: result.recipient_id,
@@ -293,8 +299,15 @@ export async function cancelFriendRequestRepository(
     id: result.id,
     type: result.type as NotificationType,
     status: result.status as NotificationStatusType,
+    isRead: result.is_read,
     content: result.content,
     senderId: result.sender_id,
     recipientId: result.recipient_id,
   };
+}
+
+export async function markNotificationsAsReadRepository(input: {
+  userId: string;
+}): Promise<void> {
+  await pgMarkNotificationsAsRead(input);
 }

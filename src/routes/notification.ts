@@ -20,6 +20,7 @@ import {
   denyFriendRequestController,
   getNotificationsController,
   cancelFriendRequestController,
+  markNotificationsAsReadController,
 } from "../controllers";
 import { logger } from "../helpers/logger";
 import { handleError } from "../helpers/errors";
@@ -94,11 +95,7 @@ export async function handleSendFriendRequest(
 // ============================================================
 // GET /v1/notifications
 // ============================================================
-export async function handleGetNotifications(
-  url: URL,
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleGetNotifications(req: Request, corsHeaders: any) {
   try {
     logger.debug("Start handle get notifications by user id");
 
@@ -109,7 +106,6 @@ export async function handleGetNotifications(
     const authResult = checkAccessTokenMiddleware(auth);
 
     const cleanBody = { userId: authResult.data.userId };
-
     const result = await getNotificationsController(cleanBody);
 
     logger.debug("Handle get notifications by user id successfully");
@@ -372,6 +368,61 @@ export async function handleDenyFriendRequest(
       JSON.stringify({
         code: "INTERNAL_ERROR",
         message: "Denied notification sended failed. Please try again.",
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
+        },
+      }
+    );
+  }
+}
+
+// ============================================================
+// PUT /v1/notifications/read
+// ============================================================
+export async function handleMarkNotificationsAsRead(
+  url: URL,
+  req: Request,
+  corsHeaders: any
+) {
+  try {
+    logger.debug("Start handle mark notifications as read");
+
+    // Parse auth token
+    const auth = extractAndParseAccessToken(req);
+
+    // Verify auth token
+    const authResult = checkAccessTokenMiddleware(auth);
+
+    const cleanBody = { userId: authResult.data.userId };
+
+    const result = await markNotificationsAsReadController(cleanBody);
+
+    logger.debug("Handle mark notifications as read successfully");
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+        "x-request-id": RequestContextAccessor.getRequestId(),
+        "x-tab-id": RequestContextAccessor.getTabId(),
+      },
+    });
+  } catch (err) {
+    const errorResponse = handleError(err, corsHeaders);
+    if (errorResponse) {
+      return errorResponse;
+    }
+
+    return new Response(
+      JSON.stringify({
+        code: "INTERNAL_ERROR",
+        message: "Mark notifications as read failed. Please try again.",
       }),
       {
         status: 500,

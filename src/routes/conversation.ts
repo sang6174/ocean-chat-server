@@ -19,7 +19,6 @@ import {
   assertHttpSendMessagePost,
   assertHttpAddParticipantsPost,
   assertCreateGroupConversationDomainInput,
-  assertSendMessageDomainInput,
   assertAddParticipantsDomainInput,
 } from "../middlewares";
 import {
@@ -63,8 +62,8 @@ export async function handleCreateGroupConversation(
       },
       participantIds: rawBody.participantIds,
     };
-
     assertCreateGroupConversationDomainInput(cleanBody);
+
     // Call create conversation controller
     const result = await createGroupConversationController(cleanBody);
 
@@ -130,7 +129,6 @@ export async function handleSendMessage(req: Request, corsHeaders: any) {
       message: rawBody.message,
     };
 
-    assertSendMessageDomainInput(cleanBody);
     const result = await sendMessageController(cleanBody);
 
     logger.debug("Send the message successfully");

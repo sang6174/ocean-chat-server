@@ -18,7 +18,8 @@ export function checkAccessTokenMiddleware(token: string): UserTokenPayload {
     }
 
     const decoded = verifyAccessToken(token);
-    if (!isDecodedToken(decoded)) throw new AuthError("Auth token is invalid");
+    if (!isDecodedToken(decoded))
+      throw new AuthError("Access token is invalid");
 
     const payload = {
       ...decoded,

@@ -161,7 +161,7 @@ export async function pgGetConversationById(
         `SELECT p.user_id, a.username, p.role, p.last_seen, p.joined_at 
          FROM main.participants p
          JOIN main.accounts a
-         ON a.id = p.user_id
+         ON a.user_id = p.user_id
          WHERE conversation_id = $1
         `,
         [input.conversationId]
@@ -180,7 +180,7 @@ export async function pgGetConversationById(
     return {
       conversation: conversation.rows[0],
       participants: participants.rows,
-      messages: messages.rows,
+      messages: messages.rows.reverse(), // Reverse to put newest message at the end
     };
   } catch (err: any) {
     throw mapPgError(err);
@@ -218,7 +218,7 @@ export async function pgCreateFriendRequestNotification(
     const result = await pool.query(
       `INSERT INTO main.notifications (type, status, content, sender_id, recipient_id)
        VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, type, status, content, sender_id, recipient_id
+       RETURNING id, type, status, is_read, content, sender_id, recipient_id
       `,
       [
         input.type,
@@ -243,7 +243,7 @@ export async function pgGetParticipantByConversationId(input: {
       `SELECT p.user_id, a.username, p.role, p.joined_at, p.last_seen
        FROM main.accounts a
        JOIN main.participants p 
-       ON p.user_id = a.id 
+       ON p.user_id = a.user_id 
        WHERE conversation_id = $1
       `,
       [input.conversationId]
@@ -286,15 +286,15 @@ export async function pgGetMessages(
   try {
     const result = await pool.query(
       `SELECT m.id, m.content, m.sender_id, a.username as sender_username, m.conversation_id, m.is_deleted
-       FROM main.messages m 
-       JOIN main.accounts a ON a.id = m.sender_id
+       FROM main.messages m
+       LEFT JOIN main.accounts a ON a.user_id = m.sender_id
        WHERE m.conversation_id = $1
        ORDER BY m.created_at DESC
        LIMIT $2 OFFSET $3`,
       [input.conversationId, input.limit, input.offset]
     );
 
-    return result.rows.reverse();
+    return result.rows.reverse(); // Newest message at the end
   } catch (err: any) {
     throw mapPgError(err);
   }
@@ -305,7 +305,7 @@ export async function pgGetNotifications(
 ): Promise<PgGetNotificationOutput[]> {
   try {
     const result = await pool.query(
-      `SELECT id, type, status, content, sender_id, recipient_id
+      `SELECT id, type, status, is_read, content, sender_id, recipient_id
        FROM main.notifications
        WHERE sender_id = $1 OR recipient_id = $1
        ORDER BY created_at DESC
@@ -324,7 +324,7 @@ export async function pgGetNotificationById(
 ): Promise<PgGetNotificationOutput | null> {
   try {
     const result = await pool.query(
-      `SELECT id, type, status, content, sender_id, recipient_id
+      `SELECT id, type, status, is_read, content, sender_id, recipient_id
        FROM main.notifications
        WHERE id = $1
       `,
@@ -349,7 +349,7 @@ export async function pgCancelFriendRequestNotification(
       `UPDATE main.notifications
        SET status = $1
        WHERE id = $2
-       RETURNING id, type, status, content, sender_id, recipient_id
+       RETURNING id, type, status, is_read, content, sender_id, recipient_id
       `,
       [input.status, input.id]
     );
@@ -357,6 +357,22 @@ export async function pgCancelFriendRequestNotification(
     return result.rows[0];
   } catch (err) {
     console.log(err);
+    throw mapPgError(err);
+  }
+}
+
+export async function pgMarkNotificationsAsRead(input: {
+  userId: string;
+}): Promise<void> {
+  try {
+    await pool.query(
+      `UPDATE main.notifications
+       SET is_read = TRUE
+       WHERE recipient_id = $1 AND is_read = FALSE
+      `,
+      [input.userId]
+    );
+  } catch (err: any) {
     throw mapPgError(err);
   }
 }

@@ -16,7 +16,6 @@ export interface HttpLoginPost {
 export interface HttpLoginPostResponse {
   userId: string;
   username: string;
-  email: string;
   accessToken: string;
 }
 

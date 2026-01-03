@@ -1,6 +1,7 @@
 import type {
   HttpRegisterPost,
   HttpLoginPost,
+  HttpLoginPostResponse,
   HttpCreateGroupConversationPost,
   HttpSendMessagePost,
   HttpAddParticipantsPost,
@@ -14,13 +15,12 @@ import {
   isPlainObject,
   isUsername,
   isString,
-  assertValid,
+  assertValidInput,
   isUUIDv4,
+  assertValidOutput,
 } from "./helper";
 
-// ============================================================
-// HTTP Input Validation
-// ============================================================
+// Http register post
 export function validateHttpRegisterPost(
   value: any
 ): { valid: true } | { valid: false; message: string } {
@@ -45,9 +45,10 @@ export function validateHttpRegisterPost(
 export function assertHttpRegisterPost(
   value: any
 ): asserts value is HttpRegisterPost {
-  assertValid(validateHttpRegisterPost(value), "HttpRegisterPost");
+  assertValidInput(validateHttpRegisterPost(value), "HttpRegisterPost");
 }
 
+// Http login post
 export function validateHttpLoginPost(
   value: any
 ): { valid: true } | { valid: false; message: string } {
@@ -66,9 +67,38 @@ export function validateHttpLoginPost(
 export function assertHttpLoginPost(
   value: any
 ): asserts value is HttpLoginPost {
-  assertValid(validateHttpLoginPost(value), "HttpLoginPost");
+  assertValidInput(validateHttpLoginPost(value), "HttpLoginPost");
 }
 
+// Http login post response
+export function validateHttpLoginPostResponse(
+  value: any
+): { valid: true } | { valid: false; message: string } {
+  if (!isPlainObject(value))
+    return { valid: false, message: "Must be a object" };
+
+  if (!isUUIDv4(value.userId))
+    return { valid: false, message: "userId must be a uuidv4" };
+
+  if (!isUsername(value.username))
+    return { valid: false, message: "username must be valid username" };
+
+  if (!isString(value.accessToken))
+    return { valid: false, message: "accessToken must be a string" };
+
+  return { valid: true };
+}
+
+export function assertHttpLoginPostResponse(
+  value: any
+): asserts value is HttpLoginPostResponse {
+  assertValidOutput(
+    validateHttpLoginPostResponse(value),
+    "HttpLoginPostResponse"
+  );
+}
+
+// Http create group conversation post
 export function validateHttpCreateGroupConversationPost(
   value: any
 ): { valid: true } | { valid: false; message: string } {
@@ -107,12 +137,13 @@ export function validateHttpCreateGroupConversationPost(
 export function assertHttpCreateGroupConversationPost(
   value: any
 ): asserts value is HttpCreateGroupConversationPost {
-  assertValid(
+  assertValidInput(
     validateHttpCreateGroupConversationPost(value),
     "HttpCreateGroupConversationPost"
   );
 }
 
+// Http send message post
 export function validateHttpSendMessagePost(
   value: any
 ): { valid: true } | { valid: false; message: string } {
@@ -131,9 +162,10 @@ export function validateHttpSendMessagePost(
 export function assertHttpSendMessagePost(
   value: any
 ): asserts value is HttpSendMessagePost {
-  assertValid(validateHttpSendMessagePost(value), "HttpSendMessagePost");
+  assertValidInput(validateHttpSendMessagePost(value), "HttpSendMessagePost");
 }
 
+// Http add participants post
 export function validateHttpAddParticipantsPost(
   value: any
 ): { valid: true } | { valid: false; message: string } {
@@ -158,12 +190,13 @@ export function validateHttpAddParticipantsPost(
 export function assertHttpAddParticipantsPost(
   value: any
 ): asserts value is HttpAddParticipantsPost {
-  assertValid(
+  assertValidInput(
     validateHttpAddParticipantsPost(value),
     "HttpAddParticipantsPost"
   );
 }
 
+// Http friend request
 export function validateHttpFriendRequest(
   value: any
 ): { valid: true } | { valid: false; message: string } {
@@ -176,9 +209,8 @@ export function validateHttpFriendRequest(
   if (!isUUIDv4(value.recipient.id))
     return { valid: false, message: "recipient.id must be uuidv4" };
 
-  if (!isString(value.recipient.username)) {
+  if (!isString(value.recipient.username))
     return { valid: false, message: "recipient.username must be string" };
-  }
 
   return { valid: true };
 }
@@ -186,9 +218,10 @@ export function validateHttpFriendRequest(
 export function assertHttpFriendRequest(
   value: any
 ): asserts value is HttpFriendRequest {
-  assertValid(validateHttpFriendRequest(value), "HttpFriedRequest");
+  assertValidInput(validateHttpFriendRequest(value), "HttpFriendRequest");
 }
 
+// Http friend request with notification id
 export function validateHttpFriendRequestWithNotificationId(
   value: any
 ): { valid: true } | { valid: false; message: string } {
@@ -201,13 +234,11 @@ export function validateHttpFriendRequestWithNotificationId(
   if (!isUUIDv4(value.recipient.id))
     return { valid: false, message: "recipient.id must be uuidv4" };
 
-  if (!isString(value.recipient.username)) {
+  if (!isString(value.recipient.username))
     return { valid: false, message: "recipient.username must be string" };
-  }
 
-  if (!isUUIDv4(value.notificationId)) {
+  if (!isUUIDv4(value.notificationId))
     return { valid: false, message: "notificationId must be uuidv4" };
-  }
 
   return { valid: true };
 }
@@ -215,8 +246,8 @@ export function validateHttpFriendRequestWithNotificationId(
 export function assertHttpFriendRequestWithNotificationId(
   value: any
 ): asserts value is HttpFriendRequestWithNotificationId {
-  assertValid(
-    validateHttpFriendRequest(value),
+  assertValidInput(
+    validateHttpFriendRequestWithNotificationId(value),
     "HttpFriendRequestWithNotificationId"
   );
 }

@@ -14,7 +14,6 @@ import {
 } from "../repository";
 import { eventBusServer } from "../websocket/events";
 import { DomainError } from "../helpers/errors";
-import { assertCreateConversationRepositoryOutput } from "../middlewares";
 
 export async function createConversationService(
   input: CreateGroupConversationDomainInput
@@ -32,7 +31,6 @@ export async function createConversationService(
     );
   }
 
-  assertCreateConversationRepositoryOutput(resultCreateConversation);
   return resultCreateConversation;
 }
 

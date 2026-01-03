@@ -14,6 +14,8 @@ import {
   assertHttpRegisterPost,
   assertHttpLoginPost,
   assertLogoutDomainInput,
+  assertHttpLoginPostResponse,
+  assertGenerateAccessTokenOutput,
 } from "../middlewares";
 import {
   registerController,
@@ -126,9 +128,9 @@ export async function handleLogin(req: Request, corsHeaders: any) {
     const response: HttpLoginPostResponse = {
       userId: result.userId,
       username: result.username,
-      email: result.email,
       accessToken: result.accessToken,
     };
+    assertHttpLoginPostResponse(response);
 
     logger.debug("Login successfully");
     return new Response(JSON.stringify(response), {
@@ -188,6 +190,8 @@ export async function handleGenerateAccessToken(
 
     const result = await generateAccessTokenController(input);
 
+    assertGenerateAccessTokenOutput(result);
+
     logger.debug("Generate access token successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
@@ -241,7 +245,7 @@ export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
         ?.slice("refresh_token=".length) ?? null;
 
     if (!refreshToken) {
-      logger.debug(
+      logger.info(
         "No refresh token found during logout, clearing cookie only."
       );
       return new Response(

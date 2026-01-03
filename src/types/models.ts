@@ -84,7 +84,7 @@ export interface PgGetConversationByIdOutput {
     username: string;
   })[];
   messages: (Omit<PgMessage, "conversation_id"> & {
-    isDeleted: boolean;
+    is_deleted: boolean;
   })[];
 }
 
@@ -101,6 +101,7 @@ export interface PgSendFriendRequestOutput {
   id: string;
   type: string;
   status: string;
+  is_read: boolean;
   content: string;
   sender_id: string;
   recipient_id: string;
@@ -110,6 +111,7 @@ export interface PgGetNotificationOutput {
   id: string;
   type: string;
   status: string;
+  is_read: boolean;
   content: string;
   sender_id: string;
   recipient_id: string;
@@ -119,6 +121,7 @@ export interface PgCancelFriendRequestOutput {
   id: string;
   type: string;
   status: string;
+  is_read: boolean;
   content: string;
   sender_id: string;
   recipient_id: string;
@@ -144,6 +147,7 @@ export interface PgDenyFriendRequestOutput {
   id: string;
   type: string;
   status: string;
+  is_read: boolean;
   content: string;
   sender_id: string;
   recipient_id: string;
