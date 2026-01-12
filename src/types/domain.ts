@@ -15,7 +15,7 @@ export enum ConversationRoleType {
 export enum NotificationType {
   FRIEND_REQUEST = "friend_request",
   ACCEPTED_FRIEND_REQUEST = "accept_friend_request",
-  DENIED_FRIEND_REQUEST = "deny_friend_request",
+  REJECTED_FRIEND_REQUEST = "reject_friend_request",
 }
 
 export enum NotificationStatusType {
@@ -32,7 +32,7 @@ export enum WsServerEvent {
   NOTIFICATION_FRIEND_REQUEST = "notification.friend.request",
   NOTIFICATION_CANCELLED_FRIEND_REQUEST = "notification.cancelled.friend.request",
   NOTIFICATION_ACCEPTED_FRIEND_REQUEST = "notification.accepted.friend.request",
-  NOTIFICATION_DENIED_FRIEND_REQUEST = "notification.denied.friend.request",
+  NOTIFICATION_REJECTED_FRIEND_REQUEST = "notification.rejected.friend.request",
 }
 
 export type EventCallback<T> = (payload: T) => void;
@@ -81,6 +81,15 @@ export type Account = {
   username: string;
   password: string;
   userId: string;
+};
+
+export type RefreshToken = {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  revokedAt: Date;
+  replacedBy: string;
 };
 
 export type Conversation = {
@@ -161,14 +170,15 @@ export interface LoginDomainInput {
   password: string;
 }
 
-export interface GenerateAccessTokenInput {
+export interface InsertRefreshTokenInput {
+  id: string;
   userId: string;
+  tokenHash: string;
+  expiresAt: Date;
 }
 
-export interface GenerateAccessTokenOutput {
-  userId: string;
-  username: string;
-  accessToken: string;
+export interface FindRefreshTokenByHashInput {
+  tokenHash: string;
 }
 
 export interface LoginDomainOutput {
@@ -178,10 +188,33 @@ export interface LoginDomainOutput {
   refreshToken: string;
 }
 
-export interface LogoutDomainInput {
+export interface GenerateAuthTokenDomainInput {
   userId: string;
+  refreshToken: string;
+}
+
+export interface RotateRefreshTokenRepositoryInput {
+  oldRefreshTokenId: string;
+  newRefreshTokenId: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+}
+
+export interface GenerateAuthTokenDomainOutput {
+  userId: string;
+  username: string;
   accessToken: string;
   refreshToken: string;
+}
+
+export interface LogoutDomainInput {
+  userId: string;
+  refreshToken: string;
+}
+
+export interface RevokeRefreshTokenRepositoryInput {
+  tokenId: string;
 }
 
 // Profile Service
@@ -338,6 +371,7 @@ export interface GetMessagesByConversationIdDomainInput {
   conversationId: string;
   limit?: number;
   offset?: number;
+  userId: string;
 }
 
 export interface GetMessagesRepositoryInput {
@@ -482,7 +516,7 @@ export interface AcceptFriendRequestRepositoryOutput {
   };
 }
 
-export interface DenyFriendRequestRepositoryInput {
+export interface RejectFriendRequestRepositoryInput {
   FriendRequest: {
     id: string;
     status: NotificationStatusType;
@@ -502,7 +536,7 @@ export interface DenyFriendRequestRepositoryInput {
   };
 }
 
-export interface DenyFriendRequestRepositoryOutput {
+export interface RejectFriendRequestRepositoryOutput {
   id: string;
   type: NotificationType;
   status: NotificationStatusType;
@@ -572,7 +606,7 @@ export interface PublishNotificationAcceptedFriendRequest<T> {
   data: T;
 }
 
-export interface PublishNotificationDeniedFriendRequest<T> {
+export interface PublishNotificationRejectedFriendRequest<T> {
   sender: {
     id: string;
     username: string;

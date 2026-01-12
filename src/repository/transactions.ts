@@ -10,10 +10,11 @@ import type {
   CreateMessageRepositoryOutput,
   AcceptFriendRequestRepositoryInput,
   AcceptFriendRequestRepositoryOutput,
-  DenyFriendRequestRepositoryInput,
-  DenyFriendRequestRepositoryOutput,
+  RejectFriendRequestRepositoryInput,
+  RejectFriendRequestRepositoryOutput,
   NotificationType,
   NotificationStatusType,
+  RotateRefreshTokenRepositoryInput,
 } from "../types/domain";
 import {
   pgRegisterTransaction,
@@ -21,7 +22,8 @@ import {
   pgAddParticipantsTransaction,
   pgCreateMessageTransaction,
   pgAcceptFriendRequestTransaction,
-  pgDenyFriendRequestTransaction,
+  pgRejectFriendRequestTransaction,
+  rotateRefreshTokenTransaction,
 } from "../models";
 
 export async function registerRepository(
@@ -68,6 +70,12 @@ export async function registerRepository(
       };
     }),
   };
+}
+
+export async function rotateRefreshTokenRepository(
+  input: RotateRefreshTokenRepositoryInput
+): Promise<void> {
+  return await rotateRefreshTokenTransaction(input);
 }
 
 export async function createConversationRepository(
@@ -209,14 +217,14 @@ export async function acceptFriendRequestRepository(
   };
 }
 
-export async function denyFriendRequestRepository(
-  input: DenyFriendRequestRepositoryInput
-): Promise<DenyFriendRequestRepositoryOutput> {
-  const result = await pgDenyFriendRequestTransaction(input);
+export async function rejectFriendRequestRepository(
+  input: RejectFriendRequestRepositoryInput
+): Promise<RejectFriendRequestRepositoryOutput> {
+  const result = await pgRejectFriendRequestTransaction(input);
 
   return {
     id: result.id,
-    type: result.type as NotificationType.DENIED_FRIEND_REQUEST,
+    type: result.type as NotificationType.REJECTED_FRIEND_REQUEST,
     status: result.status as NotificationStatusType.REJECTED,
     content: result.content,
     senderId: result.sender_id,

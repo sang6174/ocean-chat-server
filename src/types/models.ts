@@ -14,6 +14,15 @@ export type PgAccount = {
   user_id: string;
 };
 
+export type PgRefreshToken = {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  expires_at: Date;
+  revoked_at: Date;
+  replaced_by: string;
+};
+
 export type PgConversation = {
   id: string;
   type: string;
@@ -143,7 +152,7 @@ export interface PgAcceptFriendRequestOutput {
   };
 }
 
-export interface PgDenyFriendRequestOutput {
+export interface PgRejectFriendRequestOutput {
   id: string;
   type: string;
   status: string;

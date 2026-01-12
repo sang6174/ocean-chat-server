@@ -14,7 +14,7 @@ import {
   getNotificationsRepository,
   cancelFriendRequestRepository,
   acceptFriendRequestRepository,
-  denyFriendRequestRepository,
+  rejectFriendRequestRepository,
   findAccountByUserId,
   getNotificationByIdRepository,
   markNotificationsAsReadRepository,
@@ -53,6 +53,26 @@ export async function getNotificationsService(input: {
 export async function cancelFriendRequestService(
   input: FriendRequestWithNotificationIdDomainInput
 ): Promise<ResponseDomain> {
+  const notification = await getNotificationByIdRepository(
+    input.notificationId
+  );
+
+  if (!notification) {
+    throw new DomainError({
+      status: 404,
+      code: "NOTIFICATION_NOT_FOUND",
+      message: "Notification not found",
+    });
+  }
+
+  if (notification.senderId !== input.sender.id) {
+    throw new DomainError({
+      status: 403,
+      code: "FORBIDDEN",
+      message: "You are not allowed to cancel this friend request",
+    });
+  }
+
   const result = await cancelFriendRequestRepository({
     id: input.notificationId,
     status: NotificationStatusType.CANCELLED,
@@ -140,7 +160,7 @@ export async function acceptFriendRequestService(
   return result;
 }
 
-export async function denyFriendRequestService(
+export async function rejectFriendRequestService(
   input: FriendRequestWithNotificationIdDomainInput
 ): Promise<ResponseDomain> {
   const notification = await getNotificationByIdRepository(
@@ -159,7 +179,7 @@ export async function denyFriendRequestService(
     throw new DomainError({
       status: 403,
       code: "FORBIDDEN",
-      message: "You are not allowed to deny this friend request",
+      message: "You are not allowed to reject this friend request",
     });
   }
 
@@ -184,13 +204,13 @@ export async function denyFriendRequestService(
     username: input.sender.username,
   };
 
-  const result = await denyFriendRequestRepository({
+  const result = await rejectFriendRequestRepository({
     FriendRequest: {
       id: notification.id,
       status: NotificationStatusType.REJECTED,
     },
     RejectedFriendRequest: {
-      type: NotificationType.DENIED_FRIEND_REQUEST,
+      type: NotificationType.REJECTED_FRIEND_REQUEST,
       status: NotificationStatusType.REJECTED,
       content: `${recipient.username} rejected your friend request`,
       sender: recipient,
@@ -198,7 +218,7 @@ export async function denyFriendRequestService(
     },
   });
 
-  eventBusServer.emit(WsServerEvent.NOTIFICATION_DENIED_FRIEND_REQUEST, {
+  eventBusServer.emit(WsServerEvent.NOTIFICATION_REJECTED_FRIEND_REQUEST, {
     sender: recipient,
     recipient: sender,
     data: result,
@@ -207,7 +227,7 @@ export async function denyFriendRequestService(
   return {
     status: 201,
     code: "SEND_NOTIFICATION_SUCCESS",
-    message: "Deny friend request is successful",
+    message: "Reject friend request is successful",
   };
 }
 

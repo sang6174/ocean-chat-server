@@ -5,13 +5,13 @@ import {
   handleRegister,
   handleLogin,
   handleLogout,
-  handleGenerateAccessToken,
+  handleGenerateAuthToken,
   handleCreateGroupConversation,
   handleSendMessage,
   handleAddParticipants,
   handleSendFriendRequest,
   handleAcceptFriendRequest,
-  handleDenyFriendRequest,
+  handleRejectFriendRequest,
   handleGetAllProfileUsers,
   handleGetProfileUser,
   handleGetConversations,
@@ -21,18 +21,7 @@ import {
   handleCancelFriendRequest,
   handleMarkNotificationsAsRead,
 } from "./routes";
-import { blacklistAccessToken, blacklistRefreshToken } from "./models";
 import { addWsConnection, removeWsConnection } from "./websocket/main";
-
-setInterval(() => {
-  blacklistAccessToken.clear();
-  console.log("Blacklist of auth token cleared");
-}, 60 * 60 * 1000);
-
-setInterval(() => {
-  blacklistRefreshToken.clear;
-  console.log("Blacklist of refresh token cleared");
-}, 5 * 24 * 60 * 60 * 1000);
 
 const PORT = Number(process.env.PORT || 8080);
 
@@ -87,10 +76,10 @@ const server = Bun.serve<DataWebSocket>({
       });
     }
 
-    // GET /v1/auth/access-token
-    if (path === "/v1/auth/access-token" && method === "GET") {
+    // POST /v1/auth/refresh
+    if (path === "/v1/auth/refresh" && method === "POST") {
       return requestContextStorage.run(ctx, () => {
-        return handleGenerateAccessToken(req, corsHeaders);
+        return handleGenerateAuthToken(req, corsHeaders);
       });
     }
 
@@ -191,10 +180,10 @@ const server = Bun.serve<DataWebSocket>({
       });
     }
 
-    // POST /v1/notification/friend-request/deny
-    if (path === "/v1/notification/friend-request/deny" && method === "POST") {
+    // POST /v1/notification/friend-request/reject
+    if (path === "/v1/notification/friend-request/reject" && method === "POST") {
       return requestContextStorage.run(ctx, () => {
-        return handleDenyFriendRequest(url, req, corsHeaders);
+        return handleRejectFriendRequest(url, req, corsHeaders);
       });
     }
 
@@ -219,7 +208,7 @@ const server = Bun.serve<DataWebSocket>({
       addWsConnection(ws);
     },
 
-    async message(ws) {},
+    async message(ws) { },
 
     close(ws) {
       removeWsConnection(ws);

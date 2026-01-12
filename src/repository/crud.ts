@@ -24,6 +24,10 @@ import type {
   GetNotificationRepositoryOutput,
   GetParticipantsByConversationIdRepositoryInput,
   Participant,
+  InsertRefreshTokenInput,
+  RefreshToken,
+  FindRefreshTokenByHashInput,
+  RevokeRefreshTokenRepositoryInput,
 } from "../types/domain";
 import {
   pgFindAccountByUsername,
@@ -41,6 +45,10 @@ import {
   pgGetNotifications,
   pgGetNotificationById,
   pgMarkNotificationsAsRead,
+  pgInsertRefreshToken,
+  pgFindRefreshTokenByHash,
+  pgRevokeRefreshToken,
+  pgCheckFriendship,
 } from "../models";
 
 export async function findAccountByUsername(
@@ -73,6 +81,37 @@ export async function findAccountByUserId(
     password: result.password,
     userId: result.user_id,
   };
+}
+
+export async function insertFreshTokenRepository(
+  input: InsertRefreshTokenInput
+): Promise<void> {
+  return await pgInsertRefreshToken(input);
+}
+
+export async function findRefreshTokenRepository(
+  input: FindRefreshTokenByHashInput
+): Promise<RefreshToken | null> {
+  const result = await pgFindRefreshTokenByHash(input);
+
+  if (!result) {
+    return null;
+  }
+
+  return {
+    id: result.id,
+    userId: result.user_id,
+    tokenHash: result.token_hash,
+    expiresAt: result.expires_at,
+    revokedAt: result.revoked_at,
+    replacedBy: result.replaced_by,
+  };
+}
+
+export async function revokeRefreshTokenRepository(
+  input: RevokeRefreshTokenRepositoryInput
+): Promise<void> {
+  return await pgRevokeRefreshToken(input);
 }
 
 export async function getAllProfileUsersRepository(): Promise<
@@ -310,4 +349,11 @@ export async function markNotificationsAsReadRepository(input: {
   userId: string;
 }): Promise<void> {
   await pgMarkNotificationsAsRead(input);
+}
+
+export async function checkFriendshipRepository(
+  userId1: string,
+  userId2: string
+): Promise<boolean> {
+  return await pgCheckFriendship(userId1, userId2);
 }

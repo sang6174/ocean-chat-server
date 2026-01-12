@@ -81,7 +81,7 @@ export async function handleGetMessages(
     const auth = extractAndParseAccessToken(req);
 
     // Verify auth token
-    checkAccessTokenMiddleware(auth);
+    const authResult = checkAccessTokenMiddleware(auth);
 
     // Get and validate search params
     const conversationId = url.searchParams.get("conversationId");
@@ -114,6 +114,7 @@ export async function handleGetMessages(
       conversationId,
       limit: limitNum,
       offset: offsetNum,
+      userId: authResult.data.userId,
     });
 
     logger.debug("Get the messages of a conversation successfully");

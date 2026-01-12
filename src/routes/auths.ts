@@ -3,7 +3,7 @@ import type {
   ResponseDomain,
   LoginDomainInput,
   LogoutDomainInput,
-  GenerateAccessTokenInput,
+  GenerateAuthTokenDomainInput,
   RegisterDomainInput,
 } from "../types/domain";
 import {
@@ -15,12 +15,12 @@ import {
   assertHttpLoginPost,
   assertLogoutDomainInput,
   assertHttpLoginPostResponse,
-  assertGenerateAccessTokenOutput,
+  assertGenerateAuthTokenOutput,
 } from "../middlewares";
 import {
   registerController,
   loginController,
-  generateAccessTokenController,
+  generateAuthTokenController,
   logoutController,
 } from "../controllers";
 import { logger } from "../helpers/logger";
@@ -140,7 +140,7 @@ export async function handleLogin(req: Request, corsHeaders: any) {
         "Content-Type": "application/json",
         "x-request-id": RequestContextAccessor.getRequestId(),
         "x-tab-id": RequestContextAccessor.getTabId(),
-        "Set-Cookie": `refresh_token=${result.refreshToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${refreshTokenMaxAge}`,
+        "Set-Cookie": `refresh_token=${result.refreshToken}; HttpOnly; SameSite=None; Secure; Path=/; Max-Age=${refreshTokenMaxAge}`,
       },
     });
   } catch (err) {
@@ -168,38 +168,68 @@ export async function handleLogin(req: Request, corsHeaders: any) {
 }
 
 // ============================================================
-// GET /v1/auth/access-token
+// POST /v1/auth/refresh
 // ============================================================
-export async function handleGenerateAccessToken(
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleGenerateAuthToken(req: Request, corsHeaders: any) {
   try {
-    logger.debug("Start handle generate access token");
+    logger.info("Start handle generate access token");
 
-    // Parse refresh token
-    const authToken = extractAndParseAccessToken(req);
+    // Extract refresh token
+    const refreshToken =
+      req.headers
+        .get("cookie")
+        ?.split(";")
+        .map((c) => c.trim())
+        .find((c) => c.startsWith("refresh_token="))
+        ?.slice("refresh_token=".length) ?? null;
 
-    // Verify refresh token
-    const authResult = checkRefreshTokenMiddleware(authToken);
+    if (!refreshToken) {
+      logger.info(
+        "No refresh token found during logout, clearing cookie only."
+      );
+      return new Response(
+        JSON.stringify({
+          code: "LOGOUT_SUCCESS",
+          message: "Logout successfully, no token to revoke.",
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "Set-Cookie": "refresh_token=; HttpOnly; Path=/; Max-Age=0",
+            "x-request-id": RequestContextAccessor.getRequestId(),
+            "x-tab-id": RequestContextAccessor.getTabId(),
+          },
+        }
+      );
+    }
 
+    const refreshResult = checkRefreshTokenMiddleware(refreshToken);
     // Call controller
-    const input: GenerateAccessTokenInput = {
-      userId: authResult.data.userId,
+    const input: GenerateAuthTokenDomainInput = {
+      userId: refreshResult.data.userId,
+      refreshToken,
     };
 
-    const result = await generateAccessTokenController(input);
+    const result = await generateAuthTokenController(input);
+    assertGenerateAuthTokenOutput(result);
 
-    assertGenerateAccessTokenOutput(result);
+    const response: HttpLoginPostResponse = {
+      userId: result.userId,
+      username: result.username,
+      accessToken: result.accessToken,
+    };
 
-    logger.debug("Generate access token successfully");
-    return new Response(JSON.stringify(result), {
+    logger.debug("Generate auth token successfully");
+    return new Response(JSON.stringify(response), {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/json",
         "x-request-id": RequestContextAccessor.getRequestId(),
         "x-tab-id": RequestContextAccessor.getTabId(),
+        "Set-Cookie": `refresh_token=${result.refreshToken}; HttpOnly; SameSite=None; Secure; Path=/; Max-Age=${refreshTokenMaxAge}`,
       },
     });
   } catch (err: any) {
@@ -233,9 +263,7 @@ export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
   try {
     logger.debug("Start handle logout");
 
-    // Parse Auth Token
-    const accessToken = extractAndParseAccessToken(req);
-
+    // Parse Refresh Token
     const refreshToken =
       req.headers
         .get("cookie")
@@ -266,12 +294,31 @@ export async function handleLogout(url: URL, req: Request, corsHeaders: any) {
       );
     }
 
-    const authResult = checkAccessTokenMiddleware(accessToken);
-    checkRefreshTokenMiddleware(refreshToken);
+    let refreshResult;
+    try {
+      refreshResult = checkRefreshTokenMiddleware(refreshToken);
+    } catch (error) {
+      logger.warn("Invalid refresh token during logout, clearing cookie anyway.");
+      return new Response(
+        JSON.stringify({
+          code: "LOGOUT_SUCCESS",
+          message: "Logout successfully (invalid token cleared).",
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "Set-Cookie": "refresh_token=; HttpOnly; Path=/; Max-Age=0",
+            "x-request-id": RequestContextAccessor.getRequestId(),
+            "x-tab-id": RequestContextAccessor.getTabId(),
+          },
+        }
+      );
+    }
 
     const input: LogoutDomainInput = {
-      userId: authResult.data.userId,
-      accessToken,
+      userId: refreshResult.data.userId,
       refreshToken,
     };
 

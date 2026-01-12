@@ -9,9 +9,7 @@ export function assertValidInput(
 ): asserts result is { valid: true } {
   if (!result.valid) {
     logger.info(`Input validation failed for ${name}: ${result.message}`);
-    throw new ValidateError(
-      `Input validation failed for ${name}: ${result.message}`
-    );
+    throw new ValidateError(result.message);
   } else {
     logger.info(`Input validation is successful for ${name}}`);
   }
@@ -66,7 +64,7 @@ export function isName(
 
 export function isUsername(
   value: any,
-  minLength: number = 8,
+  minLength: number = 3,
   maxLength: number = 32
 ) {
   return (
@@ -84,7 +82,7 @@ export function isEmail(email: any): email is string {
 
 export function isPassword(
   value: any,
-  minLength: number = 8,
+  minLength: number = 6,
   maxLength: number = 32
 ): value is string {
   return (

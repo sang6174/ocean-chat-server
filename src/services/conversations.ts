@@ -11,6 +11,7 @@ import {
   createConversationRepository,
   getConversationByIdRepository,
   getConversationIdsRepository,
+  checkFriendshipRepository,
 } from "../repository";
 import { eventBusServer } from "../websocket/events";
 import { DomainError } from "../helpers/errors";
@@ -18,6 +19,26 @@ import { DomainError } from "../helpers/errors";
 export async function createConversationService(
   input: CreateGroupConversationDomainInput
 ): Promise<CreateConversationRepositoryOutput> {
+  // Check friendship: Creator must be friend with all other participants
+  const otherParticipants = input.participantIds.filter(
+    (id) => id !== input.creator.id
+  );
+
+  for (const participantId of otherParticipants) {
+    const isFriend = await checkFriendshipRepository(
+      input.creator.id,
+      participantId
+    );
+
+    if (!isFriend) {
+      throw new DomainError({
+        status: 403,
+        code: "NOT_FRIEND",
+        message: `You are not friends with user ${participantId}. Cannot add to group.`,
+      });
+    }
+  }
+
   const resultCreateConversation = await createConversationRepository(input);
 
   if (input.type === ConversationType.Group) {

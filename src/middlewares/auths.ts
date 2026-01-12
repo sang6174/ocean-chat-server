@@ -7,16 +7,10 @@ import {
 } from "./validation/domain";
 import { logger } from "../helpers/logger";
 
-import { blacklistAccessToken, blacklistRefreshToken } from "../models";
 import { AuthError } from "../helpers/errors";
 
 export function checkAccessTokenMiddleware(token: string): UserTokenPayload {
   try {
-    if (blacklistAccessToken.has(token)) {
-      logger.warn("The access token is on the blacklist");
-      throw new AuthError("Access token is invalid");
-    }
-
     const decoded = verifyAccessToken(token);
     if (!isDecodedToken(decoded))
       throw new AuthError("Access token is invalid");
@@ -39,11 +33,6 @@ export function checkRefreshTokenMiddleware(
   token: string
 ): RefreshTokenPayload {
   try {
-    if (blacklistRefreshToken.has(token)) {
-      logger.warn("The refresh token is on the blacklist");
-      throw new AuthError("Refresh token is invalid");
-    }
-
     const decoded = verifyRefreshToken(token);
     if (!isDecodedToken(decoded))
       throw new AuthError("Refresh token is invalid");

@@ -3,14 +3,14 @@ import type {
   ResponseDomain,
   LoginDomainInput,
   LoginDomainOutput,
-  GenerateAccessTokenInput,
-  GenerateAccessTokenOutput,
+  GenerateAuthTokenDomainInput,
+  GenerateAuthTokenDomainOutput,
   LogoutDomainInput,
 } from "../types/domain";
 import {
   registerService,
   loginService,
-  generateAccessTokenService,
+  generateAuthTokenService,
   logoutService,
 } from "../services";
 
@@ -33,10 +33,10 @@ export async function loginController(
   return result;
 }
 
-export async function generateAccessTokenController(
-  input: GenerateAccessTokenInput
-): Promise<GenerateAccessTokenOutput> {
-  const result = await generateAccessTokenService(input);
+export async function generateAuthTokenController(
+  input: GenerateAuthTokenDomainInput
+): Promise<GenerateAuthTokenDomainOutput> {
+  const result = await generateAuthTokenService(input);
   return result;
 }
 

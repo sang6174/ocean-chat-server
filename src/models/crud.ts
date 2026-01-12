@@ -11,6 +11,9 @@ import type {
   CancelFriendRequestRepositoryInput,
   GetNotificationRepositoryInput,
   GetMessagesRepositoryInput,
+  InsertRefreshTokenInput,
+  FindRefreshTokenByHashInput,
+  RevokeRefreshTokenRepositoryInput,
 } from "../types/domain";
 import type {
   PgAccount,
@@ -24,6 +27,7 @@ import type {
   PgGetParticipantRoleOutput,
   PgParticipantWithUsername,
   PgGetParticipantIdsOutput,
+  PgRefreshToken,
 } from "../types/models";
 import { mapPgError } from "../helpers/errors";
 
@@ -68,6 +72,63 @@ export async function pgFindAccountByUserId(
 
     return result.rows[0];
   } catch (err: any) {
+    throw mapPgError(err);
+  }
+}
+
+// Insert refresh token
+export async function pgInsertRefreshToken(
+  input: InsertRefreshTokenInput
+): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO main.refresh_tokens (id, user_id, token_hash, expires_at) 
+       VALUES ($1, $2, $3, $4)
+      `,
+      [input.id, input.userId, input.tokenHash, input.expiresAt]
+    );
+  } catch (err: any) {
+    throw mapPgError(err);
+  }
+}
+
+// Find refresh token by hash
+export async function pgFindRefreshTokenByHash(
+  input: FindRefreshTokenByHashInput
+): Promise<PgRefreshToken | null> {
+  try {
+    const result = await pool.query(
+      `SELECT id, user_id, token_hash, expires_at, revoked_at, replaced_by
+       FROM main.refresh_tokens
+       WHERE token_hash = $1
+      `,
+      [input.tokenHash]
+    );
+
+    if (result.rowCount === 0) {
+      return null;
+    }
+
+    return result.rows[0];
+  } catch (err: any) {
+    throw mapPgError(err);
+  }
+}
+
+// Revoke refresh token
+export async function pgRevokeRefreshToken(
+  input: RevokeRefreshTokenRepositoryInput
+): Promise<void> {
+  try {
+    await pool.query(
+      `UPDATE main.refresh_tokens
+       SET revoked_at = NOW(),
+           replaced_by = NULL
+       WHERE id = $1
+      `,
+      [input.tokenId]
+    );
+  } catch (err) {
     throw mapPgError(err);
   }
 }
@@ -195,7 +256,7 @@ export async function pgGetParticipantRole(
     const result = await pool.query(
       `SELECT role
        FROM main.participants
-       WHERE user_id = $1 AND conversation_Id = $2
+       WHERE user_id = $1 AND conversation_id = $2
       `,
       [input.userId, input.conversationId]
     );
@@ -372,6 +433,32 @@ export async function pgMarkNotificationsAsRead(input: {
       `,
       [input.userId]
     );
+  } catch (err: any) {
+    throw mapPgError(err);
+  }
+}
+
+// Check if two users are friends (have a direct conversation)
+export async function pgCheckFriendship(
+  userId1: string,
+  userId2: string
+): Promise<boolean> {
+  try {
+    const result = await pool.query(
+      `SELECT 1
+       FROM main.conversations c
+       JOIN main.participants p1 ON c.id = p1.conversation_id
+       JOIN main.participants p2 ON c.id = p2.conversation_id
+       WHERE c.type = 'direct'
+         AND p1.user_id = $1
+         AND p2.user_id = $2
+         AND c.is_deleted = false
+       LIMIT 1
+      `,
+      [userId1, userId2]
+    );
+
+    return (result.rowCount ?? 0) > 0;
   } catch (err: any) {
     throw mapPgError(err);
   }

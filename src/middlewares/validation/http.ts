@@ -25,19 +25,25 @@ export function validateHttpRegisterPost(
   value: any
 ): { valid: true } | { valid: false; message: string } {
   if (!isPlainObject(value))
-    return { valid: false, message: "Must be an object" };
+    return { valid: false, message: "Invalid request format." };
 
   if (!isName(value.name))
-    return { valid: false, message: "name must be string" };
+    return { valid: false, message: "Name is required." };
 
   if (!isEmail(value.email))
-    return { valid: false, message: "email must be string" };
+    return { valid: false, message: "Email is invalid." };
 
   if (!isUsername(value.username))
-    return { valid: false, message: "username must be string" };
+    return {
+      valid: false,
+      message: "Username must be between 3 and 32 characters.",
+    };
 
   if (!isPassword(value.password))
-    return { valid: false, message: "password must be string" };
+    return {
+      valid: false,
+      message: "Password must be at least 6 characters.",
+    };
 
   return { valid: true };
 }
@@ -53,13 +59,19 @@ export function validateHttpLoginPost(
   value: any
 ): { valid: true } | { valid: false; message: string } {
   if (!isPlainObject(value))
-    return { valid: false, message: "Must be an object" };
+    return { valid: false, message: "Invalid request format." };
 
   if (!isUsername(value.username))
-    return { valid: false, message: "username must be string" };
+    return {
+      valid: false,
+      message: "Username must be between 3 and 32 characters.",
+    };
 
   if (!isPassword(value.password))
-    return { valid: false, message: "password must be string" };
+    return {
+      valid: false,
+      message: "Password must be at least 6 characters.",
+    };
 
   return { valid: true };
 }
@@ -103,22 +115,22 @@ export function validateHttpCreateGroupConversationPost(
   value: any
 ): { valid: true } | { valid: false; message: string } {
   if (!isPlainObject(value))
-    return { valid: false, message: "Must be an object" };
+    return { valid: false, message: "Invalid request format." };
 
   const con = value.conversation;
   if (typeof con !== "object" || con === null)
-    return { valid: false, message: "conversation must be object" };
+    return { valid: false, message: "Conversation data is missing." };
 
   if (!isString(con.name))
     return {
       valid: false,
-      message: "conversation.name must be string",
+      message: "Group name is required.",
     };
 
   if (!Array.isArray(value.participantIds)) {
     return {
       valid: false,
-      message: "participantIds must be array",
+      message: "Participants list is invalid.",
     };
   }
 
@@ -126,7 +138,7 @@ export function validateHttpCreateGroupConversationPost(
     if (!isUUIDv4(p)) {
       return {
         valid: false,
-        message: "participantIds[i] must be uuidv4",
+        message: "One or more participants are invalid.",
       };
     }
   }
@@ -170,17 +182,17 @@ export function validateHttpAddParticipantsPost(
   value: any
 ): { valid: true } | { valid: false; message: string } {
   if (!isPlainObject(value))
-    return { valid: false, message: "Must be an object" };
+    return { valid: false, message: "Invalid request format." };
 
   if (!isUUIDv4(value.conversationId))
-    return { valid: false, message: "conversationId must be uuidv4" };
+    return { valid: false, message: "Invalid conversation ID." };
 
   if (!Array.isArray(value.participantIds))
-    return { valid: false, message: "participantIds must be array" };
+    return { valid: false, message: "Participants list is invalid." };
 
   for (const i of value.participantIds) {
     if (!isUUIDv4(i)) {
-      return { valid: false, message: "participantIds[i] must be uuidv4[]" };
+      return { valid: false, message: "One or more participants are invalid." };
     }
   }
 
@@ -201,16 +213,16 @@ export function validateHttpFriendRequest(
   value: any
 ): { valid: true } | { valid: false; message: string } {
   if (!isPlainObject(value))
-    return { valid: false, message: "Must be an object" };
+    return { valid: false, message: "Invalid request format." };
 
   if (!isPlainObject(value.recipient))
-    return { valid: false, message: "recipient must be object" };
+    return { valid: false, message: "Recipient data is missing." };
 
   if (!isUUIDv4(value.recipient.id))
-    return { valid: false, message: "recipient.id must be uuidv4" };
+    return { valid: false, message: "Invalid recipient ID." };
 
   if (!isString(value.recipient.username))
-    return { valid: false, message: "recipient.username must be string" };
+    return { valid: false, message: "Invalid recipient username." };
 
   return { valid: true };
 }
@@ -226,19 +238,19 @@ export function validateHttpFriendRequestWithNotificationId(
   value: any
 ): { valid: true } | { valid: false; message: string } {
   if (!isPlainObject(value))
-    return { valid: false, message: "Must be an object" };
+    return { valid: false, message: "Invalid request format." };
 
   if (!isPlainObject(value.recipient))
-    return { valid: false, message: "recipient must be object" };
+    return { valid: false, message: "Recipient data is missing." };
 
   if (!isUUIDv4(value.recipient.id))
-    return { valid: false, message: "recipient.id must be uuidv4" };
+    return { valid: false, message: "Invalid recipient ID." };
 
   if (!isString(value.recipient.username))
-    return { valid: false, message: "recipient.username must be string" };
+    return { valid: false, message: "Invalid recipient username." };
 
   if (!isUUIDv4(value.notificationId))
-    return { valid: false, message: "notificationId must be uuidv4" };
+    return { valid: false, message: "Invalid notification ID." };
 
   return { valid: true };
 }

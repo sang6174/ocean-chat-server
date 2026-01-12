@@ -147,9 +147,16 @@ export function mapPgError(error: any): DatabaseError {
 
     // Conflict
     case "23505":
+      let message = "Resource already exists";
+      if (error.detail?.includes("email")) {
+        message = "Email already exists";
+      } else if (error.detail?.includes("username")) {
+        message = "Username already exists";
+      }
+
       return new DatabaseError({
         status: 409,
-        message: "Resource already exists",
+        message: message,
         logMessage: "PostgreSQL unique violation",
         cause: error,
       });
@@ -241,7 +248,7 @@ export function handleError(err: any, corsHeaders: any) {
   }
 
   if (err instanceof DatabaseError) {
-    logger.error(err.logMessage);
+    logger.error(err.logMessage, err.cause as any);
     return new Response(
       JSON.stringify({
         code: err.code,
@@ -268,6 +275,44 @@ export function handleError(err: any, corsHeaders: any) {
       }),
       {
         status: err.status,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
+        },
+      }
+    );
+  }
+
+  if (err.name === "TokenExpiredError") {
+    logger.warn("Token expired");
+    return new Response(
+      JSON.stringify({
+        code: "TOKEN_EXPIRED",
+        message: "Token expired",
+      }),
+      {
+        status: 401,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "x-request-id": RequestContextAccessor.getRequestId(),
+          "x-tab-id": RequestContextAccessor.getTabId(),
+        },
+      }
+    );
+  }
+
+  if (err.name === "JsonWebTokenError") {
+    logger.warn("Token invalid");
+    return new Response(
+      JSON.stringify({
+        code: "TOKEN_INVALID",
+        message: "Token is invalid",
+      }),
+      {
+        status: 401,
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",

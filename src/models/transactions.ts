@@ -5,7 +5,8 @@ import type {
   AddParticipantsRepositoryInput,
   CreateMessageRepositoryInput,
   AcceptFriendRequestRepositoryInput,
-  DenyFriendRequestRepositoryInput,
+  RejectFriendRequestRepositoryInput,
+  RotateRefreshTokenRepositoryInput,
 } from "../types/domain";
 import type {
   PgAddParticipantsOutput,
@@ -13,7 +14,7 @@ import type {
   PgCreateConversationOutput,
   PgCreateMessageOutput,
   PgAcceptFriendRequestOutput,
-  PgDenyFriendRequestOutput,
+  PgRejectFriendRequestOutput,
 } from "../types/models";
 import { DomainError, mapPgError } from "../helpers/errors";
 import { logger } from "../helpers/logger";
@@ -89,6 +90,43 @@ export async function pgRegisterTransaction(
   }
 }
 
+// Rotate refresh token
+export async function rotateRefreshTokenTransaction(
+  input: RotateRefreshTokenRepositoryInput
+): Promise<void> {
+  const client = await pool.connect();
+  logger.debug("Rotate refresh token transaction is started");
+  try {
+    await client.query(`BEGIN`);
+
+    await client.query(
+      `UPDATE main.refresh_tokens
+         SET
+         revoked_at = now(),
+         replaced_by = $2
+       WHERE id = $1
+       AND revoked_at IS NULL
+      `,
+      [input.oldRefreshTokenId, input.newRefreshTokenId]
+    );
+
+    await client.query(
+      `INSERT INTO main.refresh_tokens (id, user_id, token_hash, expires_at) 
+       VALUES ($1, $2, $3, $4)
+      `,
+      [input.newRefreshTokenId, input.userId, input.tokenHash, input.expiresAt]
+    );
+
+    await client.query(`COMMIT`);
+    logger.debug("Rotate refresh token transaction successfully");
+  } catch (err: any) {
+    await client.query(`ROLLBACK`);
+    throw mapPgError(err);
+  } finally {
+    client.release();
+  }
+}
+
 // Create conversation transaction
 export async function pgCreateConversationTransaction(
   input: CreateConversationRepositoryInput
@@ -126,8 +164,7 @@ export async function pgCreateConversationTransaction(
     const values = participantIds
       .map(
         (_, i) =>
-          `($1, $${i + 3}::uuid, CASE WHEN $${
-            i + 3
+          `($1, $${i + 3}::uuid, CASE WHEN $${i + 3
           }::uuid = $2 THEN 'admin'::chat_role_type ELSE 'member'::chat_role_type END)`
       )
       .join(", ");
@@ -175,7 +212,6 @@ export async function pgCreateConversationTransaction(
       messages: messagesResult.rows,
     };
   } catch (err) {
-    console.log(err);
     logger.error("Create conversation transaction failed");
     await client.query(`ROLLBACK`);
     throw mapPgError(err);
@@ -215,7 +251,6 @@ export async function pgAddParticipantsTransaction(
     const valuesMessage = participantsResult.rows
       .map((_, i) => `($1, $2, $${i + 3})`)
       .join(", ");
-    console.log(participantsResult.rows);
     const messages = participantsResult.rows.map(
       (p) => `${p.username} is added to the group by ${input.creator.username}`
     );
@@ -400,9 +435,9 @@ export async function pgAcceptFriendRequestTransaction(
   }
 }
 
-export async function pgDenyFriendRequestTransaction(
-  input: DenyFriendRequestRepositoryInput
-): Promise<PgDenyFriendRequestOutput> {
+export async function pgRejectFriendRequestTransaction(
+  input: RejectFriendRequestRepositoryInput
+): Promise<PgRejectFriendRequestOutput> {
   const client = await pool.connect();
   try {
     await client.query(`BEGIN`);

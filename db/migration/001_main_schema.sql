@@ -19,7 +19,7 @@ BEGIN
         CREATE TYPE notification_type AS ENUM (
             'friend_request', 
             'accept_friend_request', 
-            'deny_friend_request'
+            'reject_friend_request'
         );
     END IF;
 
@@ -57,6 +57,16 @@ CREATE TABLE IF NOT EXISTS main.accounts (
     deleted_at      TIMESTAMPTZ,
     user_id         UUID NOT NULL REFERENCES main.users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS main.refresh_tokens (
+    id              UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id         UUID NOT NULL REFERENCES main.users(id) ON DELETE CASCADE,
+    token_hash      TEXT NOT NULL,
+    expires_at      TIMESTAMPTZ NOT NULL, 
+    created_at      TIMESTAMPTZ DEFAULT NOW(), 
+    revoked_at      TIMESTAMP,
+    replaced_by     UUID
+); 
 
 CREATE TABLE IF NOT EXISTS main.conversations (
     id              UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -112,3 +122,15 @@ CREATE INDEX idx_conversations_last_event ON main.conversations(last_event DESC)
 CREATE INDEX idx_messages_conversation_id ON main.messages(conversation_id, created_at DESC);
 CREATE INDEX idx_participants_conversation_id ON main.participants(conversation_id);
 CREATE INDEX idx_notifications_recipient_id ON main.notifications(recipient_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_refresh_token_hash 
+ON main.refresh_tokens(token_hash) 
+WHERE revoked_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_refresh_token_user 
+ON main.refresh_tokens(user_id) 
+WHERE revoked_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_refresh_token_revoked_at 
+ON main.refresh_tokens(revoked_at) 
+WHERE revoked_at IS NOT NULL;
+

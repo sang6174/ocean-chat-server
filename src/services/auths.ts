@@ -7,19 +7,22 @@ import type {
   LoginDomainInput,
   LoginDomainOutput,
   LogoutDomainInput,
-  GenerateAccessTokenInput,
-  GenerateAccessTokenOutput,
+  GenerateAuthTokenDomainInput,
+  GenerateAuthTokenDomainOutput,
   RegisterRepositoryInput,
 } from "../types/domain";
 import {
   findAccountByUsername,
   findAccountByUserId,
   registerRepository,
-  getProfileUserRepository,
+  insertFreshTokenRepository,
+  findRefreshTokenRepository,
+  rotateRefreshTokenRepository,
+  revokeRefreshTokenRepository,
 } from "../repository";
-import { blacklistAccessToken, blacklistRefreshToken } from "../models";
 import { DomainError } from "../helpers/errors";
 import { logger } from "../helpers/logger";
+import { hashRefreshToken } from "../helpers/helpers";
 
 export const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET!;
 export const accessTokenExpiresIn = process.env
@@ -28,6 +31,8 @@ export const accessTokenExpiresIn = process.env
 export const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET!;
 export const refreshTokenExpiresIn = process.env
   .REFRESH_TOKEN_EXPIRES_IN! as jwt.SignOptions["expiresIn"];
+
+export const refreshTokenMaxAge = Number(process.env.REFRESH_TOKEN_MAX_AGE!);
 
 export function createAccessToken(
   payload: string,
@@ -108,18 +113,23 @@ export async function loginService(
       username: existingAccount.username,
     })
   );
-  logger.warn("Generate a new auth token successfully");
+  logger.warn("Create a new access token successfully");
 
-  const refreshToken: string = createRefreshToken(
+  const refreshTokenId = crypto.randomUUID();
+  const refreshToken = createRefreshToken(
     JSON.stringify({
       userId: existingAccount.userId,
-      accessToken: accessToken,
+      jti: refreshTokenId,
     })
   );
-  logger.warn("Generate a new refresh token successfully");
+  logger.warn("Create a new refresh token successfully");
 
-  const userProfile = await getProfileUserRepository({
+  const refreshTokenHash = hashRefreshToken(refreshToken);
+  await insertFreshTokenRepository({
+    id: refreshTokenId,
     userId: existingAccount.userId,
+    tokenHash: refreshTokenHash,
+    expiresAt: new Date(Date.now() + refreshTokenMaxAge),
   });
 
   return {
@@ -130,9 +140,9 @@ export async function loginService(
   };
 }
 
-export async function generateAccessTokenService(
-  input: GenerateAccessTokenInput
-): Promise<GenerateAccessTokenOutput> {
+export async function generateAuthTokenService(
+  input: GenerateAuthTokenDomainInput
+): Promise<GenerateAuthTokenDomainOutput> {
   const existingAccount = await findAccountByUserId({
     userId: input.userId,
   });
@@ -145,32 +155,99 @@ export async function generateAccessTokenService(
     });
   }
 
+  const oldRefreshTokenHash = hashRefreshToken(input.refreshToken);
+  const oldRefreshToken = await findRefreshTokenRepository({
+    tokenHash: oldRefreshTokenHash,
+  });
+
+  if (!oldRefreshToken) {
+    throw new DomainError({
+      status: 401,
+      code: "REFRESH_TOKEN_INVALID",
+      message: "Refresh token is invalid",
+    });
+  }
+
+  if (oldRefreshToken.userId !== input.userId) {
+    logger.warn(`Refresh token userId mismatch.`, {
+      clientUserId: input.userId,
+      tokenUserId: oldRefreshToken.userId,
+    });
+
+    throw new DomainError({
+      status: 401,
+      code: "REFRESH_TOKEN_INVALID",
+      message: "Refresh token is invalid",
+    });
+  }
+
+  if (oldRefreshToken.revokedAt || oldRefreshToken.expiresAt < new Date()) {
+    logger.warn(`Refresh token reuse.`);
+  }
+
   const accessToken: string = createAccessToken(
     JSON.stringify({
-      userId: existingAccount.id,
+      userId: existingAccount.userId,
       username: existingAccount.username,
     })
   );
+  logger.warn("Create a new access token successfully");
 
-  logger.warn("Generate a new auth token successfully");
+  const refreshTokenId = crypto.randomUUID();
+  const refreshToken = createRefreshToken(
+    JSON.stringify({
+      userId: existingAccount.userId,
+      jti: refreshTokenId,
+    })
+  );
+  logger.warn("Create a new refresh token successfully");
 
+  const refreshTokenHash = hashRefreshToken(refreshToken);
+  await rotateRefreshTokenRepository({
+    oldRefreshTokenId: oldRefreshToken.id,
+    newRefreshTokenId: refreshTokenId,
+    userId: input.userId,
+    tokenHash: refreshTokenHash,
+    expiresAt: new Date(Date.now() + refreshTokenMaxAge),
+  });
+
+  logger.debug("Generate auth token successfully");
   return {
     userId: existingAccount.id,
     username: existingAccount.username,
     accessToken,
+    refreshToken,
   };
 }
 
 export async function logoutService(
   input: LogoutDomainInput
 ): Promise<ResponseDomain> {
-  if (!blacklistAccessToken.has(input.accessToken)) {
-    blacklistAccessToken.add(input.accessToken);
+  const tokenHash = hashRefreshToken(input.refreshToken);
+  const refreshToken = await findRefreshTokenRepository({ tokenHash });
+
+  if (!refreshToken) {
+    throw new DomainError({
+      status: 401,
+      code: "REFRESH_TOKEN_INVALID",
+      message: "Refresh token is invalid",
+    });
   }
 
-  if (!blacklistRefreshToken.has(input.refreshToken)) {
-    blacklistRefreshToken.add(input.refreshToken);
+  if (refreshToken.userId !== input.userId) {
+    logger.warn(`Refresh token userId mismatch.`, {
+      clientUserId: input.userId,
+      tokenUserId: refreshToken.userId,
+    });
+
+    throw new DomainError({
+      status: 401,
+      code: "REFRESH_TOKEN_INVALID",
+      message: "Refresh token is invalid",
+    });
   }
+
+  await revokeRefreshTokenRepository({ tokenId: refreshToken.id });
 
   return {
     status: 200,

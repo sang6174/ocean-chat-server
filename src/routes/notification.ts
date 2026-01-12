@@ -17,7 +17,7 @@ import {
 import {
   sendFriendRequestController,
   acceptFriendRequestController,
-  denyFriendRequestController,
+  rejectFriendRequestController,
   getNotificationsController,
   cancelFriendRequestController,
   markNotificationsAsReadController,
@@ -289,15 +289,15 @@ export async function handleAcceptFriendRequest(
 }
 
 // ============================================================
-// POST /v1/notification/friend-request/deny
+// POST /v1/notification/friend-request/reject
 // ============================================================
-export async function handleDenyFriendRequest(
+export async function handleRejectFriendRequest(
   url: URL,
   req: Request,
   corsHeaders: any
 ) {
   try {
-    logger.debug("Start handle deny friend request");
+    logger.debug("Start handle reject friend request");
 
     // Parse auth token
     const auth = extractAndParseAccessToken(req);
@@ -339,10 +339,10 @@ export async function handleDenyFriendRequest(
       notificationId: rawBody.notificationId,
     };
 
-    // Call notification deny friend controller
-    const result = await denyFriendRequestController(cleanBody);
+    // Call notification reject friend controller
+    const result = await rejectFriendRequestController(cleanBody);
 
-    logger.debug("Handle deny friend request successfully");
+    logger.debug("Handle reject friend request successfully");
     return new Response(
       JSON.stringify({
         code: result.code,
@@ -367,7 +367,7 @@ export async function handleDenyFriendRequest(
     return new Response(
       JSON.stringify({
         code: "INTERNAL_ERROR",
-        message: "Denied notification sended failed. Please try again.",
+        message: "Rejected notification sended failed. Please try again.",
       }),
       {
         status: 500,

@@ -2,7 +2,7 @@ import type {
   StringTokenPayload,
   UserTokenPayload,
   RefreshTokenPayload,
-  GenerateAccessTokenOutput,
+  GenerateAuthTokenDomainInput,
   CreateGroupConversationDomainInput,
   AddParticipantsDomainInput,
   GetProfileUserDomainInput,
@@ -34,15 +34,11 @@ export function validateLogoutDomainInput(
     return { valid: false, message: "Must be an object" };
 
   if (!isUUIDv4(value.userId)) {
-    return { valid: false, message: "userId must be a uuidv4" };
-  }
-
-  if (!isString(value.accessToken)) {
-    return { valid: false, message: "accessToken must be a string" };
+    return { valid: false, message: "Invalid user ID." };
   }
 
   if (!isString(value.refreshToken)) {
-    return { valid: false, message: "refreshToken must be a string" };
+    return { valid: false, message: "Invalid refresh token." };
   }
 
   return { valid: true };
@@ -86,42 +82,42 @@ export function validateAccessToken(
   if (!isNumber(v.iat)) {
     return {
       valid: false,
-      message: "iat must be a number",
+      message: "Invalid token data.",
     };
   }
 
   if (!isNumber(v.exp)) {
     return {
       valid: false,
-      message: "exp must be a number",
+      message: "Invalid token data.",
     };
   }
 
   if (!isPlainObject(v.data)) {
     return {
       valid: false,
-      message: "data must be an object",
+      message: "Invalid token data.",
     };
   }
 
   if (!isUUIDv4(v.data.userId)) {
     return {
       valid: false,
-      message: "data.userId must be a uuidv4",
+      message: "Invalid token data.",
     };
   }
 
   if (!isString(v.data.username)) {
     return {
       valid: false,
-      message: "data.username must be a string",
+      message: "Invalid token data.",
     };
   }
 
   if (value.exp <= value.iat) {
     return {
       valid: false,
-      message: "Access token expiration time must be greater than issued time.",
+      message: "Invalid token configuration.",
     };
   }
 
@@ -129,7 +125,7 @@ export function validateAccessToken(
   if (value.exp <= now) {
     return {
       valid: false,
-      message: "Access token has expired.",
+      message: "Session expired.",
     };
   }
 
@@ -157,43 +153,42 @@ export function validateRefreshToken(
   if (!isNumber(v.iat)) {
     return {
       valid: false,
-      message: "iat must be a number",
+      message: "Invalid token data.",
     };
   }
 
   if (!isNumber(v.exp)) {
     return {
       valid: false,
-      message: "exp must be a number",
+      message: "Invalid token data.",
     };
   }
 
   if (!isPlainObject(v.data)) {
     return {
       valid: false,
-      message: "data must be an object",
+      message: "Invalid token data.",
     };
   }
 
   if (!isUUIDv4(v.data.userId)) {
     return {
       valid: false,
-      message: "data.userId must be a string",
+      message: "Invalid token data.",
     };
   }
 
-  if (!isString(v.data.accessToken)) {
+  if (!isUUIDv4(v.data.jti)) {
     return {
       valid: false,
-      message: "data.accessToken must be a string",
+      message: "Invalid token data.",
     };
   }
 
   if (value.exp <= value.iat) {
     return {
       valid: false,
-      message:
-        "Refresh token expiration time must be greater than issued time.",
+      message: "Invalid token configuration.",
     };
   }
 
@@ -201,7 +196,7 @@ export function validateRefreshToken(
   if (value.exp <= now) {
     return {
       valid: false,
-      message: "Refresh token has expired.",
+      message: "Session expired.",
     };
   }
 
@@ -243,20 +238,20 @@ export function validateCreateGroupConversationDomainInput(
   if (!value.participantIds.includes(value.creator.id))
     return {
       valid: false,
-      message: "participantIds must contain creator.id",
+      message: "You must be a participant in the group you create.",
     };
 
   if (value.participantIds.length < 3)
     return {
       valid: false,
-      message: "participantIds's length must more than or equal three",
+      message: "Group must have at least 3 participants.",
     };
 
   const participantIds = new Set(value.participantIds);
   if (value.participantIds.length !== participantIds.size)
     return {
       valid: false,
-      message: "participantIds must be different",
+      message: "Duplicate participants found.",
     };
 
   return { valid: true };
@@ -279,7 +274,7 @@ export function validateAddParticipantsDomainInput(
   if (value.participantIds.length !== participantIds.size) {
     return {
       valid: false,
-      message: "participantIds must be different",
+      message: "Duplicate participants found.",
     };
   }
 
@@ -319,31 +314,34 @@ export function assertGetConversationsByUseridDomainInput(
 // ============================================================
 // Validate domain output
 // ============================================================
-// Generate access token output
-export function validateGenerateAccessTokenOutput(
+// Generate auth token output
+export function validateGenerateAuthTokenOutput(
   value: any
 ): { valid: true } | { valid: false; message: string } {
   if (!isPlainObject(value))
     return { valid: false, message: "Must be a object" };
 
   if (!isUUIDv4(value.userId))
-    return { valid: false, message: "userId must be a uuidv4" };
+    return { valid: false, message: "Invalid user ID." };
 
   if (!isUsername(value.username))
-    return { valid: false, message: "username must be valid username" };
+    return { valid: false, message: "Invalid username." };
 
   if (!isString(value.accessToken))
-    return { valid: false, message: "accessToken must be a string" };
+    return { valid: false, message: "Invalid access token." };
+
+  if (!isString(value.refreshToken))
+    return { valid: false, message: "Invalid refresh token." };
 
   return { valid: true };
 }
 
-export function assertGenerateAccessTokenOutput(
+export function assertGenerateAuthTokenOutput(
   value: any
-): asserts value is GenerateAccessTokenOutput {
+): asserts value is GenerateAuthTokenDomainInput {
   assertValidOutput(
-    validateGenerateAccessTokenOutput(value),
-    "GenerateAccessTokenOutput"
+    validateGenerateAuthTokenOutput(value),
+    "GenerateAuthTokenOutput"
   );
 }
 

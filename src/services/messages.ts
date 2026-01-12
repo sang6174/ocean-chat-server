@@ -1,16 +1,34 @@
 import { WsServerEvent } from "../types/domain";
+import { DomainError } from "../helpers/errors";
 import type {
   SendMessageDomainInput,
   ResponseDomain,
   GetMessagesByConversationIdDomainOutput,
   GetMessagesByConversationIdDomainInput,
 } from "../types/domain";
-import { createMessageRepository, getMessagesRepository } from "../repository";
+import {
+  createMessageRepository,
+  getMessagesRepository,
+  getParticipantRoleRepository,
+} from "../repository";
 import { eventBusServer } from "../websocket/events";
 
 export async function sendMessageService(
   input: SendMessageDomainInput
 ): Promise<ResponseDomain> {
+  const isParticipant = await getParticipantRoleRepository({
+    conversationId: input.conversationId,
+    userId: input.sender.id,
+  });
+
+  if (!isParticipant) {
+    throw new DomainError({
+      status: 403,
+      code: "FORBIDDEN",
+      message: "User is not a participant",
+    });
+  }
+
   const result = await createMessageRepository({
     senderId: input.sender.id,
     conversationId: input.conversationId,
@@ -44,6 +62,19 @@ export async function sendMessageService(
 export async function getMessagesService(
   input: GetMessagesByConversationIdDomainInput
 ): Promise<GetMessagesByConversationIdDomainOutput[]> {
+  const isParticipant = await getParticipantRoleRepository({
+    conversationId: input.conversationId,
+    userId: input.userId,
+  });
+
+  if (!isParticipant) {
+    throw new DomainError({
+      status: 403,
+      code: "FORBIDDEN",
+      message: "User is not a participant",
+    });
+  }
+
   const result = await getMessagesRepository({
     conversationId: input.conversationId,
     limit: input.limit ?? 10,

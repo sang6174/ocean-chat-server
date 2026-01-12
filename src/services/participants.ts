@@ -9,6 +9,7 @@ import {
   addParticipantsRepository,
   getConversationByIdRepository,
   getParticipantsByConversationIdRepository,
+  checkFriendshipRepository,
 } from "../repository";
 import { DomainError } from "../helpers/errors";
 
@@ -26,6 +27,22 @@ export async function addParticipantsService(
       code: "AUTHORIZATION_ERROR",
       message: "The user is not permission to add new participants",
     });
+  }
+
+  // Check friendship: Admin must be friend with all new participants
+  for (const participantId of input.participantIds) {
+    const isFriend = await checkFriendshipRepository(
+      input.creator.id,
+      participantId
+    );
+
+    if (!isFriend) {
+      throw new DomainError({
+        status: 403,
+        code: "NOT_FRIEND",
+        message: `You are not friends with user ${participantId}. Cannot add to group.`,
+      });
+    }
   }
 
   let resultOldParticipants = await getParticipantsByConversationIdRepository({

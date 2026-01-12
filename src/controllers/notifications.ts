@@ -7,7 +7,7 @@ import {
   getNotificationsService,
   cancelFriendRequestService,
   acceptFriendRequestService,
-  denyFriendRequestService,
+  rejectFriendRequestService,
   markNotificationsAsReadService,
 } from "../services/notifications";
 
@@ -41,10 +41,10 @@ export async function acceptFriendRequestController(
   return result;
 }
 
-export async function denyFriendRequestController(
+export async function rejectFriendRequestController(
   input: FriendRequestWithNotificationIdDomainInput
 ) {
-  const result = await denyFriendRequestService(input);
+  const result = await rejectFriendRequestService(input);
 
   return result;
 }
