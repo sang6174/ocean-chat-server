@@ -42,7 +42,7 @@ export function validateHttpRegisterPost(
   if (!isPassword(value.password))
     return {
       valid: false,
-      message: "Password must be at least 6 characters.",
+      message: "Password must be 8+ characters with uppercase, lowercase, digit, and special character.",
     };
 
   return { valid: true };
