@@ -32,7 +32,7 @@ export function assertValidOutput(
 }
 
 export function isNumber(value: any): value is number {
-  return typeof value === "number";
+  return typeof value === "number" && !Number.isNaN(value);
 }
 
 export function isString(value: any): value is string {
