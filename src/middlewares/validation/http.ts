@@ -134,6 +134,14 @@ export function validateHttpCreateGroupConversationPost(
     };
   }
 
+  // MAX 100 participants per group conversation (DOS protection)
+  if (value.participantIds.length > 100) {
+    return {
+      valid: false,
+      message: "Too many participants. Maximum 100 allowed.",
+    };
+  }
+
   for (const p of value.participantIds) {
     if (!isUUIDv4(p)) {
       return {
