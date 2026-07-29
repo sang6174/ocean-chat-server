@@ -168,6 +168,13 @@ export function validateHttpSendMessagePost(
   if (!isString(value.message))
     return { valid: false, message: "message must be string" };
 
+  // Limit message length (max 5000 characters)
+  if (value.message.length > 5000)
+    return { valid: false, message: "message exceeds maximum length" };
+
+  if (value.message.trim().length === 0)
+    return { valid: false, message: "message cannot be empty" };
+
   return { valid: true };
 }
 
