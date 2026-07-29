@@ -70,7 +70,7 @@ export function validateHttpLoginPost(
   if (!isPassword(value.password))
     return {
       valid: false,
-      message: "Password must be at least 6 characters.",
+      message: "Invalid password format.",
     };
 
   return { valid: true };
