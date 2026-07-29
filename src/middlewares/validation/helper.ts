@@ -82,14 +82,25 @@ export function isEmail(email: any): email is string {
 
 export function isPassword(
   value: any,
-  minLength: number = 6,
-  maxLength: number = 32
+  minLength: number = 8,
+  maxLength: number = 128
 ): value is string {
-  return (
-    typeof value === "string" &&
-    value.trim().length >= minLength &&
-    value.trim().length <= maxLength
-  );
+  if (typeof value !== "string") return false;
+  
+  const password = value.trim();
+  if (password.length < minLength || password.length > maxLength) return false;
+  
+  // Password must contain:
+  // - At least one uppercase letter
+  // - At least one lowercase letter
+  // - At least one digit
+  // - At least one special character
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasDigit = /\d/.test(password);
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+  
+  return hasUppercase && hasLowercase && hasDigit && hasSpecialChar;
 }
 
 export function isTypeConversationEnum(value: any): value is ConversationType {
