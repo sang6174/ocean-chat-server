@@ -205,6 +205,11 @@ export function validateHttpAddParticipantsPost(
   if (!Array.isArray(value.participantIds))
     return { valid: false, message: "Participants list is invalid." };
 
+  // MAX 50 participants in one add operation (DOS protection)
+  if (value.participantIds.length > 50) {
+    return { valid: false, message: "Too many participants. Maximum 50 per operation." };
+  }
+
   for (const i of value.participantIds) {
     if (!isUUIDv4(i)) {
       return { valid: false, message: "One or more participants are invalid." };
