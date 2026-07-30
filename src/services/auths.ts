@@ -88,9 +88,9 @@ export async function loginService(
 
   if (!existingAccount) {
     throw new DomainError({
-      status: 400,
-      code: "ACCOUNT_INVALID",
-      message: "Account is invalid",
+      status: 401,
+      code: "INVALID_CREDENTIALS",
+      message: "Invalid credentials",
     });
   }
 
