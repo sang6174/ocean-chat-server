@@ -1,5 +1,6 @@
 import { WsServerEvent } from "../types/domain";
 import { DomainError } from "../helpers/errors";
+import { sanitizeMessage } from "../helpers/sanitizer";
 import type {
   SendMessageDomainInput,
   ResponseDomain,
@@ -29,10 +30,13 @@ export async function sendMessageService(
     });
   }
 
+  // Sanitize message content to prevent XSS
+  const sanitizedContent = sanitizeMessage(input.message);
+
   const result = await createMessageRepository({
     senderId: input.sender.id,
     conversationId: input.conversationId,
-    content: input.message,
+    content: sanitizedContent,
   });
 
   const participantIds = result.participants.map((p) => p.user.id);
