@@ -1,11 +1,10 @@
 import { Pool } from "pg";
-
-console.log(process.env.DATABASE_URL);
+import { env } from "./env";
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 20,
-  idleTimeoutMillis: 5000,
-  connectionTimeoutMillis: 5000,
-  maxLifetimeSeconds: 60,
+  connectionString: env.databaseUrl,
+  max: env.dbMaxPool,
+  idleTimeoutMillis: env.dbIdleTimeoutMs,
+  connectionTimeoutMillis: env.dbConnectionTimeoutMs,
+  maxLifetimeSeconds: env.dbMaxLifetimeSeconds,
 });
