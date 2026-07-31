@@ -20,19 +20,18 @@ import {
   rotateRefreshTokenRepository,
   revokeRefreshTokenRepository,
 } from "../repository";
+import { env } from "../configs/env";
 import { DomainError } from "../helpers/errors";
 import { logger } from "../helpers/logger";
 import { hashRefreshToken } from "../helpers/helpers";
 
-export const accessTokenSecret = process.env.ACCESS_TOKEN_SECRET!;
-export const accessTokenExpiresIn = process.env
-  .ACCESS_TOKEN_EXPIRES_IN! as jwt.SignOptions["expiresIn"];
+export const accessTokenSecret = env.accessTokenSecret;
+export const accessTokenExpiresIn = env.accessTokenExpiresIn as jwt.SignOptions["expiresIn"];
 
-export const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET!;
-export const refreshTokenExpiresIn = process.env
-  .REFRESH_TOKEN_EXPIRES_IN! as jwt.SignOptions["expiresIn"];
+export const refreshTokenSecret = env.refreshTokenSecret;
+export const refreshTokenExpiresIn = env.refreshTokenExpiresIn as jwt.SignOptions["expiresIn"];
 
-export const refreshTokenMaxAge = Number(process.env.REFRESH_TOKEN_MAX_AGE!);
+export const refreshTokenMaxAge = env.refreshTokenMaxAge;
 
 export function createAccessToken(
   payload: string,
