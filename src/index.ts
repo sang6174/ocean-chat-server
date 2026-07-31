@@ -1,6 +1,9 @@
 import type { DataWebSocket } from "./types/ws";
+import { env } from "./configs/env";
+import { router } from "./configs/router";
 import { requestContextStorage } from "./helpers/contexts";
 import { logger } from "./helpers/logger";
+import { checkRateLimit, getRateLimitKey, getRateLimitStatus } from "./middlewares/rateLimiting";
 import {
   handleRegister,
   handleLogin,
@@ -23,10 +26,27 @@ import {
 } from "./routes";
 import { addWsConnection, removeWsConnection } from "./websocket/main";
 
-const PORT = Number(process.env.PORT || 8080);
+// Register routes
+router.post("/v1/auth/register", handleRegister);
+router.post("/v1/auth/login", handleLogin);
+router.post("/v1/auth/refresh", handleGenerateAuthToken);
+router.post("/v1/auth/logout", handleLogout);
+router.get("/v1/profile/user", handleGetProfileUser);
+router.get("/v1/profile/users", handleGetAllProfileUsers);
+router.post("/v1/conversation/group", handleCreateGroupConversation);
+router.post("/v1/conversation/message", handleSendMessage);
+router.post("/v1/conversation/participants", handleAddParticipants);
+router.get("/v1/conversations", handleGetConversations);
+router.get("/v1/conversation/messages", handleGetMessages);
+router.post("/v1/notification/friend-request", handleSendFriendRequest);
+router.get("/v1/notifications", handleGetNotifications);
+router.put("/v1/notifications/read", handleMarkNotificationsAsRead);
+router.post("/v1/notification/friend-request/cancel", handleCancelFriendRequest);
+router.post("/v1/notification/friend-request/accept", handleAcceptFriendRequest);
+router.post("/v1/notification/friend-request/reject", handleRejectFriendRequest);
 
 const server = Bun.serve<DataWebSocket>({
-  port: PORT,
+  port: env.port,
   hostname: "0.0.0.0",
 
   async fetch(req, server) {
@@ -35,7 +55,7 @@ const server = Bun.serve<DataWebSocket>({
     const method = req.method;
 
     const headers = req.headers;
-    let tabId: string = headers.get("X-Tab-Id") ?? crypto.randomUUID();
+    const tabId: string = headers.get("X-Tab-Id") ?? crypto.randomUUID();
     const ctx = {
       tabId,
       requestId: crypto.randomUUID(),
@@ -44,154 +64,57 @@ const server = Bun.serve<DataWebSocket>({
       startTime: Date.now(),
     };
 
-    const origin =
-      req.headers.get("Origin") || "https://ocean-chat-web.vercel.app";
+    // Rate limiting check
+    const rateLimitKey = getRateLimitKey(req);
+    if (!checkRateLimit(rateLimitKey)) {
+      const status = getRateLimitStatus(rateLimitKey);
+      return new Response(
+        JSON.stringify({
+          code: "RATE_LIMIT_EXCEEDED",
+          message: "Too many requests. Please try again later.",
+        }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "X-RateLimit-Remaining": status.remaining.toString(),
+            "X-RateLimit-Reset": status.reset.toString(),
+          },
+        }
+      );
+    }
+
+    const origin = req.headers.get("Origin") || env.corsOrigin;
     const corsHeaders = {
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Tab-Id",
       "Access-Control-Allow-Credentials": "true",
       "Access-Control-Expose-Headers": "x-request-id",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "1; mode=block",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
     };
 
-    // OPTIONS
-    if (req.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: corsHeaders,
-      });
+    // OPTIONS (CORS preflight)
+    if (method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // POST /v1/auth/register
-    if (path === "/v1/auth/register" && method === "POST") {
-      return requestContextStorage.run(ctx, () => {
-        return handleRegister(req, corsHeaders);
-      });
-    }
-
-    // POST /v1/auth/login
-    if (path === "/v1/auth/login" && method === "POST") {
-      return requestContextStorage.run(ctx, () => {
-        return handleLogin(req, corsHeaders);
-      });
-    }
-
-    // POST /v1/auth/refresh
-    if (path === "/v1/auth/refresh" && method === "POST") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGenerateAuthToken(req, corsHeaders);
-      });
-    }
-
-    // POST /v1/auth/logout
-    if (path === "/v1/auth/logout" && method === "POST") {
-      return requestContextStorage.run(ctx, () => {
-        return handleLogout(url, req, corsHeaders);
-      });
-    }
-
-    // GET /v1/profile/user
-    if (path === "/v1/profile/user" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGetProfileUser(req, corsHeaders);
-      });
-    }
-
-    // GET /v1/profile/users
-    if (path === "/v1/profile/users" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGetAllProfileUsers(req, corsHeaders);
-      });
-    }
-
-    // POST /v1/conversation/group
-    if (path === "/v1/conversation/group" && method === "POST") {
-      return requestContextStorage.run(ctx, () => {
-        return handleCreateGroupConversation(req, corsHeaders);
-      });
-    }
-
-    // POST /v1/conversation/message
-    if (path === "/v1/conversation/message" && method === "POST") {
-      return requestContextStorage.run(ctx, () => {
-        return handleSendMessage(req, corsHeaders);
-      });
-    }
-
-    // POST /v1/conversation/participants
-    if (path === "/v1/conversation/participants" && method === "POST") {
-      return requestContextStorage.run(ctx, () => {
-        return handleAddParticipants(req, corsHeaders);
-      });
-    }
-
-    // GET /v1/conversations
-    if (path === "/v1/conversations" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGetConversations(url, req, corsHeaders);
-      });
-    }
-
-    // GET /v1/conversation/messages?conversationId=...&limit=...&offset=...
-    if (path === "/v1/conversation/messages" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGetMessages(url, req, corsHeaders);
-      });
-    }
-
-    // POST /v1/notification/friend-request
-    if (path === "/v1/notification/friend-request" && method === "POST") {
-      return requestContextStorage.run(ctx, () => {
-        return handleSendFriendRequest(url, req, corsHeaders);
-      });
-    }
-
-    // GET /v1/notifications
-    if (path === "/v1/notifications" && method === "GET") {
-      return requestContextStorage.run(ctx, () => {
-        return handleGetNotifications(req, corsHeaders);
-      });
-    }
-
-    // PUT /v1/notifications/read
-    if (path === "/v1/notifications/read" && method === "PUT") {
-      return requestContextStorage.run(ctx, () => {
-        return handleMarkNotificationsAsRead(url, req, corsHeaders);
-      });
-    }
-
-    // POST /v1/notification/friend-request/cancel
-    if (
-      path === "/v1/notification/friend-request/cancel" &&
-      method === "POST"
-    ) {
-      return requestContextStorage.run(ctx, () => {
-        return handleCancelFriendRequest(url, req, corsHeaders);
-      });
-    }
-
-    // POST /v1/notification/friend-request/accept
-    if (
-      path === "/v1/notification/friend-request/accept" &&
-      method === "POST"
-    ) {
-      return requestContextStorage.run(ctx, () => {
-        return handleAcceptFriendRequest(url, req, corsHeaders);
-      });
-    }
-
-    // POST /v1/notification/friend-request/reject
-    if (path === "/v1/notification/friend-request/reject" && method === "POST") {
-      return requestContextStorage.run(ctx, () => {
-        return handleRejectFriendRequest(url, req, corsHeaders);
-      });
-    }
-
-    // Upgrade websocket
+    // WebSocket upgrade
     if (req.headers.get("Upgrade")?.toLowerCase() === "websocket") {
-      return requestContextStorage.run(ctx, () => {
-        return handleUpgradeWebSocket(server, url, req, corsHeaders);
-      });
+      return requestContextStorage.run(ctx, () =>
+        handleUpgradeWebSocket(server, req, corsHeaders)
+      );
+    }
+
+    // Router dispatch
+    const match = router.match(method, path);
+    if (match) {
+      return requestContextStorage.run(ctx, () =>
+        match.handler(req, corsHeaders, match.params)
+      );
     }
 
     return new Response(JSON.stringify({ message: "not found" }), {
@@ -208,7 +131,7 @@ const server = Bun.serve<DataWebSocket>({
       addWsConnection(ws);
     },
 
-    async message(ws) { },
+    async message() {},
 
     close(ws) {
       removeWsConnection(ws);
