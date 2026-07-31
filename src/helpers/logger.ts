@@ -1,3 +1,4 @@
+import { env } from "../configs/env";
 import { getRequestContext } from "./contexts";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
@@ -6,9 +7,8 @@ type LogMeta = Record<string, unknown>;
 
 class Logger {
   private shouldLog(level: LogLevel): boolean {
-    const envLevel = process.env.LOG_LEVEL!;
     const order: LogLevel[] = ["debug", "info", "warn", "error"];
-    return order.indexOf(level) >= order.indexOf(envLevel as LogLevel);
+    return order.indexOf(level) >= order.indexOf(env.logLevel as LogLevel);
   }
 
   private baseLog(level: LogLevel, message: string, meta?: LogMeta) {
