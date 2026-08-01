@@ -11,21 +11,23 @@ import { logger } from "../helpers/logger";
 import { handleError, ValidateError } from "../helpers/errors";
 import { RequestContextAccessor } from "../helpers/contexts";
 
+function buildHeaders(corsHeaders: any): Record<string, string> {
+  return {
+    ...corsHeaders,
+    "Content-Type": "application/json",
+    "x-request-id": RequestContextAccessor.getRequestId() ?? "",
+    "x-tab-id": RequestContextAccessor.getTabId() ?? "",
+  };
+}
+
 // ============================================================
 // GET /v1/conversations
 // ============================================================
-export async function handleGetConversations(
-  url: URL,
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleGetConversations(req: Request, corsHeaders: any) {
   try {
     logger.debug("Start handle get conversations by user id");
 
-    // Parse auth token
     const auth = extractAndParseAccessToken(req);
-
-    // Verify auth token
     const authResult = checkAccessTokenMiddleware(auth);
 
     const result = await getConversationsController({
@@ -35,33 +37,12 @@ export async function handleGetConversations(
     logger.debug("Get the conversations by user id successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-        "x-request-id": RequestContextAccessor.getRequestId(),
-        "x-tab-id": RequestContextAccessor.getTabId(),
-      },
+      headers: buildHeaders(corsHeaders),
     });
   } catch (err) {
-    const errorResponse = handleError(err, corsHeaders);
-    if (errorResponse) {
-      return errorResponse;
-    }
-
-    return new Response(
-      JSON.stringify({
-        code: "INTERNAL_ERROR",
-        message: "Get conversations error. Please try again later.",
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": RequestContextAccessor.getRequestId(),
-          "x-tab-id": RequestContextAccessor.getTabId(),
-        },
-      }
+    return handleError(err, corsHeaders) ?? new Response(
+      JSON.stringify({ code: "INTERNAL_ERROR", message: "Get conversations error. Please try again later." }),
+      { status: 500, headers: buildHeaders(corsHeaders) }
     );
   }
 }
@@ -69,24 +50,18 @@ export async function handleGetConversations(
 // ============================================================
 // GET /v1/conversation/messages?conversationId=...&limit=...&offset=...
 // ============================================================
-export async function handleGetMessages(
-  url: URL,
-  req: Request,
-  corsHeaders: any
-) {
+export async function handleGetMessages(req: Request, corsHeaders: any) {
   try {
     logger.debug("Start handle get messages of a conversation");
 
-    // Parse auth token
     const auth = extractAndParseAccessToken(req);
-
-    // Verify auth token
     const authResult = checkAccessTokenMiddleware(auth);
 
-    // Get and validate search params
+    const url = new URL(req.url);
     const conversationId = url.searchParams.get("conversationId");
-    const limit = url.searchParams.get("limit") ?? 20;
-    const offset = url.searchParams.get("offset") ?? 0;
+    const limit = url.searchParams.get("limit") ?? "20";
+    const offset = url.searchParams.get("offset") ?? "0";
+
     if (!conversationId || !isUUIDv4(conversationId)) {
       throw new ValidateError("Search params is invalid.");
     }
@@ -120,33 +95,12 @@ export async function handleGetMessages(
     logger.debug("Get the messages of a conversation successfully");
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-        "x-request-id": RequestContextAccessor.getRequestId(),
-        "x-tab-id": RequestContextAccessor.getTabId(),
-      },
+      headers: buildHeaders(corsHeaders),
     });
   } catch (err) {
-    const errorResponse = handleError(err, corsHeaders);
-    if (errorResponse) {
-      return errorResponse;
-    }
-
-    return new Response(
-      JSON.stringify({
-        code: "INTERNAL_ERROR",
-        message: "Get messages error. Please try again later.",
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": RequestContextAccessor.getRequestId(),
-          "x-tab-id": RequestContextAccessor.getTabId(),
-        },
-      }
+    return handleError(err, corsHeaders) ?? new Response(
+      JSON.stringify({ code: "INTERNAL_ERROR", message: "Get messages error. Please try again later." }),
+      { status: 500, headers: buildHeaders(corsHeaders) }
     );
   }
 }
