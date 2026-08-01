@@ -1,5 +1,4 @@
 import type {
-  UserTokenPayload,
   GetConversationIdsRepositoryInput,
 } from "../types/domain";
 import type { DataWebSocket } from "../types/ws";
@@ -9,49 +8,52 @@ import { handleError } from "../helpers/errors";
 import { logger } from "../helpers/logger";
 import { RequestContextAccessor } from "../helpers/contexts";
 
+function buildHeaders(corsHeaders: any): Record<string, string> {
+  return {
+    ...corsHeaders,
+    "Content-Type": "application/json",
+    "x-request-id": RequestContextAccessor.getRequestId() ?? "",
+    "x-tab-id": RequestContextAccessor.getTabId() ?? "",
+  };
+}
+
 // ============================================================
 // Upgrade WebSocket
 // ============================================================
 export async function handleUpgradeWebSocket(
   server: Bun.Server<DataWebSocket>,
-  url: URL,
   req: Request,
   corsHeaders: any
 ) {
   try {
     logger.info("Start handle upgrade websocket");
 
-    // Get auth token from search params
-    const token = url.searchParams.get("token");
+    let token = "";
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.slice(7);
+    } else {
+      const protocol = req.headers.get("Sec-WebSocket-Protocol");
+      if (protocol?.startsWith("authorization-")) {
+        token = protocol.slice(14);
+      }
+    }
+
     if (!token) {
       return new Response(
-        JSON.stringify({
-          code: "SEARCH_PARAMS_INVALID",
-          message: "Please send token via search params",
-        }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-            "x-request-id": RequestContextAccessor.getRequestId(),
-            "x-tab-id": RequestContextAccessor.getTabId(),
-          },
-        }
+        JSON.stringify({ code: "AUTHORIZATION_REQUIRED", message: "Authorization required" }),
+        { status: 401, headers: buildHeaders(corsHeaders) }
       );
     }
 
-    // Verify auth token
     const authResult = checkAccessTokenMiddleware(token);
 
-    // Call controller
     const input: GetConversationIdsRepositoryInput = {
       userId: authResult.data.userId,
     };
 
     const conversation = await getConversationIdsController(input);
 
-    // Upgrade websocket
     const upgraded = server.upgrade(req, {
       data: {
         ...authResult.data,
@@ -63,37 +65,16 @@ export async function handleUpgradeWebSocket(
     if (!upgraded) {
       return new Response("Upgrade failed", {
         status: 400,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": RequestContextAccessor.getRequestId(),
-          "x-tab-id": RequestContextAccessor.getTabId(),
-        },
+        headers: buildHeaders(corsHeaders),
       });
     }
 
     logger.info("Upgrade websocket successfully");
     return;
   } catch (err) {
-    const errorResponse = handleError(err, corsHeaders);
-    if (errorResponse) {
-      return errorResponse;
-    }
-
-    return new Response(
-      JSON.stringify({
-        code: "INTERNAL_ERROR",
-        message: "Upgrade websocket error. Please try again later.",
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-          "x-request-id": RequestContextAccessor.getRequestId(),
-          "x-tab-id": RequestContextAccessor.getTabId(),
-        },
-      }
+    return handleError(err, corsHeaders) ?? new Response(
+      JSON.stringify({ code: "INTERNAL_ERROR", message: "Upgrade websocket error. Please try again later." }),
+      { status: 500, headers: buildHeaders(corsHeaders) }
     );
   }
 }
