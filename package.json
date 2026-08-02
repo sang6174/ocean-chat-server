@@ -4,12 +4,15 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run --watch src/index.ts"  
+    "dev": "bun run --watch src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/pg": "^8.15.6"
+    "@types/pg": "^8.15.6",
+    "vitest": "^4.1.10"
   },
   "peerDependencies": {
     "typescript": "^5"
